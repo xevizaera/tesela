@@ -177,6 +177,14 @@ body.touchmode .touch{display:block}
 #menu{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
   background:radial-gradient(ellipse at center,rgba(20,30,34,.05),rgba(20,30,34,.5));
   padding:calc(16px + var(--st)) calc(16px + var(--sr)) calc(16px + var(--sb)) calc(16px + var(--sl))}
+/* pantalla de inicio con la ilustración de fondo (si la imagen no carga, se ve el mundo 3D girando) */
+body.menubg #menu{background:#1b2a2f url(menu-bg.jpg) center top/cover no-repeat;align-items:flex-end}
+body.menubg #card{width:min(640px,100%);display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;padding:12px 14px;
+  background:rgba(22,36,40,.78);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border:2px solid var(--line)}
+body.menubg #card .mbtn{margin-top:0}
+body.menubg #card #cont{grid-column:1/-1}
+body.menubg #card #installNote,body.menubg #card #fsNote{grid-column:1/-1;margin:0}
+body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 #card{background:rgba(22,36,40,.8);border-radius:14px;padding:18px 24px;width:min(400px,100%);max-height:100%;overflow:auto;touch-action:pan-y}
 #card h1{margin:0;font-size:44px;letter-spacing:.14em;font-weight:700;line-height:1}
 #card p{margin:8px 0 12px;font-size:14px;line-height:1.45;opacity:.85}
@@ -2481,7 +2489,10 @@ function makeMenuWorld(){
   else{ const G=world.gen; for(let r=0;r<200;r++){ if(G.biomeAt(8+r*8,8)===0&&G.heightAt(8+r*8,8)>SEA+2){ mcx=8.5+r*8; break; } } }
   scene.fog=new THREE.Fog(SKY,4*CS*.55,4*CS*.98); world.U.uNear.value=4*CS*.55; world.U.uFar.value=4*CS*.98;
 }
+let menuBgOk=false;
+(function(){ const im=new Image(); im.onload=()=>{ menuBgOk=true; document.body.classList.add('menubg'); }; im.src='menu-bg.jpg'; })();
 function menuFrame(dt){
+  if(menuBgOk) return;   // con la ilustración de fondo no hace falta dibujar el mundo 3D del menú
   menuAng+=dt*.06;
   const G=world.gen, hh=G.heightAt(Math.floor(mcx),Math.floor(mcz));
   const cx=mcx+Math.cos(menuAng)*30, cz=mcz+Math.sin(menuAng)*30, cy=Math.max(hh+14,G.heightAt(Math.floor(cx),Math.floor(cz))+9);

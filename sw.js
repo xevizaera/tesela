@@ -1,7 +1,7 @@
 // Tesela: guarda el juego en el dispositivo para que funcione sin internet.
 // Al publicar una versión nueva, cambia VERSION para que los móviles la descarguen.
-const VERSION = 'tesela-2026-10-08b';
-const CORE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png', './favicon.png'];
+const VERSION = 'tesela-2026-10-09a';
+const CORE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png', './favicon.png', './menu-bg.jpg'];
 const LIB = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
 
 self.addEventListener('install', e => {
