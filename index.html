@@ -131,7 +131,13 @@ body.padmode .touch{display:none!important}
 #cmpIn span{position:absolute;top:3px;transform:translateX(-50%);font-size:12px;font-weight:700;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.6)}
 #cmpIn span.m{font-weight:400;opacity:.65;font-size:11px}
 #cmpIn span.b{color:#f2c54a}
+#cmpIn span.k{color:#c9a2ff}
 #cmpMid{position:absolute;left:50%;bottom:0;width:2px;height:5px;margin-left:-1px;background:var(--bone)}
+#bossBar{display:none;position:absolute;left:50%;top:calc(34px + var(--st));transform:translateX(-50%);width:min(340px,56vw);text-align:center;font-size:12px;color:#e9dcff;text-shadow:0 1px 2px #000;pointer-events:none}
+#bossBar.on{display:block}
+#bossBar div{height:8px;margin-top:3px;background:rgba(0,0,0,.55);border:1px solid #8d5bd6;border-radius:4px;overflow:hidden}
+#bossBar i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#8d5bd6,#d9bcff)}
+body.bossfight #hint{top:calc(66px + var(--st))}
 #tame{display:none;position:absolute;left:50%;top:calc(50% + 26px);transform:translateX(-50%);background:var(--panel);padding:6px 10px;border-radius:6px;font-size:12px;line-height:1.35;min-width:180px;max-width:min(300px,60vw);pointer-events:none;text-align:center}
 #tame .tbl{font-size:11px;opacity:.9;margin-top:3px}
 #tame .tb{height:6px;background:rgba(0,0,0,.45);border-radius:3px;margin-top:2px;overflow:hidden}
@@ -249,6 +255,7 @@ body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width
   <div id="compass" aria-hidden="true"><div id="cmpIn"></div><i id="cmpMid"></i></div>
   <div id="hint"></div>
   <div id="tame" role="status"></div>
+  <div id="bossBar" role="status"><b>Guardián sombrío</b><div><i id="bossFill"></i></div></div>
   <div id="bname"></div>
   <div id="xpBar" aria-label="Experiencia"><span id="xpLvl">Nivel 1</span><i id="xpFill"></i></div>
   <div id="hotbar"></div>
@@ -454,7 +461,7 @@ const AIR=0, GRASS=1, DIRT=2, STONE=3, SAND=4, GRAVEL=5, SNOW=6, PLANKS=7, BRICK
   BANDAGE=91, STEW=92, SWORD_CU=93, PICK_AU=94, HELM_CR=95, CHEST_CR=96, BOOTS_CR=97, SWORD_SH=98,
   SLING=99, BOW_W=100, BOW_FE=101, BOW_CR=102, BOW_SH=103, ARROW=104, TRANQ=105, BERRY=106, NARCO=107, BUSH=108,
   HELM_LE=109, CHEST_LE=110, BOOTS_LE=111, HELM_FE=112, CHEST_FE=113, BOOTS_FE=114, HELM_SH=115, CHEST_SH=116, BOOTS_SH=117,
-  PET_LE=118, PET_CU=119, PET_FE=120, PET_AU=121, PET_CR=122, PET_SH=123;
+  PET_LE=118, PET_CU=119, PET_FE=120, PET_AU=121, PET_CR=122, PET_SH=123, CORE=124, GSWORD=125;
 // tex: [arriba, lados, abajo] · hard: segundos a mano · mat: qué herramienta lo acelera
 // need: nivel mínimo de pico para que suelte algo · drop: qué suelta (por defecto, él mismo)
 const BLOCKS=[null,
@@ -545,7 +552,9 @@ const BLOCKS=[null,
   {name:'Yelmo sombrío', armor:{slot:0,pts:4}, metal:'sh'},{name:'Peto sombrío', armor:{slot:1,pts:7}, metal:'sh'},{name:'Botas sombrías', armor:{slot:2,pts:4}, metal:'sh'},
   // armaduras para el perro o el lobo domesticado: coraza y casco en una sola pieza
   {name:'Armadura canina de cuero', pet:{pts:3}, metal:'le'},{name:'Armadura canina de cobre', pet:{pts:5}, metal:'cu'},{name:'Armadura canina de hierro', pet:{pts:8}, metal:'fe'},
-  {name:'Armadura canina de oro', pet:{pts:9}, metal:'au'},{name:'Armadura canina de cristal', pet:{pts:12}, metal:'cr'},{name:'Armadura canina sombría', pet:{pts:15}, metal:'sh'}
+  {name:'Armadura canina de oro', pet:{pts:9}, metal:'au'},{name:'Armadura canina de cristal', pet:{pts:12}, metal:'cr'},{name:'Armadura canina sombría', pet:{pts:15}, metal:'sh'},
+  {name:'Núcleo sombrío'},
+  {name:'Espada del Guardián', tool:'sword', tier:4, dmg:20, dur:1500, col:'#c9a2ff', hc:0xc9a2ff, rep:[38,3]}
 ];
 // agua: la quieta (fuente) y tres niveles de agua que corre
 const WATERISH=new Uint8Array(256); for(const i of [9,85,86,87]) WATERISH[i]=1;
@@ -744,16 +753,96 @@ class WorldGenerator{
   }
   // estructuras: como mucho una por chunk y siempre dentro de él, así no se cortan entre chunks
   structAt(cx,cz){
-    const s=this.seed, r=hash2(cx,cz,s+31337); if(r>.11) return null;
+    const s=this.seed, r=hash2(cx,cz,s+31337);
+    if(r>=.11&&r<.155) return this.bigStructAt(cx,cz,r);
+    if(r>.11) return null;
     const lx=2+Math.floor(hash2(cx,cz,s+31338)*3), lz=2+Math.floor(hash2(cx,cz,s+31339)*3);
     const wx=cx*CS+lx+3, wz=cz*CS+lz+3, h=this.heightAt(wx,wz), bio=this.biomeAt(wx,wz);
     if(h<=SEA+1||h>=40) return null;
     const type=(bio!==2&&r<.055)?'cabin':'ruin';
     return {type,lx,lz,h,chest:type==='cabin'?[cx*CS+lx+5,h+1,cz*CS+lz+5]:[wx,h+1,wz]};
   }
+  // estructuras grandes: ocupan casi todo su chunk. tier: calidad del botín (1 mazmorra y torre, 2 cripta)
+  bigStructAt(cx,cz,r){
+    const s=this.seed, x0=cx*CS, z0=cz*CS;
+    if(r<.13||r>=.15){                                 // mazmorra (o cripta, mucho más rara): escalera que baja a una sala
+      const crypt=r>=.15, h=this.heightAt(x0+1,z0+1), fy=h-13;
+      if(h<=SEA+1||h>=40||fy<5) return null;
+      for(const q of [[3,4],[14,4],[3,14],[14,14],[8,9]]) if(this.heightAt(x0+q[0],z0+q[1])<fy+8) return null;
+      const y1=fy+1;
+      return {type:crypt?'crypt':'dungeon',big:true,h,fy,tier:crypt?2:1,key:cx+','+cz,
+        chests:crypt?[[x0+5,y1,z0+12],[x0+12,y1,z0+12],[x0+8,y1,z0+13]]:[[x0+5,y1,z0+12],[x0+12,y1,z0+12]],
+        center:[x0+8.5,y1,z0+9.5], wake:7.5};
+    }
+    const lx=2+Math.floor(hash2(cx,cz,s+31338)*3), lz=2+Math.floor(hash2(cx,cz,s+31339)*3);
+    const wx=x0+lx+3, wz=z0+lz+3, h=this.heightAt(wx,wz);
+    if(h<=SEA+1||h>=38) return null;
+    return {type:'tower',big:true,lx,lz,h,tier:1,key:cx+','+cz,chests:[[wx,h+13,wz]],center:[wx+.5,h+13,wz+.5],wake:12};
+  }
+  buildBig(data,st,set,get){
+    const s=this.seed, P=POLISHED, BR=BRICKS;
+    const wall=(x,y,z)=>set(x,y,z,hash2(x*7+y,z*3+y,s+91)>.55?BR:hash2(x+y*5,z,s+92)>.8?STONE:P);
+    if(st.type==='tower'){
+      const {lx,lz,h}=st, top=h+12;
+      for(let dz=0;dz<7;dz++)for(let dx=0;dx<7;dx++){
+        const x=lx+dx, z=lz+dz, edge=dx===0||dx===6||dz===0||dz===6;
+        for(let y=h-1;y>0&&(!SOLID[get(x,y,z)]||WATERISH[get(x,y,z)]);y--) set(x,y,z,STONE);
+        set(x,h,z,P);
+        for(let y=h+1;y<=top+3;y++) set(x,y,z,AIR);
+        if(edge){ for(let y=h+1;y<=top+1;y++) wall(x,y,z);
+          if((dx+dz)%2===0) set(x,top+2,z,P); }                                         // almenas
+      }
+      for(let y=h+1;y<=h+2;y++) set(lx+3,y,lz,AIR);                                       // puerta
+      for(let dz=1;dz<=2;dz++) for(let dx=2;dx<=4;dx++){ const x=lx+dx, z=lz-dz;                // paso despejado delante de la puerta
+        for(let y=h-1;y>0&&(!SOLID[get(x,y,z)]||WATERISH[get(x,y,z)]);y--) set(x,y,z,STONE);
+        set(x,h,z,P); for(let y=h+1;y<=h+4;y++) set(x,y,z,AIR); }
+      for(const y of [h+5,h+9]){ set(lx+3,y,lz+6,AIR); set(lx,y,lz+3,AIR); set(lx+6,y,lz+3,AIR); }   // ventanas
+      // escalera de caracol pegada a la pared por dentro
+      const ring=[]; for(let i=1;i<=5;i++) ring.push([i,1]); for(let i=2;i<=5;i++) ring.push([5,i]); for(let i=4;i>=1;i--) ring.push([i,5]); for(let i=4;i>=2;i--) ring.push([1,i]);
+      const start=4, n=12;
+      for(let i=0;i<n;i++){
+        const c=ring[(start+i)%16], nx=ring[(start+i+1)%16], x=lx+c[0], z=lz+c[1], y=h+1+i;
+        for(let yy=h+1;yy<y;yy++) set(x,yy,z,P);
+        const ddx=nx[0]-c[0], ddz=nx[1]-c[1], rot=ddx>0?1:ddx<0?3:ddz>0?2:0;
+        set(x,y,z,i===n-1?P:STAIR_S+rot);
+      }
+      for(let dz=1;dz<=5;dz++)for(let dx=1;dx<=5;dx++){                                  // suelo de arriba con hueco para subir
+        const k=ring.findIndex(q=>q[0]===dx&&q[1]===dz), i=k<0?-1:(k-start+16)%16;
+        if(i===n-3||i===n-2) continue;
+        if(i>=0&&i<n) continue;
+        set(lx+dx,top,lz+dz,P);
+      }
+      set(lx+3,top+1,lz+3,CHEST);
+      return;
+    }
+    // mazmorra / cripta
+    const {h,fy}=st, crypt=st.type==='crypt';
+    for(let i=0;i<=12;i++){                                                              // escalera de bajada
+      const x=1+i, y=h-1-i;
+      for(const z of [1,2]){ set(x,y,z,STAIR_S+3); for(let yy=y+1;yy<=y+3;yy++) set(x,yy,z,AIR); set(x,y-1,z,P); }
+      for(const z of [0,3]) for(let yy=y;yy<=y+3;yy++) if(!SOLID[get(x,yy,z)]||WATERISH[get(x,yy,z)]) wall(x,yy,z);
+    }
+    for(const x of [13,14]) for(const z of [1,2,3]){ set(x,fy,z,P); for(let yy=fy+1;yy<=fy+3;yy++) set(x,yy,z,AIR); }
+    for(const z of [1,2]){ set(14,fy,z,P); }
+    for(let y=h;y<=h+3;y++){ set(1,y,0,y===h+3?P:BR); set(1,y,3,y===h+3?P:BR); }          // arco de la entrada
+    set(1,h+3,1,P); set(1,h+3,2,P); set(0,h+3,1,SLAB_S); set(0,h+3,2,SLAB_S);
+    for(let z=4;z<=14;z++)for(let x=3;x<=14;x++)for(let y=fy;y<=fy+5;y++){
+      const shell=x===3||x===14||z===4||z===14||y===fy||y===fy+5;
+      if(shell) wall(x,y,z); else set(x,y,z,AIR);
+    }
+    for(const y of [fy+1,fy+2]) set(13,y,4,AIR);                                         // paso a la sala
+    for(const q of [[6,8],[11,8],[6,11],[11,11]]) for(let y=fy+1;y<=fy+4;y++) set(q[0],y,q[1],crypt?BR:P);   // columnas
+    if(crypt){
+      for(const q of [[6,8],[11,8],[6,11],[11,11]]) set(q[0],fy+3,q[1],LAMP);
+      for(let x=5;x<=12;x++) set(x,fy,9,BR); for(let x=5;x<=12;x++) set(x,fy,10,BR);
+      for(const x of [7,8,9,10]) set(x,fy+1,13,P); set(8,fy+1,13,CHEST);
+    }
+    set(5,fy+1,12,CHEST); set(12,fy+1,12,CHEST);
+  }
   buildStruct(data,st,cx,cz){
     const set=(x,y,z,id)=>{ if(x<0||x>15||z<0||z>15||y<1||y>=WH) return; data[x+z*CS+y*256]=id; };
     const get=(x,y,z)=>data[x+z*CS+y*256];
+    if(st.big){ this.buildBig(data,st,set,get); return; }
     const {lx,lz,h}=st, cab=st.type==='cabin', s=this.seed;
     for(let dz=0;dz<7;dz++)for(let dx=0;dx<7;dx++){
       const x=lx+dx, z=lz+dz;
@@ -889,7 +978,7 @@ function buildChunkGeometry(world,cx,cz){
         if(!s2){ sk+=j===-1?0:j===-2?15:lsky[j]; tl+=j<0?0:ltor[j]; cnt++; }
         if(!cr&&!(s1&&s2)){ sk+=jc===-1?0:jc===-2?15:lsky[jc]; tl+=jc<0?0:ltor[jc]; cnt++; }
         ao[k]=(s1&&s2)?0:3-(s1+s2+cr);
-        out.s.push(F.sh*AO_MUL[ao[k]]);
+        out.s.push(F.sh*AO_MUL[ao[k]]+(id===LEAVES?2:0));
         out.l.push(LUT[Math.round(sk/cnt*4)], LUT[Math.round(tl/cnt*4)]);
         out.u.push((tc+(C[3]?1-e:e))/AT, 1-(tr+(C[4]?e:1-e))/AT);
       }
@@ -942,7 +1031,7 @@ function addCross(out,x,y,z,t){
   for(const q of [[.15,.15,.85,.85],[.15,.85,.85,.15]]){
     const base=out.p.length/3;
     out.p.push(x+q[0],y,z+q[1], x+q[2],y,z+q[3], x+q[0],y+1,z+q[1], x+q[2],y+1,z+q[3]);
-    for(let k=0;k<4;k++){ out.s.push(.95); out.l.push(sk,tl); out.u.push((tc+((k&1)?1-e:e))/AT, 1-(tr+((k&2)?e:1-e))/AT); }
+    for(let k=0;k<4;k++){ out.s.push((k&2)?4.95:.95); out.l.push(sk,tl); out.u.push((tc+((k&1)?1-e:e))/AT, 1-(tr+((k&2)?e:1-e))/AT); }
     out.i.push(base,base+1,base+2, base+2,base+1,base+3, base,base+2,base+1, base+2,base+3,base+1);
   }
 }
@@ -961,10 +1050,14 @@ function toMesh(a,mat){
 /* ============================================================
    WORLD: carga/descarga dinámica de chunks y edición de bloques
    ============================================================ */
-const VSH=`attribute float aShade; attribute vec2 aLight; uniform float uDay; uniform float uWave; uniform float uTime;
+const VSH=`attribute float aShade; attribute vec2 aLight; uniform float uDay; uniform float uWave; uniform float uTime; uniform float uWind;
 varying vec2 vUv; varying float vL; varying float vD;
-void main(){ vUv=uv; float l=max(aLight.x*uDay,aLight.y); vL=aShade*(0.055+0.945*l);
-  vec3 p=position; if(uWave>0.5){ vec4 wp=modelMatrix*vec4(p,1.0); p.y+=sin(uTime*1.6+wp.x*0.9+wp.z*0.7)*0.035-0.03; }
+void main(){ vUv=uv; float sh=aShade, w=0.0;
+  if(sh>3.5){ w=1.0; sh-=4.0; } else if(sh>1.5){ w=0.35; sh-=2.0; }
+  float l=max(aLight.x*uDay,aLight.y); vL=sh*(0.055+0.945*l);
+  vec3 p=position; vec4 wp=modelMatrix*vec4(p,1.0);
+  if(uWave>0.5) p.y+=sin(uTime*1.6+wp.x*0.9+wp.z*0.7)*0.035-0.03;
+  if(w>0.0){ float t=uTime*1.7+wp.x*0.55+wp.z*0.35; p.x+=(sin(t)*0.06+sin(t*2.3+wp.z)*0.02)*w*uWind; p.z+=cos(t*0.8+wp.x*0.4)*0.045*w*uWind; }
   vec4 mv=modelViewMatrix*vec4(p,1.0); vD=-mv.z; gl_Position=projectionMatrix*mv; }`;
 const FSH=`uniform sampler2D map; uniform vec3 uFog; uniform float uNear; uniform float uFar; uniform float uAlpha;
 varying vec2 vUv; varying float vL; varying float vD;
@@ -975,9 +1068,9 @@ class World{
     this.scene=scene; this.gen=new WorldGenerator(seed); this.R=radius; this.budget=budget;
     this.chunks=new Map(); this.edits=new Map(); this.queue=[]; this.dirty=new Set(); this.later=new Set();
     this.lcx=1e9; this.lcz=1e9; this.meshed=0;
-    const U=this.U={uDay:{value:1},uFog:{value:new THREE.Color(0x9fd3f0)},uNear:{value:50},uFar:{value:90},uTime:{value:0}};
+    const U=this.U={uDay:{value:1},uFog:{value:new THREE.Color(0x9fd3f0)},uNear:{value:50},uFar:{value:90},uTime:{value:0},uWind:{value:1}};
     const mk=(alpha,wave,extra)=>new THREE.ShaderMaterial(Object.assign({vertexShader:VSH,fragmentShader:FSH,
-      uniforms:{map:{value:atlasTex},uDay:U.uDay,uFog:U.uFog,uNear:U.uNear,uFar:U.uFar,uTime:U.uTime,uAlpha:{value:alpha},uWave:{value:wave}}},extra));
+      uniforms:{map:{value:atlasTex},uDay:U.uDay,uFog:U.uFog,uNear:U.uNear,uFar:U.uFar,uTime:U.uTime,uWind:U.uWind,uAlpha:{value:alpha},uWave:{value:wave}}},extra));
     this.mat=mk(1,0,{}); this.wmat=mk(.72,1,{transparent:true,depthWrite:false});
   }
   getChunk(cx,cz){
@@ -1306,6 +1399,7 @@ function icon(id){
     x.fillStyle=pal[1]; x.fillRect(1,12,10,1); x.fillRect(4,6,1,3); x.fillRect(7,6,1,3); x.fillRect(11,4,4,1);
     if(pal[2]){ x.fillStyle=pal[2]; x.fillRect(2,6,2,1); x.fillRect(12,5,1,1); }
   }
+  else if(id===CORE){ x.fillStyle='#2a1b40'; for(let j=1;j<=6;j++){ x.fillRect(8-j,1+j,2*j,1); x.fillRect(8-j,14-j,2*j,1); } x.fillStyle='#b79cf0'; for(let j=1;j<=4;j++){ x.fillRect(8-j,3+j,2*j,1); x.fillRect(8-j,12-j,2*j,1); } x.fillStyle='#f4e8ff'; x.fillRect(7,6,2,4); }
   else if(id===LEATHER){ x.fillStyle='#9a6038'; x.fillRect(3,3,10,10); x.fillRect(2,5,12,6); x.fillStyle='#b97a4c'; x.fillRect(5,5,3,3); }
   else if(id===SEEDS){ x.fillStyle='#7aa04a'; for(const q of [[4,6],[8,4],[11,7],[6,10],[10,11]]) x.fillRect(q[0],q[1],2,3); }
   else if(id===WHEAT_ITEM){ x.fillStyle='#d9b24a'; for(let j=0;j<3;j++){ x.fillRect(4+j*3,2,2,6); } x.fillStyle='#a8863a'; x.fillRect(5,8,6,7); }
@@ -1398,6 +1492,7 @@ const RECIPES=[
   {out:HELM_AU,n:1,inp:[[GOLD_INGOT,5]],st:WORKBENCH,lock:'armau'},
   {out:CHEST_AU,n:1,inp:[[GOLD_INGOT,8]],st:WORKBENCH,lock:'armau'},
   {out:BOOTS_AU,n:1,inp:[[GOLD_INGOT,4]],st:WORKBENCH,lock:'armau'},
+  {out:GSWORD,n:1,inp:[[CORE,1],[CRYSTAL,2],[STICK,1]],st:WORKBENCH},
   {out:PET_LE,n:1,inp:[[LEATHER,4]],st:WORKBENCH},
   {out:PET_CU,n:1,inp:[[COPPER_INGOT,6]],st:WORKBENCH},
   {out:PET_FE,n:1,inp:[[IRON_INGOT,6]],st:WORKBENCH,lock:'armfe'},
@@ -1524,6 +1619,7 @@ function slotText(s,i){
   else if(d.tool==='bow') t+=' · daño de flecha '+d.rng.dmg+' · dispara con Usar';
   else if(d.tool==='sling') t+=' · lanza piedras que aturden';
   else if(d.pet) t+=' · para tu perro o lobo: protege un '+d.pet.pts*4+' %. Úsala sobre él';
+  else if(s.id===CORE) t+=' · lo suelta el Guardián sombrío. Sirve para su espada';
   else if(s.id===TRANQ) t+=' · duerme animales';
   else if(s.id===NARCO) t+=' · para hacer tranquilizantes o mantener dormido a un animal';
   else if(d.heal) t+=' · cura y quita hambre';
@@ -1821,18 +1917,52 @@ function updateDecay(dt){
 const looted=new Set();
 const LOOT=[[APPLE,1,3,8],[BREAD,1,3,8],[COOKED_MEAT,1,3,6],[COAL,2,6,9],[TORCH,3,8,8],[SEEDS,2,5,6],[LEATHER,1,3,6],
   [IRON_INGOT,1,3,5],[COPPER_INGOT,1,4,5],[GOLD_INGOT,1,2,2],[CRYSTAL,1,1,1],[GOLD_APPLE,1,1,1],[PICK_STONE,1,1,2],[SWORD_STONE,1,1,2],[SWORD_IRON,1,1,1]];
+// botín de mazmorras y torres, y el de las criptas
+const LOOT2=[[IRON_INGOT,2,5,8],[GOLD_INGOT,1,3,6],[CRYSTAL,1,2,4],[COPPER_INGOT,2,5,6],[TRANQ,2,6,6],[ARROW,4,12,8],[NARCO,1,3,5],[GOLD_APPLE,1,1,3],
+  [COOKED_MEAT,2,4,6],[BREAD,2,4,5],[SHARD,1,3,5],[BOW_FE,1,1,1],[PET_FE,1,1,1],[SWORD_IRON,1,1,2],[BANDAGE,1,3,4],[TORCH,4,10,6],[LEATHER,2,4,4]];
+const LOOT3=[[CRYSTAL,3,6,8],[SHARD,4,8,8],[GOLD_INGOT,3,6,6],[GOLD_APPLE,1,2,5],[BOW_CR,1,1,2],[CHEST_CR,1,1,1],[PET_CR,1,1,1],[TRANQ,4,10,5],[STEW,1,2,4],[IRON_INGOT,4,8,5]];
+let cryptPt=null;
+function findCrypt(){
+  const pcx=Math.floor(player.x/CS), pcz=Math.floor(player.z/CS), g=world.gen;
+  for(let r=1;r<=48;r++) for(let dz=-r;dz<=r;dz++) for(let dx=-r;dx<=r;dx++){
+    if(Math.max(Math.abs(dx),Math.abs(dz))!==r) continue;
+    const cx=pcx+dx, cz=pcz+dz, q=hash2(cx,cz,g.seed+31337); if(q<.15||q>=.155) continue;
+    const st=g.structAt(cx,cz); if(st&&st.type==='crypt') return [st.center[0],st.center[1],st.center[2]];
+  }
+  return null;
+}
 function lootChest(x,y,z){
   const k=x+','+y+','+z; if(looted.has(k)||chests.has(k)) return;
-  const st=world.gen.structAt(x>>4,z>>4); if(!st||st.chest[0]!==x||st.chest[1]!==y||st.chest[2]!==z) return;
-  looted.add(k); flags.loot=true; gainXp(10);
-  const R=rng(Math.imul(x,92837111)^Math.imul(z,689287499)^world.gen.seed), c=chestAt(k), tot=LOOT.reduce((a,l)=>a+l[3],0);
-  const n=4+Math.floor(R()*4);
+  const st=world.gen.structAt(x>>4,z>>4); if(!st) return;
+  if(!(st.chests||[st.chest]).some(c=>c[0]===x&&c[1]===y&&c[2]===z)) return;
+  looted.add(k); flags.loot=true; gainXp(st.tier?10+st.tier*10:10);
+  const T=st.tier===2?LOOT3:st.tier===1?LOOT2:LOOT;
+  const R=rng(Math.imul(x,92837111)^Math.imul(z,689287499)^world.gen.seed), c=chestAt(k), tot=T.reduce((a,l)=>a+l[3],0);
+  const n=4+Math.floor(R()*4)+(st.tier||0);
   for(let i=0;i<n;i++){
-    let r=R()*tot, l=LOOT[0]; for(const e of LOOT){ r-=e[3]; if(r<=0){ l=e; break; } }
+    let r=R()*tot, l=T[0]; for(const e of T){ r-=e[3]; if(r<=0){ l=e; break; } }
     let slot=Math.floor(R()*18); while(c[slot]) slot=(slot+1)%18;
     c[slot]={id:l[0],n:l[1]+Math.floor(R()*(l[2]-l[1]+1)),d:0};
   }
-  toast('Has encontrado un cofre con botín.');
+  toast(st.tier===2?'¡Un cofre de la cripta!':st.tier===1?'Has encontrado un cofre con buen botín.':'Has encontrado un cofre con botín.');
+  if(st.tier) flags.dloot=true;
+  if(st.type==='dungeon'&&!cryptPt){ const cp=findCrypt(); if(cp){ cryptPt=cp; setTimeout(()=>toast('Entre el botín hay un mapa antiguo: marca una cripta. Síguela con el ☠ de la brújula.'),2700); } }
+}
+// guardianes: la primera vez que te acercas a una estructura grande, aparecen sus defensores
+const woken=new Set(), slain=new Set(); let guardT=0;
+function checkGuards(dt){
+  guardT-=dt; if(guardT>0||dead) return; guardT=.6;
+  const pcx=Math.floor(player.x/CS), pcz=Math.floor(player.z/CS);
+  for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){
+    const st=world.gen.structAt(pcx+dx,pcz+dz); if(!st||!st.big||woken.has(st.key)||slain.has(st.key)) continue;
+    const c=st.center, dh=Math.hypot(player.x-c[0],player.z-c[2]);
+    if(dh>st.wake||Math.abs(player.y-c[1])>(st.type==='tower'?14:5)) continue;
+    woken.add(st.key);
+    const at=(kind,ox,oz)=>{ const e=makeEnemy(kind,c[0]+ox,c[1]+.01,c[2]+oz); e.guard=true; e.skey=st.key; e.aggro=false; return e; };
+    if(st.type==='tower'){ at('thrower',-1.5,-1.5); at('thrower',1.5,1.5); toast('¡Hay vigías en lo alto de la torre!'); }
+    else if(st.type==='dungeon'){ at('umbrio',-3,2); at('umbrio',3,2); at('thrower',0,3); toast('Algo se despierta en la mazmorra…'); }
+    else{ at('boss',0,2.5); at('umbrio',-3,-1); at('umbrio',3,-1); toast('¡El Guardián sombrío se ha despertado!'); sfx('growl'); }
+  }
 }
 
 function isFree(x,y,z){ const c=world.getBlock(x,y,z); return c===AIR||WATERISH[c]||(BLOCKS[c]&&BLOCKS[c].plant); }
@@ -1854,7 +1984,7 @@ function useBed(hit){
 
 /* ---------- FARMING: el trigo crece por etapas mientras juegas ---------- */
 const crops=new Map(); let gameT=0, cropT=0;
-const flags={crafted:new Set(),night:false,base:false,loot:false,plant:false,tamed:false};
+const flags={crafted:new Set(),night:false,base:false,loot:false,plant:false,tamed:false,dloot:false,boss:false};
 const CROP_STAGE=70;   // segundos por etapa
 function updateCrops(dt){
   cropT+=dt; if(cropT<1) return; cropT=0;
@@ -2361,6 +2491,32 @@ const SPECIES={
   wolf:{r:.34,h:1.05,speed:1.7,flee:5,hp:20,meat:2,calm:true,aggro:true,active:true,torp:26,build:ABUILD.wolf},
   bird:{r:.2,h:.3,speed:3.4,flee:6.5,fly:true,hp:3,meat:1,torp:6,build:ABUILD.bird}
 };
+/* ---------- SOMBRAS: un círculo suave bajo cada criatura, sobre el suelo que tenga debajo ---------- */
+const shadowTex=(()=>{ const c=document.createElement('canvas'); c.width=c.height=64; const x=c.getContext('2d'), g=x.createRadialGradient(32,32,2,32,32,31);
+  g.addColorStop(0,'rgba(0,0,0,.55)'); g.addColorStop(.6,'rgba(0,0,0,.3)'); g.addColorStop(1,'rgba(0,0,0,0)'); x.fillStyle=g; x.fillRect(0,0,64,64);
+  const t=new THREE.CanvasTexture(c); return t; })();
+const shadowGeo=new THREE.PlaneGeometry(1,1); shadowGeo.rotateX(-Math.PI/2);
+const shadowPool=[];
+function groundBelow(x,y,z){
+  const bx=Math.floor(x), bz=Math.floor(z); let by=Math.floor(y+.05);
+  for(let i=0;i<9;i++,by--){ const t=aabbTop(x-.05,by-1,z-.05,x+.05,by,z+.05); if(t!==null) return t; if(WATERISH[world.getBlock(bx,by-1,bz)]) return by-.12; }
+  return null;
+}
+function updateShadows(){
+  let n=0;
+  const put=(a,r)=>{
+    if(!a.g.visible) return;
+    const gy=groundBelow(a.x,a.y,a.z); if(gy===null) return;
+    const h=a.y-gy; if(h>9) return;
+    let m=shadowPool[n];
+    if(!m){ m=new THREE.Mesh(shadowGeo,new THREE.MeshBasicMaterial({map:shadowTex,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2})); m.renderOrder=2; scene.add(m); shadowPool.push(m); }
+    const sc=r*(1-Math.min(.5,h*.06));
+    m.position.set(a.x,gy+.015,a.z); m.scale.set(sc,1,sc*1.25); m.rotation.y=a.yaw||0; m.material.opacity=Math.max(0,1-h/9)*(.35+.65*dayLight); m.visible=true; n++;
+  };
+  for(const a of animals) put(a,a.sp.r*2.6*(a.sc||1)*(a.sp.fly?.9:1));
+  for(const e of enemies) put(e,e.sp.r*2.8*(e.boss?1.6:1));
+  for(let i=n;i<shadowPool.length;i++) shadowPool[i].visible=false;
+}
 function boxHits(x,y,z,r,hh){ return aabbTop(x-r,y,z-r,x+r,y+hh,z+r)!==null; }
 function spawnAnimal(){
   const ang=Math.random()*Math.PI*2, dist=18+Math.random()*26;
@@ -2668,24 +2824,82 @@ function petStatus(){
 
 /* ---------- ENEMIES: el umbrío, criatura nocturna que persigue y golpea ---------- */
 const enemies=[], ENEMY_MAX=5;
-const EM={body:amat(0x3d2c5a),dark:amat(0x261b3a),eye:new THREE.MeshBasicMaterial({color:0xa6ff6e})};
+/* ---------- MODELOS DE ENEMIGOS: umbrío, lanzaespinas y Guardián sombrío ---------- */
+// los ojos y el núcleo van en una malla aparte que no se oscurece de noche: brillan en la oscuridad
+const glowMat=new THREE.MeshBasicMaterial({vertexColors:true});
+function glowMesh(B){ const m=abMesh(B); m.material=glowMat; return m; }
+// brazo o pata que cuelga de su punto de giro
+function ebLimb(g,list,x,top,z,w,len,col,tip,tipCol,claws){
+  const B=AB(); abr(B,w,len*.88,w*1.05,col,0,-len*.44,0);
+  if(tip) abx(B,w*1.15,len*.14,w*1.25,tipCol,0,-len*.92,.02);
+  if(claws) for(const cx of [-1,0,1]) abx(B,w*.22,len*.16,w*.22,claws,cx*w*.32,-len-len*.05,w*.3,.4);
+  const m=abMesh(B); m.position.set(x,top,z); g.add(m); list.push(m); return m;
+}
+const EBUILD={
+  umbrio(g,a){
+    const A=0x3d2c5a, D=0x261b3a, K=0x140e20, L=0x5a4380, B=AB(), E=AB();
+    abr(B,.44,.6,.3,A,0,1.06,0);                                   // torso
+    for(let i=0;i<3;i++) abx(B,.3,.03,.02,D,0,.95+i*.12,.155);     // costillas
+    abx(B,.58,.16,.32,D,0,1.36,-.02);                              // hombros encorvados
+    for(let i=0;i<5;i++) abx(B,.09,.14+(i%2)*.1,.3,i%2?D:A,-.18+i*.09,.72-(i%2)*.05,0);   // jirones de la túnica
+    abr(B,.4,.38,.38,A,0,1.6,.04);                                 // cabeza con capucha
+    abx(B,.44,.1,.42,D,0,1.8,.02); abx(B,.3,.24,.03,K,0,1.58,.235);  // visera y cara en sombra
+    abx(B,.2,.14,.1,D,0,1.8,-.18,-.5);                             // pico de la capucha
+    g.add(abMesh(B));
+    for(const sx of [1,-1]){ abx(E,.09,.06,.02,0xa6ff6e,sx*.08,1.61,.255); abx(E,.03,.02,.01,0xf0ffe0,sx*.07,1.625,.268); }
+    g.add(glowMesh(E));
+    for(const sx of [1,-1]) a.arms.push(ebLimb(g,[],sx*.34,1.4,0,.12,.84,D,true,L,0xc9b2ff));
+    for(const sx of [1,-1]) ebLimb(g,a.legs,sx*.13,.72,0,.15,.72,A,true,K);
+  },
+  thrower(g,a){
+    const A=0x4f5b3a, D=0x3a4430, S=0xd8c89a, K=0x1c2014, B=AB(), E=AB();
+    abr(B,.64,.48,.62,A,0,.66,-.04);                               // cuerpo
+    abr(B,.56,.14,.56,D,0,.94,-.06);                               // caparazón
+    for(let i=0;i<3;i++) abx(B,.6,.04,.04,K,0,.97,-.24+i*.18);
+    for(const q of [[0,1.1,-.1,-.5,0],[.18,1.06,-.26,-.6,.3],[-.18,1.06,-.26,-.6,-.3],[.26,.96,.02,-.2,.6],[-.26,.96,.02,-.2,-.6],[0,1.04,.12,-.3,0],[.12,.94,-.4,-1,.2],[-.12,.94,-.4,-1,-.2]])
+      { abx(B,.08,.26,.08,S,q[0],q[1],q[2],q[3],0,q[4]); abx(B,.05,.08,.05,0xf2ead0,q[0]+q[4]*.07,q[1]+.14,q[2]+q[3]*-.06,q[3],0,q[4]); }
+    abr(B,.46,.36,.36,A,0,.84,.32);                                // cabeza
+    abx(B,.34,.08,.06,K,0,.72,.5);                                 // boca
+    for(const sx of [1,-1]) abx(B,.05,.12,.05,S,sx*.12,.66,.52,.3,0,sx*.2);   // mandíbulas
+    g.add(abMesh(B));
+    abx(E,.16,.12,.02,0xff9a3c,0,.9,.51); abx(E,.06,.06,.01,0xffe0b0,-.03,.92,.522); abx(E,.04,.08,.012,0x2a1206,.02,.9,.524);
+    g.add(glowMesh(E));
+    for(const q of [[.22,.2],[-.22,.2],[.22,-.24],[-.22,-.24]]) ebLimb(g,a.legs,q[0],.42,q[1],.13,.42,D,true,K);
+  },
+  boss(g,a){
+    const A=0x2f1f48, D=0x1c1230, P=0x4f3278, L=0xd9bcff, W=0xf4e8ff, B=AB(), E=AB();
+    B.gain=1.05;
+    abr(B,.92,1.0,.56,A,0,1.66,0);                                 // torso
+    abr(B,.98,.62,.62,P,0,1.86,.02);                               // coraza
+    abx(B,.86,.06,.6,D,0,1.5,.02); abx(B,.8,.06,.58,D,0,1.36,.02);   // placas del vientre
+    for(const sx of [1,-1]){                                       // hombreras con pinchos
+      abr(B,.46,.22,.6,P,sx*.6,2.22,0); abx(B,.5,.05,.62,D,sx*.6,2.1,0);
+      for(let i=0;i<3;i++) abx(B,.08,.3,.08,D,sx*(.5+i*.12),2.42+i*.03,-.1+i*.08,-.3,0,-sx*.4);
+    }
+    for(let i=0;i<5;i++) abx(B,.18,.3+(i%2)*.18,.5,i%2?D:A,-.36+i*.18,1.04-(i%2)*.09,0);   // faldón roto
+    abr(B,.58,.56,.54,P,0,2.58,.04);                               // yelmo
+    abx(B,.62,.08,.58,D,0,2.86,.04); abx(B,.44,.3,.03,0x0c0816,0,2.56,.315);
+    for(const sx of [1,-1]){ abx(B,.12,.42,.12,D,sx*.36,3.0,0,-.2,0,-sx*.6); abx(B,.1,.34,.1,D,sx*.52,3.3,-.06,-.4,0,-sx*.1); }   // cuernos
+    for(let i=0;i<3;i++) abx(B,.08,.18,.08,P,(i-1)*.16,2.98,.24);  // corona de picos
+    g.add(abMesh(B));
+    for(const sx of [1,-1]){ abx(E,.16,.07,.02,L,sx*.12,2.6,.33); abx(E,.05,.03,.01,W,sx*.1,2.615,.342); abx(E,.07,.07,.07,L,sx*.56,3.48,-.1); }
+    abx(E,.2,.2,.04,L,0,1.9,.34,0,0,.785); abx(E,.1,.1,.02,W,0,1.9,.365,0,0,.785);       // núcleo del pecho
+    for(const sx of [1,-1]) abx(E,.03,.5,.02,L,sx*.3,1.78,.335);
+    g.add(glowMesh(E));
+    for(const sx of [1,-1]) a.arms.push(ebLimb(g,[],sx*.66,2.14,0,.26,1.25,D,true,P,L));
+    for(const sx of [1,-1]) ebLimb(g,a.legs,sx*.24,1.06,0,.3,1.06,A,true,D);
+  }
+};
 const UMBRIO={r:.3,h:1.75,speed:3.3,hp:14};
 let enemyT=3;
 const THROWER={r:.34,h:1.25,speed:2.4,hp:10};
-const TM={body:amat(0x4f5b3a),dark:amat(0x3a4430),spike:amat(0xc9b98a),eye:new THREE.MeshBasicMaterial({color:0xff9a3c})};
-// crea un enemigo: 'umbrio' (cuerpo a cuerpo) o 'thrower' (lanzaespinas, ataca a distancia)
+const BOSS={r:.6,h:2.95,speed:2.1,hp:500};
+// crea un enemigo: 'umbrio' (cuerpo a cuerpo), 'thrower' (lanzaespinas, a distancia) o 'boss' (Guardián sombrío)
 function makeEnemy(kind,x,y,z){
-  const g=new THREE.Group(), sp=kind==='thrower'?THROWER:UMBRIO;
-  const a={kind,sp,hostile:true,g,x,y,z,vy:0,yaw:0,t:1,legs:[],arms:[],ph:0,ground:false,hp:sp.hp,kx:0,kz:0,hurtT:0,cd:kind==='thrower'?1.5:.6,aggro:false,skT:0,sky:true};
-  if(kind==='thrower'){
-    g.add(abox(.62,.62,.56,TM.body,0,.66,0)); g.add(abox(.46,.4,.42,TM.dark,0,1.1,.06)); g.add(abox(.16,.1,.02,TM.eye,0,1.13,.28));
-    for(const q of [[0,1.36,-.05],[.22,1.0,-.24],[-.22,1.0,-.24],[0,.98,-.3],[.3,.7,-.2],[-.3,.7,-.2]]) g.add(abox(.07,.24,.07,TM.spike,q[0],q[1],q[2]));
-    for(const q of [[.2,.18],[-.2,.18],[.2,-.18],[-.2,-.18]]){ const l=aleg(.14,.36,TM.dark,q[0],q[1],.36); g.add(l); a.legs.push(l); }
-  }else{
-    g.add(abox(.5,.7,.3,EM.body,0,1.05,0)); g.add(abox(.42,.38,.38,EM.dark,0,1.6,.05));
-    g.add(abox(.09,.07,.02,EM.eye,.1,1.63,.25)); g.add(abox(.09,.07,.02,EM.eye,-.1,1.63,.25));
-    for(const sd of [1,-1]){ const ar=aleg(.13,.8,EM.dark,sd*.33,0,1.38); g.add(ar); a.arms.push(ar); const lg=aleg(.16,.7,EM.body,sd*.13,0,.7); g.add(lg); a.legs.push(lg); }
-  }
+  const g=new THREE.Group(), sp=kind==='thrower'?THROWER:kind==='boss'?BOSS:UMBRIO;
+  const a={kind,sp,hostile:true,boss:kind==='boss',g,x,y,z,vy:0,yaw:0,t:1,legs:[],arms:[],ph:0,ground:false,hp:sp.hp,kx:0,kz:0,hurtT:0,cd:kind==='thrower'?1.5:.6,aggro:false,skT:0,sky:true};
+  if(a.boss){ a.atk=1.5; a.orbT=3; a.sumT=8; a.slam=0; }
+  EBUILD[EBUILD[kind]?kind:'umbrio'](g,a);
   g.position.set(a.x,a.y,a.z); scene.add(g); enemies.push(a); return a;
 }
 function spawnEnemy(){
@@ -2717,32 +2931,60 @@ function seesPlayer(a){
   const ox=a.x, oy=a.y+1.05, oz=a.z, tx=player.x-ox, ty=player.y+1.3-oy, tz=player.z-oz, d=Math.hypot(tx,ty,tz);
   const hit=raycast(world,ox,oy,oz,tx/d,ty/d,tz/d,d); return !hit||hit.t>d-.6;
 }
-function shoot(a){
-  const ox=a.x, oy=a.y+1.05, oz=a.z, tx=player.x-ox, ty=player.y+1.2-oy, tz=player.z-oz, d=Math.hypot(tx,tz)||1, sp=15, t=d/sp;
-  const m=new THREE.Mesh(shotGeo,shotMat); m.position.set(ox,oy,oz); scene.add(m);
-  shots.push({m,x:ox,y:oy,z:oz,vx:tx/d*sp,vz:tz/d*sp,vy:ty/t+3*t,life:3});
+const orbGeo=new THREE.BoxGeometry(.26,.26,.26), orbMat=new THREE.MeshBasicMaterial({color:0xc9a2ff});
+function shoot(a,o){
+  o=o||{}; const sp=o.spd||15, oy=a.y+(o.h||1.05), ox=a.x, oz=a.z;
+  const tx=player.x-ox, ty=player.y+1.2-oy, tz=player.z-oz, d=Math.hypot(tx,tz)||1, t=d/sp, ang=o.ang||0, c=Math.cos(ang), sn=Math.sin(ang);
+  const vx=tx/d*sp, vz=tz/d*sp;
+  const m=new THREE.Mesh(o.orb?orbGeo:shotGeo,o.orb?orbMat:shotMat); m.position.set(ox,oy,oz); scene.add(m);
+  shots.push({m,x:ox,y:oy,z:oz,vx:vx*c-vz*sn,vz:vx*sn+vz*c,vy:ty/t+(o.orb?1:3)*t,life:o.orb?4:3,dmg:o.dmg||3,g:o.orb?1.2:6,orb:!!o.orb});
   sfx('shoot');
 }
 function updateShots(dt){
   for(let i=shots.length-1;i>=0;i--){
-    const s=shots[i]; s.life-=dt; s.vy-=6*dt;
+    const s=shots[i]; s.life-=dt; s.vy-=(s.g||6)*dt; if(s.orb){ s.m.rotation.x+=dt*5; s.m.rotation.y+=dt*4; }
     s.x+=s.vx*dt; s.y+=s.vy*dt; s.z+=s.vz*dt;
     let gone=s.life<=0||SOLID[world.getBlock(Math.floor(s.x),Math.floor(s.y),Math.floor(s.z))];
-    if(!gone&&!dead&&Math.abs(s.x-player.x)<.45&&Math.abs(s.z-player.z)<.45&&s.y>player.y&&s.y<player.y+PHT){ hurtPlayer(3,s.vx,s.vz); gone=true; }
+    if(!gone&&!dead&&Math.abs(s.x-player.x)<.45&&Math.abs(s.z-player.z)<.45&&s.y>player.y&&s.y<player.y+PHT){ hurtPlayer(s.dmg||3,s.vx,s.vz); gone=true; }
     if(gone){ scene.remove(s.m); shots.splice(i,1); continue; }
-    s.m.position.set(s.x,s.y,s.z); s.m.lookAt(s.x+s.vx,s.y+s.vy,s.z+s.vz);
+    s.m.position.set(s.x,s.y,s.z); if(!s.orb) s.m.lookAt(s.x+s.vx,s.y+s.vy,s.z+s.vz);
   }
 }
-function removeEntity(a){ scene.remove(a.g); const l=a.hostile?enemies:animals, i=l.indexOf(a); if(i>=0) l.splice(i,1); }
+function removeEntity(a){ if(a.guard&&a.hp>0&&a.skey) woken.delete(a.skey); scene.remove(a.g); const l=a.hostile?enemies:animals, i=l.indexOf(a); if(i>=0) l.splice(i,1); }
+function bossAI(a,dt,dx,dy,dz,d2){
+  const d=Math.sqrt(d2), p2=a.hp<a.sp.hp*.5;
+  if(p2&&!a.p2){ a.p2=true; toast('¡El Guardián se enfurece!'); sfx('growl'); rumble(.8,300); }
+  a.yaw=Math.atan2(dx,dz); a.atk-=dt; a.orbT-=dt; a.sumT-=dt;
+  if(a.slam>0){
+    a.slam-=dt; const up=-2.7; a.arms[0].rotation.x=up; a.arms[1].rotation.x=up;
+    if(a.slam<=0){                                   // el golpe: daña todo lo que esté cerca
+      a.arms[0].rotation.x=a.arms[1].rotation.x=-.3; sfx('break'); rumble(.9,260);
+      for(let k=0;k<10;k++){ const an=k/10*Math.PI*2; burst(Math.floor(a.x+Math.cos(an)*2),Math.floor(a.y),Math.floor(a.z+Math.sin(an)*2),99); }
+      if(!dead&&d<3.3&&Math.abs(dy)<2.6) hurtPlayer(p2?7:5,dx,dz);
+      for(const p of animals) if(p.tame&&Math.hypot(p.x-a.x,p.z-a.z)<3.3) hurtDog(p,5);
+    }
+    return 0;
+  }
+  if(d<2.8&&a.atk<=0&&!dead){ a.slam=p2?.55:.75; a.atk=p2?1.7:2.4; return 0; }
+  if(d>4&&d<22&&a.orbT<=0&&seesPlayer(a)){
+    a.orbT=p2?2.3:3.6; const n=p2?5:3;
+    for(let k=0;k<n;k++) shoot(a,{orb:true,spd:11,dmg:4,h:2.3,ang:(k-(n-1)/2)*.22});
+  }
+  if(p2&&a.sumT<=0&&enemies.filter(e=>e.minion).length<2){
+    a.sumT=14; const e=makeEnemy('umbrio',a.x+(Math.random()-.5)*3,a.y+.2,a.z+(Math.random()-.5)*3); e.minion=true; e.guard=true; toast('El Guardián invoca a sus sombras.');
+  }
+  const sw=Math.sin(a.ph*.5)*.25; a.arms[0].rotation.x=-.5+sw; a.arms[1].rotation.x=-.5-sw;
+  return d>2.3?a.sp.speed*(p2?1.35:1):0;
+}
 function updateEnemies(dt){
   enemyT-=dt;
   if(enemyT<=0){ enemyT=4; if(enemies.length<ENEMY_MAX&&!dead){ if(dayLight<.4) spawnEnemy(); if(enemies.length<ENEMY_MAX&&Math.random()<.6) spawnCaveEnemy(); } }
-  updateShots(dt); updatePShots(dt);
+  updateShots(dt); updatePShots(dt); checkGuards(dt);
   for(let i=enemies.length-1;i>=0;i--){
     const a=enemies[i], dx=player.x-a.x, dz=player.z-a.z, dy=player.y-a.y, d2=dx*dx+dz*dz;
     if(d2>70*70){ removeEntity(a); continue; }
     a.skT-=dt; if(a.skT<=0){ a.skT=.5; a.sky=skyExposed(Math.floor(a.x),Math.floor(a.y),Math.floor(a.z)); }
-    if(dayLight>.6&&a.sky){      // la luz del día los deshace, pero bajo tierra no les llega
+    if(dayLight>.6&&a.sky&&!a.guard){      // la luz del día los deshace, pero bajo tierra no les llega
       a.hp-=4*dt; if(Math.random()<dt*7) burst(Math.floor(a.x),Math.floor(a.y+.7),Math.floor(a.z),99);
       if(a.hp<=0){ removeEntity(a); continue; }
     }
@@ -2750,7 +2992,8 @@ function updateEnemies(dt){
     if(d2<22*22&&!dead){
       if(!a.aggro){ a.aggro=true; sfx('growl'); }
       a.yaw=Math.atan2(dx,dz);
-      if(a.kind==='thrower'){
+      if(a.boss){ speed=bossAI(a,dt,dx,dy,dz,d2); }
+      else if(a.kind==='thrower'){
         // guarda distancia: se acerca si estás lejos, se aleja si te acercas, y dispara si te ve
         const d=Math.sqrt(d2); speed=d<6?-a.sp.speed:d>13?a.sp.speed:0;
         if(a.cd<=0&&d<18&&seesPlayer(a)){ a.cd=2.4; shoot(a); }
@@ -2761,7 +3004,7 @@ function updateEnemies(dt){
     if(a.stun>0){ a.stun-=dt; speed=0; a.cd=Math.max(a.cd,.3); a.cd2=Math.max(a.cd2||0,.3); }
     landMove(a,Math.sin(a.yaw)*speed,Math.cos(a.yaw)*speed,dt,speed);
     a.cd-=dt;
-    if(a.kind!=='thrower'){
+    if(a.kind==='umbrio'){
       if(!dead&&d2<1.45*1.45&&Math.abs(dy)<1.9&&a.cd<=0){ a.cd=1.2; hurtPlayer(2,dx,dz); }
       a.cd2=(a.cd2||0)-dt;
       if(a.cd2<=0) for(const p of animals){ if(p.tame&&Math.hypot(p.x-a.x,p.z-a.z)<1.4&&Math.abs(p.y-a.y)<1.6){ a.cd2=1.2; hurtDog(p,2); break; } }
@@ -2769,8 +3012,15 @@ function updateEnemies(dt){
       a.arms[0].rotation.x=reach; a.arms[1].rotation.x=a.aggro?reach:-reach;
     }
     if(a.hurtT>0) a.hurtT-=dt;
-    a.g.position.set(a.x,a.y,a.z); a.g.rotation.y=a.yaw; a.g.scale.setScalar(a.hurtT>0?1.18:1);
+    a.g.position.set(a.x,a.y,a.z); a.g.rotation.y=a.yaw; a.g.scale.setScalar(a.hurtT>0?(a.boss?1.05:1.18):1);
   }
+  bossHud();
+}
+function bossHud(){
+  const b=enemies.find(e=>e.boss&&Math.hypot(e.x-player.x,e.z-player.z)<40), el=$('bossBar');
+  if(!b){ if(el.classList.contains('on')){ el.classList.remove('on'); document.body.classList.remove('bossfight'); } return; }
+  if(!el.classList.contains('on')){ el.classList.add('on'); document.body.classList.add('bossfight'); }
+  $('bossFill').style.width=Math.max(0,b.hp/b.sp.hp*100).toFixed(1)+'%';
 }
 
 /* ---------- COMBATE Y SUPERVIVENCIA: vida, hambre, caídas, muerte y reaparición ---------- */
@@ -2880,13 +3130,16 @@ function attackEntity(a,held){
 // daño a un animal o enemigo, venga de un golpe o de un disparo. Devuelve true si muere
 function damageEntity(a,dmg,dx,dz,ranged){
   a.hp-=dmg; a.hurtT=.2;
-  if(!a.ko){ const l=Math.hypot(dx,dz)||1, kb=ranged?3:7; a.kx=dx/l*kb; a.kz=dz/l*kb; a.vy=ranged?2.5:4.5; a.ground=false; }
+  if(!a.ko){ const l=Math.hypot(dx,dz)||1, kb=(ranged?3:7)*(a.boss?.12:1); a.kx=dx/l*kb; a.kz=dz/l*kb; if(!a.boss){ a.vy=ranged?2.5:4.5; a.ground=false; } }
   sfx('hit'); burst(Math.floor(a.x),Math.floor(a.y+a.sp.h*.4),Math.floor(a.z),a.hostile?99:98);
   if(a.ko) a.eff=Math.max(0,(a.eff===undefined?1:a.eff)-.1);    // pegarle dormido empeora la doma
   else if(!a.hostile){ if(a.sp.aggro) a.angry=20; else { a.state='flee'; a.t=4; a.yaw=Math.atan2(a.x-player.x,a.z-player.z); } a.trust=false; }
   if(a.hp<=0){
     removeEntity(a);
-    if(a.hostile){ if(Math.random()<.6) addItem(SHARD,1); gainXp(a.kind==='thrower'?12:10); }
+    if(a.boss){ if(a.skey) slain.add(a.skey); addItem(CORE,1); addItem(SHARD,10); addItem(CRYSTAL,5); addItem(GOLD_APPLE,2); gainXp(150); flags.boss=true; cryptPt=null;
+      toast('¡Has derrotado al Guardián sombrío! Con su núcleo puedes fabricar la Espada del Guardián.'); sfx('eat'); rumble(1,500);
+      for(let k=0;k<14;k++) burst(Math.floor(a.x+(Math.random()-.5)*2),Math.floor(a.y+Math.random()*3),Math.floor(a.z+(Math.random()-.5)*2),99); saveGame(); }
+    else if(a.hostile){ if(Math.random()<.6) addItem(SHARD,1); gainXp(a.kind==='thrower'?12:10); }
     else{ gainXp(a.sp.active?8:3); if(a.sp.meat&&addItem(RAW_MEAT,a.sc<1?1:a.sp.meat)>0) toast('Inventario lleno'); if(a.sp!==SPECIES.bird&&a.sp!==SPECIES.dog&&Math.random()<.7) addItem(LEATHER,1); }
     return true;
   }
@@ -2932,7 +3185,7 @@ function projectileHit(s,a){
   const dmg=s.am===ARROW?s.R.dmg*dmgMul()*(perk('fuerza')?1.15:1):1;
   if(damageEntity(a,dmg,s.vx,s.vz,true)) return;
   if(s.am===TRANQ) addTorpor(a,10*s.R.tq);
-  if(s.am===STONE){ if(!a.ko) a.stun=Math.max(a.stun||0,a.hostile?1.2:3); addTorpor(a,4); }
+  if(s.am===STONE&&!a.boss){ if(!a.ko) a.stun=Math.max(a.stun||0,a.hostile?1.2:3); addTorpor(a,4); }
 }
 function updatePShots(dt){
   fireCd-=dt;
@@ -3040,6 +3293,7 @@ const CMP=[['N',0],['NE',45],['E',90],['SE',135],['S',180],['SO',225],['O',270],
   const s=document.createElement('span'); s.textContent=q[0]; if(q[0].length>1) s.className='m'; $('cmpIn').appendChild(s); return [s,q[1]*Math.PI/180];
 });
 const cmpBase=document.createElement('span'); cmpBase.className='b'; $('cmpIn').appendChild(cmpBase);
+const cmpCrypt=document.createElement('span'); cmpCrypt.className='k'; $('cmpIn').appendChild(cmpCrypt);
 let cmpT=0;
 function wrapA(a){ while(a>Math.PI) a-=2*Math.PI; while(a<-Math.PI) a+=2*Math.PI; return a; }
 function updateCompass(){
@@ -3049,6 +3303,9 @@ function updateCompass(){
   if(base){ const dx=base[0]-player.x, dz=base[2]-player.z; place(cmpBase,Math.atan2(dx,-dz));
     if((cmpT++%15)===0) cmpBase.textContent='⌂ '+Math.round(Math.hypot(dx,dz)); }
   else cmpBase.style.display='none';
+  if(cryptPt){ const dx=cryptPt[0]-player.x, dz=cryptPt[2]-player.z, d=Math.hypot(dx,dz); place(cmpCrypt,Math.atan2(dx,-dz));
+    if((cmpT%15)===1) cmpCrypt.textContent='☠ '+Math.round(d); }
+  else cmpCrypt.style.display='none';
 }
 
 /* ---------- MAP: vista cenital alrededor del jugador y marca de la base ---------- */
@@ -3149,7 +3406,9 @@ const GOALS=[
   {t:'Abre el cofre de una cabaña o una ruina', ok:()=>flags.loot},
   {t:'Planta semillas en tierra arada', ok:()=>flags.plant},
   {t:'Fabrica una herramienta de cristal', ok:()=>[PICK_CRYSTAL,AXE_CRYSTAL,SWORD_CRYSTAL].some(hasIt)},
-  {t:'Domestica un perro con carne cruda', ok:()=>flags.tamed||animals.some(a=>a.tame)}
+  {t:'Domestica un perro con carne cruda', ok:()=>flags.tamed||animals.some(a=>a.tame)},
+  {t:'Abre un cofre de una mazmorra', ok:()=>flags.dloot},
+  {t:'Derrota al Guardián sombrío de una cripta', ok:()=>flags.boss}
 ];
 function goalDone(g){ return g.ok?g.ok():(g.p()>=g.n||(g.alt&&g.alt())); }
 function updateGoals(dt,silent){
@@ -3177,9 +3436,9 @@ function saveGame(){
     const ch={}; chests.forEach((c,k)=>{ if(c.some(Boolean)) ch[k]=c.map(s=>s?(s.d?[s.id,s.n,s.d]:[s.id,s.n]):0); });
     const ed={}; world.edits.forEach((m,k)=>{ const a=[]; m.forEach((id,idx)=>{ a.push(idx,id); }); ed[k]=a; });
     localStorage.setItem('tesela-last',String(curSlot));
-    localStorage.setItem(slotKey(curSlot),JSON.stringify({v:1,seed:curSeed,at:Date.now(),goal:goalIdx,fl:{c:[...flags.crafted],n:flags.night,l:flags.loot,p:flags.plant,t:flags.tamed},
+    localStorage.setItem(slotKey(curSlot),JSON.stringify({v:1,seed:curSeed,at:Date.now(),goal:goalIdx,fl:{c:[...flags.crafted],n:flags.night,l:flags.loot,p:flags.plant,t:flags.tamed,d:flags.dloot,b:flags.boss},
       p:[+player.x.toFixed(3),+(player.y+.01).toFixed(3),+player.z.toFixed(3),+player.yaw.toFixed(3),+player.pitch.toFixed(3)],
-      inv:inv.map(s=>s?(s.d?[s.id,s.n,s.d]:[s.id,s.n]):0),sel:selected,dayT:+dayT.toFixed(4),hp,fd:hunger,pl:plvl,px:+pxp.toFixed(1),un:[...unlocked],sp:spawnPt,base,pets:animals.filter(a=>a.tame||a.owned).map(a=>({k:a.kind,x:+a.x.toFixed(2),y:+a.y.toFixed(2),z:+a.z.toFixed(2),hp:+a.hp.toFixed(1),sex:a.sex,baby:!!a.baby,grow:a.baby?Math.round(a.grow):0,tame:!!a.tame,owned:!!a.owned,lvl:a.lvl||0,xp:a.xp||0,sit:!!a.sit,bc:Math.round(a.breedCd||0),arm:a.arm||0})),looted:[...looted],gt:+gameT.toFixed(1),crops:[...crops].map(c=>[c[0],+c[1].toFixed(1)]),arm:armor.map(s=>s?[s.id,s.d||0]:0),chests:ch,edits:ed}));
+      inv:inv.map(s=>s?(s.d?[s.id,s.n,s.d]:[s.id,s.n]):0),sel:selected,dayT:+dayT.toFixed(4),hp,fd:hunger,pl:plvl,px:+pxp.toFixed(1),un:[...unlocked],sp:spawnPt,base,pets:animals.filter(a=>a.tame||a.owned).map(a=>({k:a.kind,x:+a.x.toFixed(2),y:+a.y.toFixed(2),z:+a.z.toFixed(2),hp:+a.hp.toFixed(1),sex:a.sex,baby:!!a.baby,grow:a.baby?Math.round(a.grow):0,tame:!!a.tame,owned:!!a.owned,lvl:a.lvl||0,xp:a.xp||0,sit:!!a.sit,bc:Math.round(a.breedCd||0),arm:a.arm||0})),looted:[...looted],wk:[...woken],sl:[...slain],cp:cryptPt,gt:+gameT.toFixed(1),crops:[...crops].map(c=>[c[0],+c[1].toFixed(1)]),arm:armor.map(s=>s?[s.id,s.d||0]:0),chests:ch,edits:ed}));
     return true;
   }catch(_){ return false; }
 }
@@ -3192,8 +3451,8 @@ function startGame(seed,save,slot){
   if(world) world.chunks.forEach(ch=>world.disposeMesh(ch));
   while(animals.length) removeEntity(animals[0]); while(enemies.length) removeEntity(enemies[0]);
   while(shots.length){ scene.remove(shots[0].m); shots.shift(); }
-  decayQ.length=0; chests.clear(); paused=false; crops.clear(); looted.clear();
-  goalIdx=0; goalTxt=''; flags.crafted.clear(); flags.night=flags.loot=flags.plant=flags.tamed=false; flowQ.length=0; gameT=0;
+  decayQ.length=0; chests.clear(); paused=false; crops.clear(); looted.clear(); woken.clear(); slain.clear(); cryptPt=null;
+  goalIdx=0; goalTxt=''; flags.crafted.clear(); flags.night=flags.loot=flags.plant=flags.tamed=flags.dloot=flags.boss=false; flowQ.length=0; gameT=0;
   if(save&&save.chests) for(const k in save.chests) chests.set(k,save.chests[k].map(s=>(s&&BLOCKS[s[0]])?{id:s[0],n:s[1],d:s[2]||0}:null));
   const R=settings.dist;
   world=new World(scene,seed,atlasTex,R,isTouch?1:2);
@@ -3216,7 +3475,10 @@ function startGame(seed,save,slot){
     if(save.sp&&save.sp.length===3) spawnPt=save.sp;
     if(save.base&&save.base.length===3) base=save.base;
     if(save.looted) for(const k of save.looted) looted.add(k);
-    if(save.fl){ for(const c of save.fl.c||[]) flags.crafted.add(c); flags.night=!!save.fl.n; flags.loot=!!save.fl.l; flags.plant=!!save.fl.p; flags.tamed=!!save.fl.t; }
+    if(save.wk) for(const k of save.wk) woken.add(k);
+    if(save.sl) for(const k of save.sl) slain.add(k);
+    cryptPt=save.cp||null;
+    if(save.fl){ for(const c of save.fl.c||[]) flags.crafted.add(c); flags.night=!!save.fl.n; flags.loot=!!save.fl.l; flags.plant=!!save.fl.p; flags.tamed=!!save.fl.t; flags.dloot=!!save.fl.d; flags.boss=!!save.fl.b; }
     goalIdx=save.goal||0;
     if(save.gt) gameT=save.gt; if(save.crops) for(const c of save.crops) crops.set(c[0],c[1]);
     if(save.pl>0){ plvl=Math.min(MAX_LVL,save.pl); pxp=save.px||0; }
@@ -3644,6 +3906,7 @@ function loop(now){
   updateCompass();
   updateAnimals(dt);
   updateEnemies(dt);
+  updateShadows();
   petT-=dt; if(petT<=0){ petT=.5; petStatus(); }
   tameT-=dt; if(tameT<=0){ tameT=.12; tameHud(ex,ey,ez,hit?hit.t:99); }
   updateSurvival(dt);
@@ -3660,7 +3923,7 @@ function loop(now){
   hand.rotation.set(-sw*.9,0,0);
   const hk=.32+.68*dayLight; for(const m of handMats) m.color.copy(m.userData.base).multiplyScalar(hk);
   pts.material.color.setScalar(.4+.6*dayLight);
-  world.U.uTime.value=(now/1000)%1000;
+  world.U.uTime.value=(now/1000)%1000; world.U.uWind.value+=((1+wx.w*1.6)-world.U.uWind.value)*Math.min(1,dt*.5);
   updateMusic(dt);
   if(handCam.aspect!==camera.aspect){ handCam.aspect=camera.aspect; handCam.updateProjectionMatrix(); }
 
