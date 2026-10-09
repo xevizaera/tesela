@@ -96,6 +96,7 @@ body.editing #bJump,body.editing #bPlace,body.editing #bMine{outline:2px dashed 
 body.padmode .touch{display:none!important}
 .padfocus{outline:3px solid var(--moss)!important;outline-offset:2px;box-shadow:0 0 0 5px rgba(185,224,122,.25)}
 #stats #goal,#stats #info{position:static;left:auto;top:auto;margin-top:4px}
+#fx{display:none;background:var(--panel);padding:4px 9px;border-radius:6px;font-size:12px;border-left:3px solid #e0802e;max-width:min(260px,36vw);margin-top:2px}
 #rest{display:none;background:var(--panel);padding:4px 9px;border-radius:6px;font-size:12px;border-left:3px solid #9a7bf0;max-width:min(250px,34vw);margin-top:2px}
 #pets{display:none;background:var(--panel);padding:5px 9px;border-radius:6px;font-size:12px;line-height:1.4;white-space:pre-line;border-left:3px solid #e7a3a8;max-width:min(250px,34vw);margin-top:2px}
 #skills{z-index:20}
@@ -255,7 +256,7 @@ body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width
   <div id="uw"></div>
   <div id="cross"></div><div id="dot"></div>
   <div id="dmg"></div>
-  <div id="stats"><div id="hpBar" aria-label="Vida"></div><div id="fdBar" aria-label="Hambre"></div><div id="arBar" aria-label="Armadura"></div><div id="goal" role="status"></div><div id="pets" role="status"></div><div id="rest" role="status"></div><div id="info"></div></div>
+  <div id="stats"><div id="hpBar" aria-label="Vida"></div><div id="fdBar" aria-label="Hambre"></div><div id="arBar" aria-label="Armadura"></div><div id="goal" role="status"></div><div id="pets" role="status"></div><div id="rest" role="status"></div><div id="fx" role="status"></div><div id="info"></div></div>
 
   <div id="compass" aria-hidden="true"><div id="cmpIn"></div><i id="cmpMid"></i></div>
   <div id="hint"></div>
@@ -469,7 +470,8 @@ const AIR=0, GRASS=1, DIRT=2, STONE=3, SAND=4, GRAVEL=5, SNOW=6, PLANKS=7, BRICK
   BANDAGE=91, STEW=92, SWORD_CU=93, PICK_AU=94, HELM_CR=95, CHEST_CR=96, BOOTS_CR=97, SWORD_SH=98,
   SLING=99, BOW_W=100, BOW_FE=101, BOW_CR=102, BOW_SH=103, ARROW=104, TRANQ=105, BERRY=106, NARCO=107, BUSH=108,
   HELM_LE=109, CHEST_LE=110, BOOTS_LE=111, HELM_FE=112, CHEST_FE=113, BOOTS_FE=114, HELM_SH=115, CHEST_SH=116, BOOTS_SH=117,
-  PET_LE=118, PET_CU=119, PET_FE=120, PET_AU=121, PET_CR=122, PET_SH=123, CORE=124, GSWORD=125, ELIXIR=126, GBOW=127, HEARTH=128, SPEAR_FE=129, SPEAR_CR=130, WAXE_FE=131, WAXE_SH=132, DAG_CU=133, DAG_CR=134;
+  PET_LE=118, PET_CU=119, PET_FE=120, PET_AU=121, PET_CR=122, PET_SH=123, CORE=124, GSWORD=125, ELIXIR=126, GBOW=127, HEARTH=128, SPEAR_FE=129, SPEAR_CR=130, WAXE_FE=131, WAXE_SH=132, DAG_CU=133, DAG_CR=134,
+  CAULDRON=135, FLASK=136, P_HEAL=137, P_REGEN=138, P_STR=139, P_SPEED=140, P_NIGHT=141, P_IRON=142;
 // tex: [arriba, lados, abajo] · hard: segundos a mano · mat: qué herramienta lo acelera
 // need: nivel mínimo de pico para que suelte algo · drop: qué suelta (por defecto, él mismo)
 const BLOCKS=[null,
@@ -572,13 +574,22 @@ const BLOCKS=[null,
   {name:'Hacha de guerra de hierro', tool:'waraxe', tier:3, dmg:10, dur:260, cd:.95, col:'#e3e8ee', hc:0xe3e8ee, rep:[27,2]},
   {name:'Hacha de guerra sombría', tool:'waraxe', tier:4, dmg:17, dur:800, cd:.9, col:'#8d5bd6', hc:0x8d5bd6, rep:[38,2]},
   {name:'Dagas de cobre', tool:'dagger', tier:2, dmg:3.5, dur:200, cd:.2, col:'#e08a52', hc:0xe08a52, rep:[45,2]},
-  {name:'Dagas de cristal', tool:'dagger', tier:4, dmg:5, dur:450, cd:.2, col:'#6fe6f0', hc:0x6fe6f0, rep:[28,1]}
+  {name:'Dagas de cristal', tool:'dagger', tier:4, dmg:5, dur:450, cd:.2, col:'#6fe6f0', hc:0x6fe6f0, rep:[28,1]},
+  {name:'Caldero', tex:[43,42,42], hard:2.2, mat:'stone', need:1},
+  {name:'Frasco'},
+  // pociones: potion = efecto, dur = segundos que dura (la de curación es instantánea)
+  {name:'Poción de curación', potion:'heal', col:'#e5484d'},
+  {name:'Poción de regeneración', potion:'regen', dur:30, col:'#f28ab0'},
+  {name:'Poción de fuerza', potion:'str', dur:120, col:'#e0802e'},
+  {name:'Poción de velocidad', potion:'speed', dur:120, col:'#62cdee'},
+  {name:'Poción de visión nocturna', potion:'night', dur:180, col:'#7464d8'},
+  {name:'Poción de piel de hierro', potion:'iron', dur:120, col:'#a3acb6'}
 ];
 // agua: la quieta (fuente) y tres niveles de agua que corre
 const WATERISH=new Uint8Array(256); for(const i of [9,85,86,87]) WATERISH[i]=1;
 const WLEVEL=new Uint8Array(256); WLEVEL[85]=1; WLEVEL[86]=2; WLEVEL[87]=3;
 const WTOP=new Float32Array(256); WTOP[9]=.12; WTOP[85]=.3; WTOP[86]=.5; WTOP[87]=.7;
-const OPAQUE=new Uint8Array(256); for(const i of [1,2,3,4,5,6,7,8,11,12,13,14,15,16,17,18,19,30,31,39,41,42,57]) OPAQUE[i]=1;
+const OPAQUE=new Uint8Array(256); for(const i of [1,2,3,4,5,6,7,8,11,12,13,14,15,16,17,18,19,30,31,39,41,42,57,135]) OPAQUE[i]=1;
 // SOLID: lo que frena al jugador. El vidrio frena pero deja pasar la luz.
 const SOLID=new Uint8Array(256); for(let i=0;i<256;i++) SOLID[i]=OPAQUE[i]; SOLID[40]=1;
 for(let i=58;i<=78;i++) if(i!==69&&i!==75&&i!==76&&i!==77) SOLID[i]=1;   // formas sólidas (losas, escaleras, vallas, puertas, cama, cultivo)
@@ -696,6 +707,10 @@ function buildAtlas(){
     const cx=Math.abs(x-7.5);
     if(y<4+cx*1.5+hash2(x,1,412)*2) return [0,0,0,0];
     const t=(y-4)/8; return [255,150+t*90+r*20,40+t*60]; });
+  tile(42,(x,y,r)=>{ const n=(r-.5)*12; if(y>=14&&(x<3||x>12)) return [44+n,46+n,52+n]; if(y>=14) return [70+n*.5,72+n*.5,78+n*.5];
+    const band=(y===2||y===11)?-18:0, rim=y<2?22:0, sh=x<2?-14:x>13?-20:0; return [78+n+band+rim+sh,82+n+band+rim+sh,90+n+band+rim+sh]; });
+  tile(43,(x,y,r)=>{ const n=(r-.5)*12; if(x<2||x>13||y<2||y>13) return [104+n,108+n,116+n];
+    const b=Math.sin(x*1.3+y*.7)*8; return [52+b+n,150+b+n,96+b*.5+n]; });
   tile(21,(x,y,r)=>{ if(x<7||x>8||y<6) return [0,0,0,0]; if(y<8) return [255,196+r*50,70]; const n=(r-.5)*14; return [138+n,90+n,52+n]; });
   tile(22,(x,y,r)=>{const n=(r-.5)*16, st=(x%4===0)?-26:0; if(x%4===2&&y%5===1) return [226,232,190]; return [66+n+st,138+n+st,70+n+st];});
   tile(23,(x,y,r)=>{const n=(r-.5)*10, st=((x+y*2)%9===0)?18:0; return [168+n+st,212+n+st,238+n+st];});
@@ -1255,7 +1270,7 @@ class Player{
     let f=inp.kf-inp.jy-inp.py, s=inp.ks+inp.jx+inp.px;
     const len=Math.hypot(f,s); if(len>1){ f/=len; s/=len; }
     const run=inp.run||inp.prun||Math.hypot(inp.jx,inp.jy)>.92;
-    const speed=(inWater?2.6:(run?6.6:4.3))*[1,1.12,1.2,1.26][rk('zancada')];
+    const speed=(inWater?2.6:(run?6.6:4.3))*[1,1.12,1.2,1.26][rk('zancada')]*(effects.speed>0?1.25:1);
     const sy=Math.sin(this.yaw), cy=Math.cos(this.yaw);
     const dx=-sy*f+cy*s, dz=-cy*f-sy*s, k=Math.min(1,dt*12);
     this.vx+=(dx*speed-this.vx)*k; this.vz+=(dz*speed-this.vz)*k;
@@ -1491,6 +1506,12 @@ function icon(id){
     x.fillStyle=pal[1]; x.fillRect(1,12,10,1); x.fillRect(4,6,1,3); x.fillRect(7,6,1,3); x.fillRect(11,4,4,1);
     if(pal[2]){ x.fillStyle=pal[2]; x.fillRect(2,6,2,1); x.fillRect(12,5,1,1); }
   }
+  else if(id===FLASK||d.potion){
+    x.fillStyle='#8a5a34'; x.fillRect(6,1,4,2); x.fillStyle='#d8e8ee'; x.fillRect(6,3,4,3);
+    x.fillStyle='#cfe6ee'; x.fillRect(4,6,8,8); x.fillRect(3,8,10,5); x.fillRect(5,14,6,1);
+    if(d.potion){ x.fillStyle=d.col; x.fillRect(4,9,8,5); x.fillRect(3,10,10,3); x.fillRect(5,14,6,1); }
+    x.fillStyle='#ffffff'; x.fillRect(5,7,2,2);
+  }
   else if(id===ELIXIR){ x.fillStyle='#d8e8ee'; x.fillRect(6,2,4,3); x.fillStyle='#8a5a34'; x.fillRect(6,1,4,2); x.fillStyle='#bfe9f0'; x.fillRect(4,5,8,9); x.fillRect(3,7,10,6); x.fillStyle='#4fd8e8'; x.fillRect(4,9,8,4); x.fillStyle='#f2fdff'; x.fillRect(5,7,2,2); }
   else if(id===CORE){ x.fillStyle='#2a1b40'; for(let j=1;j<=6;j++){ x.fillRect(8-j,1+j,2*j,1); x.fillRect(8-j,14-j,2*j,1); } x.fillStyle='#b79cf0'; for(let j=1;j<=4;j++){ x.fillRect(8-j,3+j,2*j,1); x.fillRect(8-j,12-j,2*j,1); } x.fillStyle='#f4e8ff'; x.fillRect(7,6,2,4); }
   else if(id===LEATHER){ x.fillStyle='#9a6038'; x.fillRect(3,3,10,10); x.fillRect(2,5,12,6); x.fillStyle='#b97a4c'; x.fillRect(5,5,3,3); }
@@ -1537,6 +1558,14 @@ const RECIPES=[
   {out:WORKBENCH,n:1,inp:[[PLANKS,4]]},
   {out:TORCH,n:4,inp:[[COAL,1],[STICK,1]]},
   {out:HEARTH,n:1,inp:[[LOG,2],[STICK,2]]},
+  {out:CAULDRON,n:1,inp:[[IRON_INGOT,6]],st:WORKBENCH},
+  {out:FLASK,n:3,inp:[[GLASS,1]],st:WORKBENCH},
+  {out:P_HEAL,n:1,inp:[[FLASK,1],[BERRY,2],[APPLE,1]],st:CAULDRON},
+  {out:P_REGEN,n:1,inp:[[FLASK,1],[BERRY,2],[COOKED_MEAT,1]],st:CAULDRON},
+  {out:P_STR,n:1,inp:[[FLASK,1],[SHARD,1],[COOKED_MEAT,1]],st:CAULDRON},
+  {out:P_SPEED,n:1,inp:[[FLASK,1],[WHEAT_ITEM,2],[BERRY,1]],st:CAULDRON},
+  {out:P_NIGHT,n:1,inp:[[FLASK,1],[FLOWER,1],[CRYSTAL,1]],st:CAULDRON},
+  {out:P_IRON,n:1,inp:[[FLASK,1],[IRON_INGOT,1],[LEATHER,1]],st:CAULDRON},
   {out:DAG_CU,n:1,inp:[[COPPER_INGOT,2],[STICK,1]],st:WORKBENCH},
   {out:SPEAR_FE,n:1,inp:[[IRON_INGOT,3],[STICK,3]],st:WORKBENCH},
   {out:WAXE_FE,n:1,inp:[[IRON_INGOT,5],[STICK,2]],st:WORKBENCH},
@@ -1620,10 +1649,12 @@ const RECIPES=[
 ];
 let nearSt={};
 function scanStations(){
-  nearSt={}; if(!player) return;
+  nearSt={}; cauldronSeen=false; if(!player) return;
   const px=Math.floor(player.x), py=Math.floor(player.y), pz=Math.floor(player.z);
-  for(let dy=-2;dy<=3;dy++)for(let dz=-4;dz<=4;dz++)for(let dx=-4;dx<=4;dx++){ const b=world.getBlock(px+dx,py+dy,pz+dz); if(b===WORKBENCH||b===FURNACE) nearSt[b]=true; }
+  for(let dy=-2;dy<=3;dy++)for(let dz=-4;dz<=4;dz++)for(let dx=-4;dx<=4;dx++){ const b=world.getBlock(px+dx,py+dy,pz+dz); if(b===WORKBENCH||b===FURNACE) nearSt[b]=true; else if(b===CAULDRON){ cauldronSeen=true; if(fireBeside(px+dx,py+dy,pz+dz)) nearSt[b]=true; } }
 }
+let cauldronSeen=false;
+function fireBeside(x,y,z){ for(let dy=-1;dy<=1;dy++)for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++) if(world.getBlock(x+dx,y+dy,z+dz)===HEARTH) return true; return false; }
 function canCraft(r){ if(r.lock&&!unlocked.has(r.lock)) return false; if(r.st&&!nearSt[r.st]) return false; return r.inp.every(q=>countItem(q[0])>=q[1]); }
 // cabe en la mochila: suma el hueco libre de las casillas vacías y de los montones del mismo objeto
 function canFit(id,n){ let room=0; for(const s of inv){ if(!s) room+=maxStack(id); else if(s.id===id&&!s.d) room+=maxStack(id)-s.n; if(room>=n) return true; } return room>=n; }
@@ -1726,6 +1757,9 @@ function slotText(s,i){
   else if(d.tool==='waraxe') t+=' · daño '+d.dmg+' · lenta, golpea a todos los que tienes delante';
   else if(d.tool==='dagger') t+=' · daño '+d.dmg+' · golpes muy rápidos';
   else if(d.pet) t+=' · para tu perro o lobo: protege un '+d.pet.pts*4+' %. Úsala sobre él';
+  else if(d.potion){ t+=' · '+({heal:'cura 8 de vida al momento',regen:'recuperas vida poco a poco durante 30 s',str:'+30 % de daño durante 2 min',speed:'+25 % de velocidad durante 2 min',night:'ves en la oscuridad durante 3 min',iron:'recibes un 30 % menos de daño durante 2 min'})[d.potion]; }
+  else if(s.id===CAULDRON) t+=' · prepara pociones; necesita una hoguera al lado';
+  else if(s.id===FLASK) t+=' · para pociones del caldero';
   else if(s.id===HEARTH) t+=' · descansa a su lado para quedar Descansado';
   else if(s.id===CORE) t+=' · lo suelta el Guardián sombrío. Sirve para su espada';
   else if(s.id===TRANQ) t+=' · duerme animales';
@@ -1777,7 +1811,7 @@ function renderInv(){
   updateChar();
   const box=$('recipes'); box.innerHTML='';
   const isChest=invStation===CHEST;
-  $('recTitle').textContent=invStation===WORKBENCH?'Mesa de trabajo':invStation===FURNACE?'Horno':isChest?'Cofre':'Fabricar';
+  $('recTitle').textContent=invStation===WORKBENCH?'Mesa de trabajo':invStation===FURNACE?'Horno':invStation===CAULDRON?(nearSt[CAULDRON]?'Caldero':'Caldero: pon una hoguera al lado para que hierva'):isChest?'Cofre':'Fabricar';
   $('chestGrid').style.display=isChest?'grid':'none'; box.style.display=isChest?'none':'flex';
   if(isChest){ const c=chestAt(chestKey); for(let j=0;j<18;j++){ fillSlot(chestEls[j],c[j]); chestEls[j].classList.toggle('sel',invPick===100+j); } }
   if(invStation===WORKBENCH){
@@ -1805,7 +1839,7 @@ function renderInv(){
 function invChanged(){ renderHotbar(); if(invOpen) renderInv(); if(statsReady) renderStats(); }
 var statsReady=false;
 let invStation=0;
-function openInv(station){ if(!started) return; invStation=station||0; invOpen=true; invPick=null; scanStations(); if(invStation) nearSt[invStation]=true; $('inv').classList.add('on'); renderInv(); sfx('tick'); try{ if(document.exitPointerLock) document.exitPointerLock(); }catch(_){} }
+function openInv(station){ if(!started) return; invStation=station||0; invOpen=true; invPick=null; scanStations(); if(invStation&&invStation!==CAULDRON) nearSt[invStation]=true; $('inv').classList.add('on'); renderInv(); sfx('tick'); try{ if(document.exitPointerLock) document.exitPointerLock(); }catch(_){} }
 function closeInv(){ invOpen=false; invPick=null; invStation=0; hideTip(); drag=null; $('ghost').style.display='none'; $('inv').classList.remove('on'); }
 function toggleInv(){ if(invOpen) closeInv(); else openInv(); }
 $('bInv').addEventListener('pointerdown',e=>{ e.preventDefault(); toggleInv(); });
@@ -2114,8 +2148,8 @@ const LOOT=[[APPLE,1,3,8],[BREAD,1,3,8],[COOKED_MEAT,1,3,6],[COAL,2,6,9],[TORCH,
   [IRON_INGOT,1,3,5],[COPPER_INGOT,1,4,5],[GOLD_INGOT,1,2,2],[CRYSTAL,1,1,1],[GOLD_APPLE,1,1,1],[PICK_STONE,1,1,2],[SWORD_STONE,1,1,2],[SWORD_IRON,1,1,1]];
 // botín de mazmorras y torres, y el de las criptas
 const LOOT2=[[IRON_INGOT,2,5,8],[GOLD_INGOT,1,3,6],[CRYSTAL,1,2,4],[COPPER_INGOT,2,5,6],[TRANQ,2,6,6],[ARROW,4,12,8],[NARCO,1,3,5],[GOLD_APPLE,1,1,3],
-  [COOKED_MEAT,2,4,6],[BREAD,2,4,5],[SHARD,1,3,5],[BOW_FE,1,1,1],[PET_FE,1,1,1],[SWORD_IRON,1,1,2],[BANDAGE,1,3,4],[TORCH,4,10,6],[LEATHER,2,4,4]];
-const LOOT3=[[CRYSTAL,3,6,8],[SHARD,4,8,8],[GOLD_INGOT,3,6,6],[GOLD_APPLE,1,2,5],[BOW_CR,1,1,2],[CHEST_CR,1,1,1],[PET_CR,1,1,1],[TRANQ,4,10,5],[STEW,1,2,4],[IRON_INGOT,4,8,5]];
+  [COOKED_MEAT,2,4,6],[BREAD,2,4,5],[SHARD,1,3,5],[BOW_FE,1,1,1],[PET_FE,1,1,1],[SWORD_IRON,1,1,2],[BANDAGE,1,3,4],[TORCH,4,10,6],[LEATHER,2,4,4],[P_HEAL,1,2,4],[P_REGEN,1,1,3],[P_STR,1,1,2],[FLASK,2,4,3]];
+const LOOT3=[[CRYSTAL,3,6,8],[SHARD,4,8,8],[GOLD_INGOT,3,6,6],[GOLD_APPLE,1,2,5],[BOW_CR,1,1,2],[CHEST_CR,1,1,1],[PET_CR,1,1,1],[TRANQ,4,10,5],[STEW,1,2,4],[IRON_INGOT,4,8,5],[P_HEAL,1,3,4],[P_STR,1,2,3],[P_IRON,1,2,3],[P_SPEED,1,1,2],[P_NIGHT,1,1,2]];
 let cryptPt=null;
 function findCrypt(){
   const pcx=Math.floor(player.x/CS), pcz=Math.floor(player.z/CS), g=world.gen;
@@ -2323,7 +2357,7 @@ function updateSky(dt,ex,ey,ez){
   skyCol.setRGB(Math.min(1,.03+.59*f+dusk*.3), Math.min(1,.05+.78*f+dusk*.06), Math.max(0,.12+.82*f-dusk*.12));
   if(wx.w>0){ const gr=(skyCol.r+skyCol.g+skyCol.b)/3*.85; skyCol.setRGB(skyCol.r+(gr-skyCol.r)*wx.w*.7, skyCol.g+(gr-skyCol.g)*wx.w*.7, skyCol.b+(gr-skyCol.b)*wx.w*.7); }
   if(scene.fog) scene.fog.color.copy(skyCol);
-  if(world){ world.U.uSeeDark.value=perk('vision')?.16:0; world.U.uDay.value=perk('vision')?Math.max(dayLight,.36):dayLight; world.U.uFog.value.copy(skyCol); }
+  if(world){ world.U.uSeeDark.value=effects.night>0?.5:perk('vision')?.16:0; world.U.uDay.value=effects.night>0?Math.max(dayLight,.6):perk('vision')?Math.max(dayLight,.36):dayLight; world.U.uFog.value.copy(skyCol); }
   sun.position.set(ex+cs*290,ey+sn*290,ez+70); sun.lookAt(ex,ey,ez); sun.visible=sn>-.14;
   moon.position.set(ex-cs*290,ey-sn*290,ez-70); moon.lookAt(ex,ey,ez); moon.visible=sn<.14;
   stars.position.set(ex,ey,ez); stars.material.opacity=1-f; stars.visible=f<.97;
@@ -2755,7 +2789,7 @@ function updateShadows(){
 // cada tipo de mueble cercano suma un punto de comodidad (los repetidos no cuentan dos veces); más comodidad, más dura
 const COMFORT=new Map([[BED,'cama'],[HEARTH,'hoguera'],[WORKBENCH,'mesa de trabajo'],[FURNACE,'horno'],[CHEST,'cofre'],[LAMP,'lámpara'],[GLASS,'ventanas'],
   [DOOR_X,'puerta'],[DOOR_Z,'puerta'],[DOOR_XO,'puerta'],[DOOR_ZO,'puerta'],[FLOWER,'flores'],[STAIR_W,'asientos'],[STAIR_W+1,'asientos'],[STAIR_W+2,'asientos'],[STAIR_W+3,'asientos'],
-  [FENCE,'vallas'],[BRICKS,'ladrillo'],[TORCH,'antorchas']]);
+  [FENCE,'vallas'],[BRICKS,'ladrillo'],[TORCH,'antorchas'],[CAULDRON,'caldero']]);
 let zoneT=0, curZone=-1;
 let rested=0, restT=0, restScanT=0, restOk=false, comfort=0, comfortList=[], hearthPos=null, restMax=0;
 function scanRest(){
@@ -3524,7 +3558,7 @@ function meleeHit(tgt,held,ex,ey,ez,reach){
 }
 function attackEntity(a,held,noWear){
   const melee=held&&held.tool&&!held.rng;
-  const dmg=(melee?(held.dmg||(held.tool==='sword'?[4,6,8,11]:[2,3,4,5])[held.tier-1]):1)*dmgMul()*[1,1.15,1.25,1.35,1.45][rk('fuerza')];
+  const dmg=(melee?(held.dmg||(held.tool==='sword'?[4,6,8,11]:[2,3,4,5])[held.tier-1]):1)*dmgMul()*[1,1.15,1.25,1.35,1.45][rk('fuerza')]*(effects.str>0?1.3:1);
   if(melee&&!noWear&&inv[selected]&&BLOCKS[inv[selected].id]===held) wearHeld(['sword','spear','waraxe','dagger'].includes(held.tool)?1:2);
   damageEntity(a,dmg,dir.x,dir.z,false);
 }
@@ -3583,7 +3617,7 @@ function projHits(s){
   return null;
 }
 function projectileHit(s,a){
-  const arq=[1,1.2,1.4,1.6][rk('arquero')], dmg=s.am===ARROW?s.R.dmg*dmgMul()*[1,1.15,1.25,1.35,1.45][rk('fuerza')]*arq:1;
+  const arq=[1,1.2,1.4,1.6][rk('arquero')], dmg=s.am===ARROW?s.R.dmg*dmgMul()*[1,1.15,1.25,1.35,1.45][rk('fuerza')]*arq*(effects.str>0?1.3:1):1;
   if(damageEntity(a,dmg,s.vx,s.vz,true)) return;
   if(s.am===TRANQ) addTorpor(a,10*s.R.tq*arq);
   if(s.am===STONE&&!a.boss){ if(!a.ko) a.stun=Math.max(a.stun||0,a.hostile?1.2:3); addTorpor(a,4); }
@@ -3640,7 +3674,7 @@ function tameHud(ex,ey,ez,hitT){
 }
 function hurtPlayer(n,dx,dz){
   if(dead||invuln>0) return;
-  if(dx||dz){ n*=1-armorPts()*.04; n*=[1,.9,.82,.75,.7][rk('piel')]; wearArmor(); }
+  if(dx||dz){ n*=1-armorPts()*.04; n*=[1,.9,.82,.75,.7][rk('piel')]*(effects.iron>0?.7:1); wearArmor(); }
   hp=Math.max(0,hp-n); renderStats(); sfx('hurt'); rumble(Math.min(1,.35+n*.08),140);
   const fx=$('dmg'); fx.style.transition='none'; fx.style.opacity='.55'; setTimeout(()=>{ fx.style.transition='opacity .5s'; fx.style.opacity='0'; },60);
   if(dx||dz){ const l=Math.hypot(dx,dz)||1; player.vx+=dx/l*8; player.vz+=dz/l*8; player.vy=5; player.onGround=false; }
@@ -3656,6 +3690,22 @@ function respawn(){
   $('dead').classList.remove('on'); renderStats(); saveGame();
 }
 $('respawn').addEventListener('click',respawn);
+// efectos de las pociones: segundos que quedan de cada uno
+const effects={regen:0,str:0,speed:0,night:0,iron:0}, FXNAME={regen:'Regeneración',str:'Fuerza',speed:'Velocidad',night:'Visión nocturna',iron:'Piel de hierro'};
+let fxRegenT=0;
+function drinkHeld(){
+  const s=inv[selected]; if(!s) return; const d=BLOCKS[s.id]; if(!d.potion) return;
+  if(d.potion==='heal'){ if(hp>=maxHp()){ toast('Ya tienes la vida llena.'); return; } hp=Math.min(maxHp(),hp+8); }
+  else{ effects[d.potion]=Math.max(effects[d.potion],d.dur); toast(FXNAME[d.potion]+' durante '+(d.dur>=60?Math.round(d.dur/60)+' min':d.dur+' s')+'.'); }
+  s.n--; if(!s.n) inv[selected]=null; addItem(FLASK,1);
+  invChanged(); renderStats(); sfx('eat'); placeSwing=.2;
+}
+function updateEffects(dt){
+  for(const k in effects) if(effects[k]>0) effects[k]=Math.max(0,effects[k]-dt);
+  if(effects.regen>0&&!dead){ fxRegenT+=dt; if(fxRegenT>=1.5){ fxRegenT=0; if(hp<maxHp()){ hp=Math.min(maxHp(),hp+1); renderStats(); } } }
+  const el=$('fx'), parts=[]; for(const k in effects) if(effects[k]>0) parts.push(FXNAME[k]+' '+Math.floor(effects[k]/60)+':'+String(Math.floor(effects[k]%60)).padStart(2,'0'));
+  const txt=parts.join(' · '); if(el.textContent!==txt){ el.textContent=txt; el.style.display=txt?'block':'none'; }
+}
 function eatHeld(){
   const s=inv[selected]; if(!s||!(BLOCKS[s.id].food||BLOCKS[s.id].heal)) return;
   const d=BLOCKS[s.id];
@@ -3839,7 +3889,7 @@ function saveGame(){
     localStorage.setItem('tesela-last',String(curSlot));
     localStorage.setItem(slotKey(curSlot),JSON.stringify({v:1,seed:curSeed,at:Date.now(),goal:goalIdx,fl:{c:[...flags.crafted],n:flags.night,l:flags.loot,p:flags.plant,t:flags.tamed,d:flags.dloot,b:flags.boss},
       p:[+player.x.toFixed(3),+(player.y+.01).toFixed(3),+player.z.toFixed(3),+player.yaw.toFixed(3),+player.pitch.toFixed(3)],
-      inv:inv.map(s=>s?(s.d?[s.id,s.n,s.d]:[s.id,s.n]):0),sel:selected,dayT:+dayT.toFixed(4),hp,fd:hunger,pl:plvl,px:+pxp.toFixed(1),un:[...unlocked],sp:spawnPt,base,pets:animals.filter(a=>a.tame||a.owned).map(a=>({k:a.kind,x:+a.x.toFixed(2),y:+a.y.toFixed(2),z:+a.z.toFixed(2),hp:+a.hp.toFixed(1),sex:a.sex,baby:!!a.baby,grow:a.baby?Math.round(a.grow):0,tame:!!a.tame,owned:!!a.owned,lvl:a.lvl||0,xp:a.xp||0,sit:!!a.sit,bc:Math.round(a.breedCd||0),arm:a.arm||0})),looted:[...looted],rs:Math.round(rested),wk:[...woken],sl:[...slain],cp:cryptPt,gt:+gameT.toFixed(1),crops:[...crops].map(c=>[c[0],+c[1].toFixed(1)]),arm:armor.map(s=>s?[s.id,s.d||0]:0),chests:ch,edits:ed}));
+      inv:inv.map(s=>s?(s.d?[s.id,s.n,s.d]:[s.id,s.n]):0),sel:selected,dayT:+dayT.toFixed(4),hp,fd:hunger,pl:plvl,px:+pxp.toFixed(1),un:[...unlocked],sp:spawnPt,base,pets:animals.filter(a=>a.tame||a.owned).map(a=>({k:a.kind,x:+a.x.toFixed(2),y:+a.y.toFixed(2),z:+a.z.toFixed(2),hp:+a.hp.toFixed(1),sex:a.sex,baby:!!a.baby,grow:a.baby?Math.round(a.grow):0,tame:!!a.tame,owned:!!a.owned,lvl:a.lvl||0,xp:a.xp||0,sit:!!a.sit,bc:Math.round(a.breedCd||0),arm:a.arm||0})),looted:[...looted],rs:Math.round(rested),efx:effects,wk:[...woken],sl:[...slain],cp:cryptPt,gt:+gameT.toFixed(1),crops:[...crops].map(c=>[c[0],+c[1].toFixed(1)]),arm:armor.map(s=>s?[s.id,s.d||0]:0),chests:ch,edits:ed}));
     return true;
   }catch(_){ return false; }
 }
@@ -3852,7 +3902,7 @@ function startGame(seed,save,slot){
   if(world) world.chunks.forEach(ch=>world.disposeMesh(ch));
   while(animals.length) removeEntity(animals[0]); while(enemies.length) removeEntity(enemies[0]);
   while(shots.length){ scene.remove(shots[0].m); shots.shift(); }
-  decayQ.length=0; chests.clear(); paused=false; crops.clear(); looted.clear(); woken.clear(); slain.clear(); rested=0; restT=0; curZone=-1; cryptPt=null;
+  decayQ.length=0; chests.clear(); paused=false; crops.clear(); looted.clear(); woken.clear(); slain.clear(); rested=0; restT=0; curZone=-1; for(const k in effects) effects[k]=0; cryptPt=null;
   goalIdx=0; goalTxt=''; flags.crafted.clear(); flags.night=flags.loot=flags.plant=flags.tamed=flags.dloot=flags.boss=false; flowQ.length=0; gameT=0;
   if(save&&save.chests) for(const k in save.chests) chests.set(k,save.chests[k].map(s=>(s&&BLOCKS[s[0]])?{id:s[0],n:s[1],d:s[2]||0}:null));
   const R=settings.dist;
@@ -3880,6 +3930,7 @@ function startGame(seed,save,slot){
     if(save.wk) for(const k of save.wk) woken.add(k);
     if(save.sl) for(const k of save.sl) slain.add(k);
     rested=save.rs||0;
+    if(save.efx) for(const k in effects) effects[k]=+save.efx[k]||0;
     cryptPt=save.cp||null;
     if(save.fl){ for(const c of save.fl.c||[]) flags.crafted.add(c); flags.night=!!save.fl.n; flags.loot=!!save.fl.l; flags.plant=!!save.fl.p; flags.tamed=!!save.fl.t; flags.dloot=!!save.fl.d; flags.boss=!!save.fl.b; }
     goalIdx=save.goal||0;
@@ -4267,12 +4318,12 @@ function loop(now){
   $('cross').style.setProperty('--p',(mineP*100).toFixed(0));
 
   // si apuntas a una mesa u horno, el botón de colocar pasa a ser "Usar"
-  const useT=!!hit&&(hit.id===WORKBENCH||hit.id===FURNACE||hit.id===CHEST||hit.id===BED||BLOCKS[hit.id].shape==='door');
+  const useT=!!hit&&(hit.id===WORKBENCH||hit.id===FURNACE||hit.id===CAULDRON||hit.id===CHEST||hit.id===BED||BLOCKS[hit.id].shape==='door');
   const tillT=!!hit&&held&&held.tool==='hoe'&&(hit.id===GRASS||hit.id===DIRT);
   const plantT=!!hit&&inv[selected]&&inv[selected].id===SEEDS&&hit.id===FARMLAND;
   const anim=targetAnimal(ex,ey,ez,Math.min(3.6,hit?hit.t+.3:9)), animAct=animalAction(anim);
   const ranged=!!(held&&held.rng);
-  const mode=animAct?animAct:ranged&&!useT?'Disparar':useT?'Usar':tillT?'Arar':plantT?'Plantar':(held&&(held.food||held.heal))?(held.food?'Comer':'Curarse'):(held&&held.armor)?'Equipar':'Colocar';
+  const mode=animAct?animAct:ranged&&!useT?'Disparar':useT?'Usar':tillT?'Arar':plantT?'Plantar':(held&&held.potion)?'Beber':(held&&(held.food||held.heal))?(held.food?'Comer':'Curarse'):(held&&held.armor)?'Equipar':'Colocar';
   if(mode!==lastUse){ lastUse=mode; $('placeLbl').textContent=mode; $('bPlace').classList.toggle('use',mode!=='Colocar'); }
 
   // colocar
@@ -4282,11 +4333,12 @@ function loop(now){
     if(animAct){ useAnimal(anim); }
     else if(ranged&&!useT){ fireHeld(ex,ey,ez); }
     else if(hit&&hit.id===CHEST){ chestKey=hit.x+','+hit.y+','+hit.z; lootChest(hit.x,hit.y,hit.z); openInv(CHEST); }
-    else if(hit&&(hit.id===WORKBENCH||hit.id===FURNACE)){ openInv(hit.id); }
+    else if(hit&&(hit.id===WORKBENCH||hit.id===FURNACE||hit.id===CAULDRON)){ openInv(hit.id); }
     else if(hit&&BLOCKS[hit.id].shape==='door'){ toggleDoor(hit.x,hit.y,hit.z); }
     else if(hit&&hit.id===BED){ useBed(hit); }
     else if(tillT){ if(isFree(hit.x,hit.y+1,hit.z)){ world.setBlock(hit.x,hit.y,hit.z,FARMLAND); placeSwing=.2; sfx('place'); if(typeof wearHeld==='function') wearHeld(1); } }
     else if(plantT){ if(hit.ny===1&&isFree(hit.x,hit.y+1,hit.z)){ world.setBlock(hit.x,hit.y+1,hit.z,WHEAT0); crops.set(hit.x+','+(hit.y+1)+','+hit.z,gameT); const s=inv[selected]; s.n--; if(!s.n) inv[selected]=null; invChanged(); placeSwing=.2; sfx('place'); flags.plant=true; gainXp(1); } }
+    else if(held&&held.potion){ drinkHeld(); }
     else if(held&&(held.food||held.heal)){ eatHeld(); }
     else if(held&&held.armor){ equipHeld(); }
     else if(hit&&placeCd<=0){
@@ -4316,6 +4368,7 @@ function loop(now){
   updateShadows();
   updateAmbient(dt);
   updateRest(dt);
+  updateEffects(dt);
   zoneT-=dt; if(zoneT<=0){ zoneT=1; const z=world.gen.zoneAt(player.x,player.z);
     if(z!==curZone){ if(curZone>=0) toast(z>curZone?'Entras en las '+ZONES[z]+': enemigos más fuertes, pero más minerales raros y mejor botín.':'Vuelves a las '+ZONES[z]+'.'); curZone=z; } }
   petT-=dt; if(petT<=0){ petT=.5; petStatus(); }
