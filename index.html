@@ -226,6 +226,9 @@ body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width
 .ov{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(10,18,20,.6);
   padding:calc(10px + var(--st)) calc(10px + var(--sr)) calc(10px + var(--sb)) calc(10px + var(--sl))}
 .ov.on{display:flex}
+.skTop{position:sticky;top:-14px;margin:-14px -18px 0;padding:12px 18px 6px;display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(22,36,40,.99);z-index:2}
+.skTop h2{margin:0}
+#skX{flex:none;width:40px;height:40px;border-radius:8px;border:2px solid var(--line);background:rgba(255,255,255,.08);color:inherit;font-size:20px;line-height:1;cursor:pointer}
 .panel{background:rgba(22,36,40,.97);border:2px solid var(--line);border-radius:10px;padding:14px 18px;width:min(430px,100%);max-height:100%;overflow-y:auto;touch-action:pan-y}
 .panel h2{margin:0 0 6px;font-size:20px}
 .row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:5px 0;font-size:14px}
@@ -331,7 +334,7 @@ body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width
 </div></div>
 
 <div id="skills" class="ov"><div class="panel wide">
-  <h2>Desbloqueos</h2>
+  <div class="skTop"><h2>Desbloqueos</h2><button id="skX" aria-label="Cerrar">✕</button></div>
   <p id="skHead" class="note"></p>
   <div id="skList"></div>
   <button id="skDone" class="mbtn pri">Volver</button>
@@ -3350,7 +3353,7 @@ function reachMilestone(l){
 function renderSkills(){
   $('skHead').textContent='Nivel '+plvl+(titleFor(plvl)?' · '+titleFor(plvl):'')+'. Puntos para gastar: '+points()+'. Ganas un punto por nivel y uno extra en los niveles 10, 20, 30, 40 y 50.';
   const L=$('skList'); L.innerHTML='';
-  for(const u of UNLOCKS){
+  for(const u of [...UNLOCKS].sort((a,b)=>a.lv[0]-b.lv[0])){
     const r=rk(u.id), max=u.lv.length, done=r>=max;
     const row=document.createElement('div'); row.className='skrow'+(done?' done':'');
     const ic=document.createElement('div'); ic.className='skic';
@@ -4006,6 +4009,9 @@ $('ctlBtn').addEventListener('click',openCtl);
 $('pCtl').addEventListener('click',openCtl);
 $('pSk').addEventListener('click',()=>{ renderSkills(); $('skills').classList.add('on'); });
 $('skDone').addEventListener('click',closeSkills);
+$('skX').addEventListener('click',closeSkills);
+// tocar fuera de la ventana también la cierra
+$('skills').addEventListener('pointerdown',e=>{ if(e.target===$('skills')) closeSkills(); });
 $('ctlDone').addEventListener('click',closeCtl);
 /* ---------- GAMEPAD: mando de Xbox (o cualquiera con distribución estándar) ---------- */
 // botones estándar: 0 A, 1 B, 2 X, 3 Y, 4 LB, 5 RB, 6 LT, 7 RT, 8 Vista, 9 Menú, 10 stick izq., 11 stick der., 12-15 cruceta
