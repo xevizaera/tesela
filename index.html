@@ -1110,14 +1110,15 @@ function toMesh(a,mat){
 /* ============================================================
    WORLD: carga/descarga dinámica de chunks y edición de bloques
    ============================================================ */
-const VSH=`attribute float aShade; attribute vec2 aLight; uniform float uSeeDark; uniform float uDay; uniform float uWave; uniform float uTime; uniform float uWind;
+const VSH=`attribute float aShade; attribute vec2 aLight; uniform vec3 uPl; uniform float uPlI; uniform float uSeeDark; uniform float uDay; uniform float uWave; uniform float uTime; uniform float uWind;
 varying vec2 vUv; varying vec3 vL; varying float vD; varying vec3 vW; varying float vFoam;
 void main(){ vUv=uv; float sh=aShade, w=0.0, foam=0.0;
   if(sh>5.5){ foam=1.0; sh-=6.0; } else if(sh>3.5){ w=1.0; sh-=4.0; } else if(sh>1.5){ w=0.35; sh-=2.0; }
   vec3 p=position; vec4 wp=modelMatrix*vec4(p,1.0);
   float sk=aLight.x*uDay;
   float fl=0.93+0.07*sin(uTime*10.0+wp.x*1.7+wp.z*2.3)*sin(uTime*6.3+wp.y*1.3+wp.x);
-  float tl=aLight.y*fl, l=max(max(sk,tl),uSeeDark), warm=clamp((tl-sk)*2.5,0.0,1.0);
+  float dl=uPlI*clamp(1.0-distance(wp.xyz,uPl)/9.0,0.0,1.0); dl=dl*dl*(3.0-2.0*dl)*0.95;     // luz de la antorcha que llevas en la mano
+  float tl=max(aLight.y,dl)*fl, l=max(max(sk,tl),uSeeDark), warm=clamp((tl-sk)*2.5,0.0,1.0);
   vec3 skyTint=mix(vec3(0.74,0.82,1.06),vec3(1.0),smoothstep(0.25,0.8,uDay));
   vL=mix(skyTint,vec3(1.14,0.86,0.56),warm)*sh*(0.055+0.945*l);
   if(uWave>0.5) p.y+=sin(uTime*1.6+wp.x*0.9+wp.z*0.7)*0.035-0.03;
@@ -1145,9 +1146,9 @@ class World{
     this.scene=scene; this.gen=new WorldGenerator(seed); this.R=radius; this.budget=budget;
     this.chunks=new Map(); this.edits=new Map(); this.queue=[]; this.dirty=new Set(); this.later=new Set();
     this.lcx=1e9; this.lcz=1e9; this.meshed=0;
-    const U=this.U={uDay:{value:1},uFog:{value:new THREE.Color(0x9fd3f0)},uNear:{value:50},uFar:{value:90},uTime:{value:0},uWind:{value:1},uSun:{value:new THREE.Vector3(0,1,0)},uSeeDark:{value:0}};
+    const U=this.U={uDay:{value:1},uFog:{value:new THREE.Color(0x9fd3f0)},uNear:{value:50},uFar:{value:90},uTime:{value:0},uWind:{value:1},uSun:{value:new THREE.Vector3(0,1,0)},uSeeDark:{value:0},uPl:{value:new THREE.Vector3()},uPlI:{value:0}};
     const mk=(alpha,wave,extra)=>new THREE.ShaderMaterial(Object.assign({vertexShader:VSH,fragmentShader:FSH,
-      uniforms:{map:{value:atlasTex},uDay:U.uDay,uFog:U.uFog,uNear:U.uNear,uFar:U.uFar,uTime:U.uTime,uWind:U.uWind,uSun:U.uSun,uSeeDark:U.uSeeDark,uAlpha:{value:alpha},uWave:{value:wave}}},extra));
+      uniforms:{map:{value:atlasTex},uDay:U.uDay,uFog:U.uFog,uNear:U.uNear,uFar:U.uFar,uTime:U.uTime,uWind:U.uWind,uSun:U.uSun,uSeeDark:U.uSeeDark,uPl:U.uPl,uPlI:U.uPlI,uAlpha:{value:alpha},uWave:{value:wave}}},extra));
     this.mat=mk(1,0,{}); this.wmat=mk(.72,1,{transparent:true,depthWrite:false});
   }
   getChunk(cx,cz){
@@ -4254,6 +4255,8 @@ function loop(now){
   hand.rotation.set(-sw*.9,0,0);
   const hk=.32+.68*dayLight; for(const m of handMats) m.color.copy(m.userData.base).multiplyScalar(hk);
   pts.material.color.setScalar(.4+.6*dayLight);
+  { const hid=inv[selected]?inv[selected].id:0, want=(hid===TORCH||hid===LAMP)?1:0;     // la antorcha o lámpara en la mano alumbra a tu alrededor
+    world.U.uPlI.value+=(want-world.U.uPlI.value)*Math.min(1,dt*6); world.U.uPl.value.set(player.x,player.y+1.3,player.z); }
   world.U.uTime.value=(now/1000)%1000; world.U.uWind.value+=((1+wx.w*1.6)-world.U.uWind.value)*Math.min(1,dt*.5);
   updateMusic(dt);
   if(handCam.aspect!==camera.aspect){ handCam.aspect=camera.aspect; handCam.updateProjectionMatrix(); }
