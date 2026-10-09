@@ -96,6 +96,7 @@ body.editing #bJump,body.editing #bPlace,body.editing #bMine{outline:2px dashed 
 body.padmode .touch{display:none!important}
 .padfocus{outline:3px solid var(--moss)!important;outline-offset:2px;box-shadow:0 0 0 5px rgba(185,224,122,.25)}
 #stats #goal,#stats #info{position:static;left:auto;top:auto;margin-top:4px}
+#rest{display:none;background:var(--panel);padding:4px 9px;border-radius:6px;font-size:12px;border-left:3px solid #9a7bf0;max-width:min(250px,34vw);margin-top:2px}
 #pets{display:none;background:var(--panel);padding:5px 9px;border-radius:6px;font-size:12px;line-height:1.4;white-space:pre-line;border-left:3px solid #e7a3a8;max-width:min(250px,34vw);margin-top:2px}
 #skills{z-index:20}
 .skrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid rgba(236,244,230,.12)}
@@ -251,7 +252,7 @@ body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width
   <div id="uw"></div>
   <div id="cross"></div><div id="dot"></div>
   <div id="dmg"></div>
-  <div id="stats"><div id="hpBar" aria-label="Vida"></div><div id="fdBar" aria-label="Hambre"></div><div id="arBar" aria-label="Armadura"></div><div id="goal" role="status"></div><div id="pets" role="status"></div><div id="info"></div></div>
+  <div id="stats"><div id="hpBar" aria-label="Vida"></div><div id="fdBar" aria-label="Hambre"></div><div id="arBar" aria-label="Armadura"></div><div id="goal" role="status"></div><div id="pets" role="status"></div><div id="rest" role="status"></div><div id="info"></div></div>
 
   <div id="compass" aria-hidden="true"><div id="cmpIn"></div><i id="cmpMid"></i></div>
   <div id="hint"></div>
@@ -348,6 +349,7 @@ body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width
     <tr><th>Elegir objeto</th><td>Toca una casilla de la barra de abajo.</td></tr>
     <tr><th>Mochila</th><td>Botón de la mochila, arriba a la derecha. Arrastra objetos para moverlos y tócalos para ver qué son.</td></tr>
     <tr><th>Mapa</th><td>Botón del mapa, arriba a la derecha. Desde ahí marcas tu base.</td></tr>
+    <tr><th>Descanso</th><td>Quédate quieto unos segundos junto a una hoguera, o a cubierto cerca de una cama o una luz, y quedarás Descansado: recuperas vida el doble de rápido y ganas un 50 % más de experiencia. Cuantos más muebles distintos tengas cerca, más dura.</td></tr>
     <tr><th>Arcos y doma</th><td>Con un arco o una honda en la mano, el botón Disparar dispara. Tocar otra vez la casilla del arco cambia entre flechas normales y tranquilizantes. Duerme a un lobo con tranquilizantes y dale carne hasta llenar la barra de doma; si se despierta, pierdes la doma. Los ciervos se domestican dándoles bayas o manzanas: si huyen, atúrdelos antes con la honda.</td></tr>
     <tr><th>Pausa</th><td>Botón de pausa, arriba a la derecha.</td></tr>
     <tr><th>Animales</th><td>Con carne cruda en la mano, Usar sobre un perro salvaje para domesticarlo (puede costar varios intentos). Usar sobre tu perro: quieto o sígueme. Con trigo, las vacas te siguen; dale trigo a una vaca y a un toro para que críen. Con un cubo, Usar sobre una vaca para ordeñarla.</td></tr>
@@ -363,6 +365,7 @@ body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width
     <tr><th>Mochila</th><td><kbd>E</kbd></td></tr>
     <tr><th>Mapa</th><td><kbd>M</kbd></td></tr>
     <tr><th>Desbloqueos</th><td><kbd>U</kbd></td></tr>
+    <tr><th>Descanso</th><td>Quédate quieto unos segundos junto a una hoguera, o a cubierto cerca de una cama o una luz, y quedarás Descansado: recuperas vida el doble de rápido y ganas un 50 % más de experiencia. Cuantos más muebles distintos tengas cerca, más dura.</td></tr>
     <tr><th>Arcos y doma</th><td>Con un arco o una honda en la mano, el clic derecho dispara. <kbd>R</kbd> cambia entre flechas normales y tranquilizantes. Duerme a un lobo con tranquilizantes y dale carne hasta llenar la barra de doma; si se despierta, pierdes la doma. Los ciervos se domestican dándoles bayas o manzanas: si huyen, atúrdelos antes con la honda.</td></tr>
     <tr><th>Controles</th><td><kbd>H</kbd></td></tr>
     <tr><th>Animales</th><td>Con carne cruda en la mano, clic derecho sobre un perro salvaje para domesticarlo (puede costar varios intentos). clic derecho sobre tu perro: quieto o sígueme. Con trigo, las vacas te siguen; dale trigo a una vaca y a un toro para que críen. Con un cubo, clic derecho sobre una vaca para ordeñarla.</td></tr>
@@ -378,6 +381,7 @@ body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width
     <tr><th>Mochila</th><td><kbd>Y</kbd></td></tr>
     <tr><th>Mapa</th><td>Botón Vista (el pequeño de la izquierda)</td></tr>
     <tr><th>Pausa</th><td>Botón Menú</td></tr>
+    <tr><th>Descanso</th><td>Quédate quieto unos segundos junto a una hoguera, o a cubierto cerca de una cama o una luz, y quedarás Descansado: recuperas vida el doble de rápido y ganas un 50 % más de experiencia. Cuantos más muebles distintos tengas cerca, más dura.</td></tr>
     <tr><th>Arcos y doma</th><td>Con un arco o una honda en la mano, <kbd>LT</kbd> dispara. <kbd>X</kbd> cambia entre flechas normales y tranquilizantes. Duerme a un lobo con tranquilizantes y dale carne hasta llenar la barra de doma; si se despierta, pierdes la doma. Los ciervos se domestican dándoles bayas o manzanas: si huyen, atúrdelos antes con la honda.</td></tr>
     <tr><th>Animales</th><td>Con carne cruda en la mano, LT sobre un perro salvaje para domesticarlo (puede costar varios intentos). LT sobre tu perro: quieto o sígueme. Con trigo, las vacas te siguen; dale trigo a una vaca y a un toro para que críen. Con un cubo, LT sobre una vaca para ordeñarla.</td></tr>
     <tr><th>En menús y mochila</th><td>Cruceta o stick izquierdo para moverte, <kbd>A</kbd> para elegir, <kbd>B</kbd> para volver. En la mochila, <kbd>A</kbd> coge un objeto y <kbd>A</kbd> otra vez lo deja; <kbd>X</kbd> te dice qué es.</td></tr>
@@ -462,7 +466,7 @@ const AIR=0, GRASS=1, DIRT=2, STONE=3, SAND=4, GRAVEL=5, SNOW=6, PLANKS=7, BRICK
   BANDAGE=91, STEW=92, SWORD_CU=93, PICK_AU=94, HELM_CR=95, CHEST_CR=96, BOOTS_CR=97, SWORD_SH=98,
   SLING=99, BOW_W=100, BOW_FE=101, BOW_CR=102, BOW_SH=103, ARROW=104, TRANQ=105, BERRY=106, NARCO=107, BUSH=108,
   HELM_LE=109, CHEST_LE=110, BOOTS_LE=111, HELM_FE=112, CHEST_FE=113, BOOTS_FE=114, HELM_SH=115, CHEST_SH=116, BOOTS_SH=117,
-  PET_LE=118, PET_CU=119, PET_FE=120, PET_AU=121, PET_CR=122, PET_SH=123, CORE=124, GSWORD=125, ELIXIR=126, GBOW=127;
+  PET_LE=118, PET_CU=119, PET_FE=120, PET_AU=121, PET_CR=122, PET_SH=123, CORE=124, GSWORD=125, ELIXIR=126, GBOW=127, HEARTH=128, SPEAR_FE=129, SPEAR_CR=130, WAXE_FE=131, WAXE_SH=132, DAG_CU=133, DAG_CR=134;
 // tex: [arriba, lados, abajo] · hard: segundos a mano · mat: qué herramienta lo acelera
 // need: nivel mínimo de pico para que suelte algo · drop: qué suelta (por defecto, él mismo)
 const BLOCKS=[null,
@@ -557,7 +561,15 @@ const BLOCKS=[null,
   {name:'Núcleo sombrío'},
   {name:'Espada del Guardián', tool:'sword', tier:4, dmg:20, dur:1500, col:'#c9a2ff', hc:0xc9a2ff, rep:[38,3]},
   {name:'Elixir de cristal', food:4, heal:16},
-  {name:'Arco del Guardián', tool:'bow', tier:4, dur:1200, rng:{spd:42,cd:.4,dmg:15,tq:2.6}, col:'#c9a2ff', hc:0xc9a2ff, rep:[38,3]}
+  {name:'Arco del Guardián', tool:'bow', tier:4, dur:1200, rng:{spd:42,cd:.4,dmg:15,tq:2.6}, col:'#c9a2ff', hc:0xc9a2ff, rep:[38,3]},
+  {name:'Hoguera', tex:[41,41,41], hard:.5, mat:'wood', hearth:true},
+  // armas de cuerpo a cuerpo con su propio estilo: reach = alcance, cd = espera entre golpes
+  {name:'Lanza de hierro', tool:'spear', tier:3, dmg:6, dur:260, reach:4.8, cd:.55, col:'#e3e8ee', hc:0xe3e8ee, rep:[27,2]},
+  {name:'Lanza de cristal', tool:'spear', tier:4, dmg:9, dur:500, reach:5.2, cd:.5, col:'#6fe6f0', hc:0x6fe6f0, rep:[28,1]},
+  {name:'Hacha de guerra de hierro', tool:'waraxe', tier:3, dmg:10, dur:260, cd:.95, col:'#e3e8ee', hc:0xe3e8ee, rep:[27,2]},
+  {name:'Hacha de guerra sombría', tool:'waraxe', tier:4, dmg:17, dur:800, cd:.9, col:'#8d5bd6', hc:0x8d5bd6, rep:[38,2]},
+  {name:'Dagas de cobre', tool:'dagger', tier:2, dmg:3.5, dur:200, cd:.2, col:'#e08a52', hc:0xe08a52, rep:[45,2]},
+  {name:'Dagas de cristal', tool:'dagger', tier:4, dmg:5, dur:450, cd:.2, col:'#6fe6f0', hc:0x6fe6f0, rep:[28,1]}
 ];
 // agua: la quieta (fuente) y tres niveles de agua que corre
 const WATERISH=new Uint8Array(256); for(const i of [9,85,86,87]) WATERISH[i]=1;
@@ -676,6 +688,11 @@ function buildAtlas(){
   tile(40,(x,y,r)=>{ const dx=x-7.5, dy=y-8.5; if(dx*dx/64+dy*dy/56>1||y<2) return [0,0,0,0];
     if((x*7+y*3)%11===0&&y>3&&y<14) return (x+y)%3===0?[92,46,120]:[214,40,52];
     const n=(r-.5)*34; return [52+n*.5,118+n,50+n*.5]; });
+  tile(41,(x,y,r)=>{                      // hoguera: troncos cruzados y llama
+    if(y>=12){ const lg=(y===12||y===15)?-30:0; if((x>=2&&x<=13&&(y===13||y===14))||((x===3||x===12)&&y>=12)) return [120+lg+(r-.5)*16,84+lg,52+lg]; return [0,0,0,0]; }
+    const cx=Math.abs(x-7.5);
+    if(y<4+cx*1.5+hash2(x,1,412)*2) return [0,0,0,0];
+    const t=(y-4)/8; return [255,150+t*90+r*20,40+t*60]; });
   tile(21,(x,y,r)=>{ if(x<7||x>8||y<6) return [0,0,0,0]; if(y<8) return [255,196+r*50,70]; const n=(r-.5)*14; return [138+n,90+n,52+n]; });
   tile(22,(x,y,r)=>{const n=(r-.5)*16, st=(x%4===0)?-26:0; if(x%4===2&&y%5===1) return [226,232,190]; return [66+n+st,138+n+st,70+n+st];});
   tile(23,(x,y,r)=>{const n=(r-.5)*10, st=((x+y*2)%9===0)?18:0; return [168+n+st,212+n+st,238+n+st];});
@@ -690,8 +707,12 @@ const CS=16, WH=64, SEA=22, SNOWLINE=44;
 function rng(seed){ let a=seed|0; return ()=>{ a=(a+0x6D2B79F5)|0; let t=Math.imul(a^(a>>>15),1|a); t=(t+Math.imul(t^(t>>>7),61|t))^t; return ((t^(t>>>14))>>>0)/4294967296; }; }
 // [bloque, vetas por chunk, tamaño de veta, altura mínima, altura máxima]
 const ORES=[[COAL_ORE,7,6,4,52],[IRON_ORE,4,4,3,36],[COPPER_ORE,3,4,6,40],[GOLD_ORE,1,4,2,16],[CRYSTAL_ORE,1,3,2,12]];
+// zonas: cuanto más lejos del punto de inicio, más peligro y más riqueza
+const ZONES=['Tierras tranquilas','Tierras salvajes','Tierras peligrosas','Tierras sombrías'], ZONE_D=[300,700,1300];
+const ZHP=[1,1.4,1.9,2.6], ZDMG=[1,1.3,1.7,2.2], ZELITE=[0,.12,.2,.3];
 class WorldGenerator{
-  constructor(seed){ this.seed=seed|0; }
+  constructor(seed){ this.seed=seed|0; this.origin=null; }
+  zoneAt(x,z){ if(!this.origin) return 0; const d=Math.hypot(x-this.origin[0],z-this.origin[1]); return d<ZONE_D[0]?0:d<ZONE_D[1]?1:d<ZONE_D[2]?2:3; }
   heightAt(x,z){
     const s=this.seed;
     const c=fbm(x*.004,z*.004,s,3);              // continentes / relieve grande
@@ -752,6 +773,11 @@ class WorldGenerator{
           if(d===0&&x<15)x++; else if(d===1&&x>0)x--; else if(d===2&&z<15)z++; else if(d===3&&z>0)z--; else if(d===4&&y<WH-1)y++; else if(d===5&&y>1)y--;
         }
       }
+    }
+    const zn=this.zoneAt(cx*CS+8,cz*CS+8);
+    for(const o of [[IRON_ORE,4,3,40],[GOLD_ORE,4,2,26],[CRYSTAL_ORE,3,2,20]]) for(let v=0;v<zn;v++){
+      let x=Math.floor(R()*CS), y=o[2]+Math.floor(R()*(o[3]-o[2])), z=Math.floor(R()*CS);
+      for(let k=0;k<o[1];k++){ const i=x+z*CS+y*256; if(data[i]===STONE) data[i]=o[0]; const d=Math.floor(R()*4); if(d===0&&x<15)x++; else if(d===1&&x>0)x--; else if(d===2&&z<15)z++; else if(d===3&&y<WH-1)y++; }
     }
     // vegetación: se decide por celdas de 5x5 para que encaje entre chunks vecinos
     const x0=cx*CS, z0=cz*CS;
@@ -950,7 +976,7 @@ function buildLight(world,cx,cz){
     const x0=Math.max(0,bx), x1=Math.min(LW,bx+CS), z0=Math.max(0,bz), z1=Math.min(LW,bz+CS);
     for(let rz=z0;rz<z1;rz++)for(let rx=x0;rx<x1;rx++){
       const col=(rx-bx)+(rz-bz)*CS, rc=rx+rz*LW;
-      for(let y=0;y<=ct;y++){ const b=d[col+y*256]; if(b){ lblk[rc+y*LA]=b; if(b===TORCH||b===LAMP) torches.push(rc+y*LA); } }
+      for(let y=0;y<=ct;y++){ const b=d[col+y*256]; if(b){ lblk[rc+y*LA]=b; if(b===TORCH||b===LAMP||b===HEARTH) torches.push(rc+y*LA); } }
     }
   }
   top=Math.min(top+1,WH-1); lTop=top;
@@ -963,7 +989,7 @@ function buildLight(world,cx,cz){
        (z>0&&lsky[i-LW]===0&&!OPAQUE[lblk[i-LW]])||(z<LW-1&&lsky[i+LW]===0&&!OPAQUE[lblk[i+LW]])) lq[qt++]=i;
   }
   flood(lsky,qt);
-  if(torches.length){ qt=0; for(const i of torches){ ltor[i]=lblk[i]===LAMP?15:14; lq[qt++]=i; } flood(ltor,qt); }
+  if(torches.length){ qt=0; for(const i of torches){ ltor[i]=lblk[i]===TORCH?14:15; lq[qt++]=i; } flood(ltor,qt); }
 }
 const ROT_TOP=new Uint8Array(256); for(const i of [1,2,3,4,5,6]) ROT_TOP[i]=1;
 function LI(x,y,z){ return y<0?-1:y>lTop?-2:(x+LP)+(z+LP)*LW+y*LA; }
@@ -976,7 +1002,7 @@ function buildChunkGeometry(world,cx,cz){
     const id=lblk[(x+LP)+(z+LP)*LW+y*LA];
     if(id===AIR) continue;
     if(id===TORCH){ addTorch(sol,x,y,z); continue; }
-    if(id===TALLGRASS||id===FLOWER||id===BUSH){ addCross(sol,x,y,z,BLOCKS[id].tex[0]); continue; }
+    if(id===TALLGRASS||id===FLOWER||id===BUSH||id===HEARTH){ addCross(sol,x,y,z,BLOCKS[id].tex[0]); continue; }
     if(BLOCKS[id].shape){ if(BLOCKS[id].shape==='crop') addCross(sol,x,y,z,BLOCKS[id].tex[0]); else addShape(sol,x,y,z,id); continue; }
     const isW=WATERISH[id]===1, def=BLOCKS[id], out=isW?wat:sol;
     let j=LI(x,y+1,z);
@@ -1396,6 +1422,17 @@ function icon(id){
     x.fillStyle=d.col||'#9a6a3c'; for(const q of [[4,1],[6,2],[8,3],[9,5],[10,7],[10,9],[9,11],[8,12],[6,13],[4,14]]) x.fillRect(q[0],q[1],2,2);
     x.fillStyle='#4a3b2c'; x.fillRect(10,7,2,3); x.fillStyle='#ecece2'; x.fillRect(4,2,1,13);
   }
+  else if(d.tool==='spear'){
+    x.fillStyle='#8a5a34'; for(let j=0;j<11;j++) x.fillRect(1+j,14-j,2,1);
+    x.fillStyle=d.col; x.fillRect(11,2,3,3); x.fillRect(12,1,3,2); x.fillRect(13,0,2,2); x.fillStyle='#4a3b2c'; x.fillRect(10,4,2,2);
+  }
+  else if(d.tool==='waraxe'){
+    x.fillStyle='#8a5a34'; for(let j=0;j<11;j++) x.fillRect(2+j,14-j,2,2);
+    x.fillStyle=d.col; x.fillRect(6,1,8,3); x.fillRect(8,3,7,5); x.fillRect(10,7,5,3); x.fillRect(4,2,3,4); x.fillStyle='#ffffff'; x.fillRect(13,3,1,5);
+  }
+  else if(d.tool==='dagger'){
+    for(const o of [0,6]){ x.fillStyle='#4a3b2c'; x.fillRect(2+o,11,3,3); x.fillStyle='#8a5a34'; x.fillRect(3+o,12,1,3); x.fillStyle=d.col; for(let j=0;j<5;j++) x.fillRect(4+o+Math.floor(j*.6),10-j*2,2,2); }
+  }
   else if(d.tool==='sling'){
     x.fillStyle='#8a5a34'; x.fillRect(7,8,2,7); x.fillRect(4,3,2,6); x.fillRect(10,3,2,6); x.fillRect(5,8,6,2);
     x.fillStyle='#9a6038'; x.fillRect(4,2,8,1); x.fillRect(7,1,2,3);
@@ -1495,6 +1532,13 @@ const RECIPES=[
   {out:STICK,n:4,inp:[[PLANKS,2]]},
   {out:WORKBENCH,n:1,inp:[[PLANKS,4]]},
   {out:TORCH,n:4,inp:[[COAL,1],[STICK,1]]},
+  {out:HEARTH,n:1,inp:[[LOG,2],[STICK,2]]},
+  {out:DAG_CU,n:1,inp:[[COPPER_INGOT,2],[STICK,1]],st:WORKBENCH},
+  {out:SPEAR_FE,n:1,inp:[[IRON_INGOT,3],[STICK,3]],st:WORKBENCH},
+  {out:WAXE_FE,n:1,inp:[[IRON_INGOT,5],[STICK,2]],st:WORKBENCH},
+  {out:DAG_CR,n:1,inp:[[CRYSTAL,2],[STICK,1]],st:WORKBENCH,lock:'dagacr'},
+  {out:SPEAR_CR,n:1,inp:[[CRYSTAL,3],[STICK,3]],st:WORKBENCH,lock:'lanzacr'},
+  {out:WAXE_SH,n:1,inp:[[SHARD,6],[CRYSTAL,2],[STICK,2]],st:WORKBENCH,lock:'hachash'},
   {out:TORCH,n:8,inp:[[SHARD,1],[STICK,1]]},
   {out:SWORD_WOOD,n:1,inp:[[PLANKS,2],[STICK,1]],st:WORKBENCH},
   {out:SWORD_STONE,n:1,inp:[[STONE,2],[STICK,1]],st:WORKBENCH},
@@ -1674,7 +1718,11 @@ function slotText(s,i){
   if(d.armor) t+=' · protege un '+d.armor.pts*4+' %';
   else if(d.tool==='bow') t+=' · daño de flecha '+d.rng.dmg+' · dispara con Usar';
   else if(d.tool==='sling') t+=' · lanza piedras que aturden';
+  else if(d.tool==='spear') t+=' · daño '+d.dmg+' · más alcance y atraviesa a dos enemigos';
+  else if(d.tool==='waraxe') t+=' · daño '+d.dmg+' · lenta, golpea a todos los que tienes delante';
+  else if(d.tool==='dagger') t+=' · daño '+d.dmg+' · golpes muy rápidos';
   else if(d.pet) t+=' · para tu perro o lobo: protege un '+d.pet.pts*4+' %. Úsala sobre él';
+  else if(s.id===HEARTH) t+=' · descansa a su lado para quedar Descansado';
   else if(s.id===CORE) t+=' · lo suelta el Guardián sombrío. Sirve para su espada';
   else if(s.id===TRANQ) t+=' · duerme animales';
   else if(s.id===NARCO) t+=' · para hacer tranquilizantes o mantener dormido a un animal';
@@ -1803,6 +1851,20 @@ function makeHandItem(id){
     const gr=new THREE.Mesh(new THREE.BoxGeometry(.055,.09,.055),flat(0x4a3b2c)); g.add(gr);
     const st=new THREE.Mesh(new THREE.BoxGeometry(.008,.56,.008),flat(0xecece2)); st.position.x=-.12; g.add(st);
     g.rotation.set(0,1.35,-.12); g.position.y=.06;
+  }else if(def.tool==='spear'){
+    const sh=new THREE.Mesh(new THREE.BoxGeometry(.04,.95,.04),flat(0x8a5a34)); sh.position.y=.12; g.add(sh);
+    const tp=new THREE.Mesh(new THREE.BoxGeometry(.07,.18,.03),flat(def.hc)); tp.position.y=.66; g.add(tp);
+    const gd=new THREE.Mesh(new THREE.BoxGeometry(.12,.03,.05),flat(0x4a3b2c)); gd.position.y=.56; g.add(gd);
+    g.rotation.set(-.7,.45,.25); g.scale.setScalar(.8); g.position.set(-.02,-.06,0);
+  }else if(def.tool==='waraxe'){
+    const sh=new THREE.Mesh(new THREE.BoxGeometry(.05,.66,.05),flat(0x8a5a34)); g.add(sh);
+    for(const sd of [1,-1]){ const bl=new THREE.Mesh(new THREE.BoxGeometry(.2,.24,.04),flat(def.hc)); bl.position.set(sd*.12,.24,0); g.add(bl); }
+    g.rotation.set(-.55,.45,.25); g.scale.setScalar(.85); g.position.set(-.02,0,0);
+  }else if(def.tool==='dagger'){
+    const gr=new THREE.Mesh(new THREE.BoxGeometry(.045,.12,.045),flat(0x8a5a34)); gr.position.y=-.06; g.add(gr);
+    const gd=new THREE.Mesh(new THREE.BoxGeometry(.12,.03,.05),flat(0x4a3b2c)); g.add(gd);
+    const bl=new THREE.Mesh(new THREE.BoxGeometry(.05,.24,.02),flat(def.hc)); bl.position.y=.13; g.add(bl);
+    g.rotation.set(-.55,.45,.25); g.scale.setScalar(.9); g.position.set(-.02,0,0);
   }else if(def.tool==='sling'){
     const st=new THREE.Mesh(new THREE.BoxGeometry(.045,.24,.045),flat(0x8a5a34)); st.position.y=-.1; g.add(st);
     for(const sd of [1,-1]){ const p=new THREE.Mesh(new THREE.BoxGeometry(.04,.18,.04),flat(0x8a5a34)); p.position.set(sd*.06,.08,0); p.rotation.z=-sd*.35; g.add(p); }
@@ -1825,7 +1887,7 @@ function makeHandItem(id){
       const hm=new THREE.Mesh(new THREE.BoxGeometry(.2,.17,.05),flat(hc)); hm.position.set(.1,.2,0); g.add(hm);
       const ed=new THREE.Mesh(new THREE.BoxGeometry(.04,.21,.052),flat(hd)); ed.position.set(.21,.2,0); g.add(ed);
     }
-    g.rotation.set(0,1.0,-.3); g.position.y=.06;
+    g.rotation.set(-.55,.45,.25); g.scale.setScalar(.85); g.position.set(-.02,0,0);
   }else if(def.torch){
     const st=new THREE.Mesh(new THREE.BoxGeometry(.05,.36,.05),flat(0x8a5a34)); g.add(st);
     const fl=new THREE.Mesh(new THREE.BoxGeometry(.075,.075,.075),flat(0xffd250)); fl.position.y=.21; g.add(fl);
@@ -1994,7 +2056,7 @@ function lootChest(x,y,z){
   looted.add(k); flags.loot=true; gainXp(st.tier?10+st.tier*10:10);
   const T=st.tier===2?LOOT3:st.tier===1?LOOT2:LOOT;
   const R=rng(Math.imul(x,92837111)^Math.imul(z,689287499)^world.gen.seed), c=chestAt(k), tot=T.reduce((a,l)=>a+l[3],0);
-  const n=4+Math.floor(R()*4)+(st.tier||0)+(perk('tesoro')?2:0);
+  const n=4+Math.floor(R()*4)+(st.tier||0)+(perk('tesoro')?2:0)+world.gen.zoneAt(x,z);
   for(let i=0;i<n;i++){
     let r=R()*tot, l=T[0]; for(const e of T){ r-=e[3]; if(r<=0){ l=e; break; } }
     let slot=Math.floor(R()*18); while(c[slot]) slot=(slot+1)%18;
@@ -2035,7 +2097,8 @@ function useBed(hit){
   const fx=$('dmg'); fx.style.transition='none'; fx.style.background='#000'; fx.style.opacity='1';
   setTimeout(()=>{ fx.style.transition='opacity 1.2s'; fx.style.opacity='0'; setTimeout(()=>{ fx.style.background=''; },1300); },700);
   dayT=.02; while(enemies.length) removeEntity(enemies[0]); flags.night=true;
-  toast('Has dormido hasta el amanecer. Reaparecerás junto a esta cama.'); saveGame();
+  scanRest(); rested=300+60*comfort; restMax=rested;
+  toast('Has dormido hasta el amanecer y estás Descansado ('+Math.round(rested/60)+' min). Reaparecerás junto a esta cama.'); saveGame();
 }
 
 /* ---------- FARMING: el trigo crece por etapas mientras juegas ---------- */
@@ -2611,6 +2674,45 @@ function updateShadows(){
   for(const e of enemies) put(e,e.sp.r*2.8*(e.boss?1.6:1));
   for(let i=n;i<shadowPool.length;i++) shadowPool[i].visible=false;
 }
+/* ---------- DESCANSO: quieto junto a una hoguera, o a cubierto cerca de una cama o una luz, quedas Descansado ---------- */
+// cada tipo de mueble cercano suma un punto de comodidad (los repetidos no cuentan dos veces); más comodidad, más dura
+const COMFORT=new Map([[BED,'cama'],[HEARTH,'hoguera'],[WORKBENCH,'mesa de trabajo'],[FURNACE,'horno'],[CHEST,'cofre'],[LAMP,'lámpara'],[GLASS,'ventanas'],
+  [DOOR_X,'puerta'],[DOOR_Z,'puerta'],[DOOR_XO,'puerta'],[DOOR_ZO,'puerta'],[FLOWER,'flores'],[STAIR_W,'asientos'],[STAIR_W+1,'asientos'],[STAIR_W+2,'asientos'],[STAIR_W+3,'asientos'],
+  [FENCE,'vallas'],[BRICKS,'ladrillo'],[TORCH,'antorchas']]);
+let zoneT=0, curZone=-1;
+let rested=0, restT=0, restScanT=0, restOk=false, comfort=0, comfortList=[], hearthPos=null, restMax=0;
+function scanRest(){
+  const px=Math.floor(player.x), py=Math.floor(player.y), pz=Math.floor(player.z), found=new Set(); let fire=null, light=false;
+  for(let dy=-2;dy<=4;dy++)for(let dz=-7;dz<=7;dz++)for(let dx=-7;dx<=7;dx++){
+    const b=world.getBlock(px+dx,py+dy,pz+dz); if(!b) continue;
+    const c=COMFORT.get(b); if(c) found.add(c);
+    const near=Math.abs(dx)<=5&&Math.abs(dz)<=5;
+    if(b===HEARTH&&near&&(!fire||Math.abs(dx)+Math.abs(dz)<fire[3])) fire=[px+dx,py+dy,pz+dz,Math.abs(dx)+Math.abs(dz)];
+    if((b===BED||b===LAMP||b===TORCH)&&near) light=true;
+  }
+  hearthPos=fire; comfortList=[...found]; comfort=found.size;
+  const roof=!skyExposed(px,py,pz);
+  restOk=!!fire||(roof&&light);
+}
+function updateRest(dt){
+  if(!player||dead) return;
+  restScanT-=dt; if(restScanT<=0){ restScanT=.6; scanRest(); }
+  const still=Math.hypot(player.vx,player.vz)<.4&&!inp.mining, danger=enemies.some(e=>Math.hypot(e.x-player.x,e.z-player.z)<12);
+  if(restOk&&still&&!danger) restT+=dt; else restT=0;
+  if(restT>=4){
+    const dur=300+60*comfort;
+    if(rested<dur-20){ const first=rested<=0; rested=dur; restMax=dur; sfx('eat');
+      toast((first?'Estás Descansado: ':'Descanso renovado: ')+Math.round(dur/60)+' min. Comodidad '+comfort+(comfortList.length?' ('+comfortList.join(', ')+')':'')+'. Recuperas vida el doble de rápido y ganas un 50 % más de experiencia.'); }
+    restT=4;
+  }
+  if(rested>0) rested=Math.max(0,rested-dt);
+  // brasas y humo sobre la hoguera más cercana
+  if(hearthPos&&Math.random()<dt*9){ const h=hearthPos, smoke=Math.random()<.4;
+    ambSpawn(5,h[0]+.3+Math.random()*.4,h[1]+.5,h[2]+.3+Math.random()*.4,(Math.random()-.5)*.3,smoke?.9:1.6+Math.random(),(Math.random()-.5)*.3,smoke?[.5,.5,.5]:[1,.55+Math.random()*.3,.15],smoke?2.2:1.1); }
+  const el=$('rest');
+  const txt=restT>0&&restT<4?'Descansando… '+Math.ceil(4-restT):rested>0?'☾ Descansado '+Math.floor(rested/60)+':'+String(Math.floor(rested%60)).padStart(2,'0')+' · comodidad '+comfort:'';
+  if(el.textContent!==txt){ el.textContent=txt; el.style.display=txt?'block':'none'; }
+}
 /* ---------- PARTÍCULAS DE AMBIENTE: hojas que caen, luciérnagas de noche, polvo en cuevas y salpicaduras ---------- */
 const AMB_N=240, ambPos=new Float32Array(AMB_N*3).fill(-999), ambCol=new Float32Array(AMB_N*3), amb=[];
 for(let i=0;i<AMB_N;i++) amb.push({life:0,t:0,vx:0,vy:0,vz:0,ph:0,c:[1,1,1]});
@@ -2621,7 +2723,7 @@ const FF_N=40, ffPos=new Float32Array(FF_N*3).fill(-999), ffCol=new Float32Array
 for(let i=0;i<FF_N;i++) ff.push({life:0,vx:0,vy:0,vz:0,ph:0});
 const ffGeo=new THREE.BufferGeometry(); ffGeo.setAttribute('position',new THREE.BufferAttribute(ffPos,3)); ffGeo.setAttribute('color',new THREE.BufferAttribute(ffCol,3));
 const ffPts=new THREE.Points(ffGeo,new THREE.PointsMaterial({size:.3,vertexColors:true,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false})); ffPts.frustumCulled=false; scene.add(ffPts);
-const ambCount=[0,0,0,0,0];      // 1 hoja · 2 luciérnaga · 3 polvo · 4 salpicadura
+const ambCount=[0,0,0,0,0,0];      // 1 hoja · 2 luciérnaga · 3 polvo · 4 salpicadura
 let ambNext=0, ambUnderT=0, ambUnder=false, ambWasW=false, ambVy=0;
 function ambSpawn(t,x,y,z,vx,vy,vz,c,life){
   for(let k=0;k<AMB_N;k++){ const i=(ambNext+k)%AMB_N, a=amb[i]; if(a.life>0) continue;
@@ -2672,9 +2774,10 @@ function updateAmbient(dt){
     if(a.t===1){ ambPos[j]+=Math.sin(a.ph*2.2)*dt*.6+wx.w*dt*.8; ambPos[j+2]+=Math.cos(a.ph*1.7)*dt*.4; ambPos[j+1]+=a.vy*dt;
       if(SOLID[world.getBlock(Math.floor(ambPos[j]),Math.floor(ambPos[j+1]),Math.floor(ambPos[j+2]))]){ a.vy=0; if(a.life>1.2) a.life=1.2; } }
     else if(a.t===3){ ambPos[j]+=a.vx*dt; ambPos[j+1]+=a.vy*dt; ambPos[j+2]+=a.vz*dt; }
+    else if(a.t===5){ ambPos[j]+=a.vx*dt; ambPos[j+1]+=a.vy*dt; ambPos[j+2]+=a.vz*dt; a.vx*=.98; a.vz*=.98; }
     else { a.vy-=14*dt; ambPos[j]+=a.vx*dt; ambPos[j+1]+=a.vy*dt; ambPos[j+2]+=a.vz*dt; }
     // color: las luciérnagas parpadean y brillan de noche; lo demás se oscurece con la noche
-    let f=a.t===3?.5:k;
+    let f=a.t===3?.5:a.t===5?1:k;
     const fade=Math.min(1,a.life*1.5); f*=fade;
     ambCol[j]=a.c[0]*f; ambCol[j+1]=a.c[1]*f; ambCol[j+2]=a.c[2]*f;
   }
@@ -2700,7 +2803,7 @@ function makeAnimal(kind,x,y,z,extra){
   const sp=SPECIES[kind], g=new THREE.Group();
   const a=Object.assign({kind,sp,g,x,y,z,vy:0,yaw:Math.random()*6.28,state:'walk',t:2+Math.random()*3,legs:[],wings:[],ph:Math.random()*6,ground:false,hp:sp.hp,kx:0,kz:0,hurtT:0,sc:1,love:0,breedCd:0,milkCd:0},extra||{});
   if(a.baby){ a.sc=.55; if(a.grow===undefined) a.grow=GROW_TIME; }
-  if(sp.active&&!a.tame){ if(!a.wl) a.wl=1+Math.floor(Math.pow(Math.random(),1.6)*12); a.hp=sp.hp+a.wl*2; }
+  if(sp.active&&!a.tame){ if(!a.wl) a.wl=Math.min(20,1+Math.floor(Math.pow(Math.random(),1.6)*12)+world.gen.zoneAt(x,z)*3); a.hp=sp.hp+a.wl*2; }
   if(a.tame){ a.noTurn=true; if(!a.lvl) a.lvl=1; a.xp=a.xp||0; a.maxhp=petMaxHp(a); if(!extra||extra.hp===undefined) a.hp=a.maxhp; }
   sp.build(g,a); if(a.arm) setPetArmor(a); g.position.set(a.x,a.y,a.z); g.scale.setScalar(a.sc); scene.add(g); animals.push(a); return a;
 }
@@ -3061,8 +3164,12 @@ const BOSS={r:.6,h:2.95,speed:2.1,hp:500};
 function makeEnemy(kind,x,y,z){
   const g=new THREE.Group(), sp=kind==='thrower'?THROWER:kind==='boss'?BOSS:UMBRIO;
   const a={kind,sp,hostile:true,boss:kind==='boss',g,x,y,z,vy:0,yaw:0,t:1,legs:[],arms:[],ph:0,ground:false,hp:sp.hp,kx:0,kz:0,hurtT:0,cd:kind==='thrower'?1.5:.6,aggro:false,skT:0,sky:true};
+  a.zone=world.gen.zoneAt(x,z); a.zm=ZDMG[a.zone]; a.hp=sp.hp*(a.boss?1+a.zone*.25:ZHP[a.zone]);
+  if(!a.boss&&Math.random()<ZELITE[a.zone]){ a.elite=true; a.hp*=1.6; a.zm*=1.25; }
+  a.maxhp=a.hp;
   if(a.boss){ a.atk=1.5; a.orbT=3; a.sumT=8; a.slam=0; }
   EBUILD[EBUILD[kind]?kind:'umbrio'](g,a);
+  if(a.elite) g.scale.setScalar(1.22);
   g.position.set(a.x,a.y,a.z); scene.add(g); enemies.push(a); return a;
 }
 function spawnEnemy(){
@@ -3073,7 +3180,7 @@ function spawnEnemy(){
 }
 function skyExposed(x,y,z){ for(let yy=y+2;yy<WH;yy++) if(OPAQUE[world.getBlock(x,yy,z)]) return false; return true; }
 function lightNear(x,y,z,r){
-  for(let dy=-r;dy<=r;dy++)for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++){ const b=world.getBlock(x+dx,y+dy,z+dz); if(b===TORCH||b===LAMP) return true; }
+  for(let dy=-r;dy<=r;dy++)for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++){ const b=world.getBlock(x+dx,y+dy,z+dz); if(b===TORCH||b===LAMP||b===HEARTH) return true; }
   return false;
 }
 // en cuevas aparecen a cualquier hora, pero solo en la oscuridad: lejos de antorchas y sin cielo encima
@@ -3115,7 +3222,7 @@ function updateShots(dt){
 }
 function removeEntity(a){ if(a.guard&&a.hp>0&&a.skey) woken.delete(a.skey); scene.remove(a.g); const l=a.hostile?enemies:animals, i=l.indexOf(a); if(i>=0) l.splice(i,1); }
 function bossAI(a,dt,dx,dy,dz,d2){
-  const d=Math.sqrt(d2), p2=a.hp<a.sp.hp*.5;
+  const d=Math.sqrt(d2), p2=a.hp<a.maxhp*.5;
   if(p2&&!a.p2){ a.p2=true; toast('¡El Guardián se enfurece!'); sfx('growl'); rumble(.8,300); }
   a.yaw=Math.atan2(dx,dz); a.atk-=dt; a.orbT-=dt; a.sumT-=dt;
   if(a.slam>0){
@@ -3123,15 +3230,15 @@ function bossAI(a,dt,dx,dy,dz,d2){
     if(a.slam<=0){                                   // el golpe: daña todo lo que esté cerca
       a.arms[0].rotation.x=a.arms[1].rotation.x=-.3; sfx('break'); rumble(.9,260);
       for(let k=0;k<10;k++){ const an=k/10*Math.PI*2; burst(Math.floor(a.x+Math.cos(an)*2),Math.floor(a.y),Math.floor(a.z+Math.sin(an)*2),99); }
-      if(!dead&&d<3.3&&Math.abs(dy)<2.6) hurtPlayer(p2?7:5,dx,dz);
-      for(const p of animals) if(p.tame&&Math.hypot(p.x-a.x,p.z-a.z)<3.3) hurtDog(p,5);
+      if(!dead&&d<3.3&&Math.abs(dy)<2.6) hurtPlayer((p2?7:5)*a.zm,dx,dz);
+      for(const p of animals) if(p.tame&&Math.hypot(p.x-a.x,p.z-a.z)<3.3) hurtDog(p,5*a.zm);
     }
     return 0;
   }
   if(d<2.8&&a.atk<=0&&!dead){ a.slam=p2?.55:.75; a.atk=p2?1.7:2.4; return 0; }
   if(d>4&&d<22&&a.orbT<=0&&seesPlayer(a)){
     a.orbT=p2?2.3:3.6; const n=p2?5:3;
-    for(let k=0;k<n;k++) shoot(a,{orb:true,spd:11,dmg:4,h:2.3,ang:(k-(n-1)/2)*.22});
+    for(let k=0;k<n;k++) shoot(a,{orb:true,spd:11,dmg:4*a.zm,h:2.3,ang:(k-(n-1)/2)*.22});
   }
   if(p2&&a.sumT<=0&&enemies.filter(e=>e.minion).length<2){
     a.sumT=14; const e=makeEnemy('umbrio',a.x+(Math.random()-.5)*3,a.y+.2,a.z+(Math.random()-.5)*3); e.minion=true; e.guard=true; toast('El Guardián invoca a sus sombras.');
@@ -3141,7 +3248,7 @@ function bossAI(a,dt,dx,dy,dz,d2){
 }
 function updateEnemies(dt){
   enemyT-=dt;
-  if(enemyT<=0){ enemyT=4; if(enemies.length<ENEMY_MAX&&!dead){ if(dayLight<.4) spawnEnemy(); if(enemies.length<ENEMY_MAX&&Math.random()<.6) spawnCaveEnemy(); } }
+  if(enemyT<=0){ enemyT=4; const emax=ENEMY_MAX+world.gen.zoneAt(player.x,player.z); if(enemies.length<emax&&!dead){ if(dayLight<.4) spawnEnemy(); if(enemies.length<emax&&Math.random()<.6) spawnCaveEnemy(); } }
   updateShots(dt); updatePShots(dt); checkGuards(dt);
   for(let i=enemies.length-1;i>=0;i--){
     const a=enemies[i], dx=player.x-a.x, dz=player.z-a.z, dy=player.y-a.y, d2=dx*dx+dz*dz;
@@ -3159,7 +3266,7 @@ function updateEnemies(dt){
       else if(a.kind==='thrower'){
         // guarda distancia: se acerca si estás lejos, se aleja si te acercas, y dispara si te ve
         const d=Math.sqrt(d2); speed=d<6?-a.sp.speed:d>13?a.sp.speed:0;
-        if(a.cd<=0&&d<18&&seesPlayer(a)){ a.cd=2.4; shoot(a); }
+        if(a.cd<=0&&d<18&&seesPlayer(a)){ a.cd=2.4; shoot(a,{dmg:3*a.zm}); }
       }else speed=d2>1.1?a.sp.speed:0;
     }else{
       a.aggro=false; a.t-=dt; if(a.t<=0){ a.yaw=Math.random()*Math.PI*2; a.t=2+Math.random()*3; } speed=1;
@@ -3168,14 +3275,14 @@ function updateEnemies(dt){
     landMove(a,Math.sin(a.yaw)*speed,Math.cos(a.yaw)*speed,dt,speed);
     a.cd-=dt;
     if(a.kind==='umbrio'){
-      if(!dead&&d2<1.45*1.45&&Math.abs(dy)<1.9&&a.cd<=0){ a.cd=1.2; hurtPlayer(2,dx,dz); }
+      if(!dead&&d2<1.45*1.45&&Math.abs(dy)<1.9&&a.cd<=0){ a.cd=1.2; hurtPlayer(2*a.zm,dx,dz); }
       a.cd2=(a.cd2||0)-dt;
-      if(a.cd2<=0) for(const p of animals){ if(p.tame&&Math.hypot(p.x-a.x,p.z-a.z)<1.4&&Math.abs(p.y-a.y)<1.6){ a.cd2=1.2; hurtDog(p,2); break; } }
+      if(a.cd2<=0) for(const p of animals){ if(p.tame&&Math.hypot(p.x-a.x,p.z-a.z)<1.4&&Math.abs(p.y-a.y)<1.6){ a.cd2=1.2; hurtDog(p,2*a.zm); break; } }
       const reach=a.aggro?-1.25+Math.sin(a.ph*.5)*.25:Math.sin(a.ph)*.3;
       a.arms[0].rotation.x=reach; a.arms[1].rotation.x=a.aggro?reach:-reach;
     }
     if(a.hurtT>0) a.hurtT-=dt;
-    a.g.position.set(a.x,a.y,a.z); a.g.rotation.y=a.yaw; a.g.scale.setScalar(a.hurtT>0?(a.boss?1.05:1.18):1);
+    a.g.position.set(a.x,a.y,a.z); a.g.rotation.y=a.yaw; a.g.scale.setScalar((a.elite?1.22:1)*(a.hurtT>0?(a.boss?1.05:1.18):1));
   }
   bossHud();
 }
@@ -3183,7 +3290,7 @@ function bossHud(){
   const b=enemies.find(e=>e.boss&&Math.hypot(e.x-player.x,e.z-player.z)<40), el=$('bossBar');
   if(!b){ if(el.classList.contains('on')){ el.classList.remove('on'); document.body.classList.remove('bossfight'); } return; }
   if(!el.classList.contains('on')){ el.classList.add('on'); document.body.classList.add('bossfight'); }
-  $('bossFill').style.width=Math.max(0,b.hp/b.sp.hp*100).toFixed(1)+'%';
+  $('bossFill').style.width=Math.max(0,b.hp/b.maxhp*100).toFixed(1)+'%';
 }
 
 /* ---------- COMBATE Y SUPERVIVENCIA: vida, hambre, caídas, muerte y reaparición ---------- */
@@ -3209,15 +3316,18 @@ const UNLOCKS=[
   {id:'arquero', lv:[11,32,45], t:'Buen pulso',           d:['Tus flechas hacen un 20 % más de daño y tus dardos duermen un 20 % más.','Un 40 % más.','Un 60 % más.']},
   {id:'armau',   lv:[12], t:'Receta: armadura de oro',    d:['Casco con corona y peto con gema. Protege un 36 %. También para tu perro o lobo.'], ic:CHEST_AU},
   {id:'vital',   lv:[13,26,38,48], t:'Vitalidad',         d:['Un corazón más de vida.','Otro corazón más.','Otro corazón más.','Otro corazón más.']},
+  {id:'dagacr',  lv:[15], t:'Receta: dagas de cristal',   d:['Dos dagas que golpean rapidísimo.'], ic:DAG_CR},
   {id:'mant',    lv:[14,36,49], t:'Mantenimiento',        d:['Tus herramientas y armaduras se gastan un 25 % menos.','Un 40 % menos.','Un 50 % menos.']},
   {id:'regen',   lv:[16,34,41], t:'Recuperación',         d:['Recuperas vida más deprisa cuando estás bien alimentado.','Aún más deprisa.','Mucho más deprisa.']},
   {id:'armcr',   lv:[17], t:'Receta: armadura de cristal',d:['Casco con cresta de cristales y hombreras de cristal. Protege un 48 %. También para tu perro o lobo.'], ic:CHEST_CR},
+  {id:'lanzacr', lv:[18], t:'Receta: lanza de cristal',   d:['Alcanza más lejos y atraviesa a dos enemigos.'], ic:SPEAR_CR},
   {id:'arcocr',  lv:[19], t:'Receta: arco de cristal',    d:['Rápido y potente. Sus dardos duermen un 70 % más.'], ic:BOW_CR},
   {id:'lider',   lv:[21,37,47], t:'Líder de la manada',   d:['Tu perro o lobo tiene un 20 % más de vida y de mordisco.','Un 40 % más.','Un 60 % más.']},
   {id:'espsh',   lv:[23], t:'Receta: espada sombría',     d:['Cristal y esquirlas sombrías. Una de las mejores armas.'], ic:SWORD_SH},
   {id:'elixir',  lv:[25], t:'Receta: elixir de cristal',  d:['Cristal, 2 lingotes de oro y una manzana. Cura 16 de vida de golpe.'], ic:ELIXIR},
   {id:'tesoro',  lv:[27], t:'Ojo para el botín',          d:['Los cofres que encuentras traen 2 objetos más.']},
   {id:'arcosh',  lv:[29], t:'Receta: arco sombrío',       d:['Dispara rapidísimo y sus dardos duermen el doble.'], ic:BOW_SH},
+  {id:'hachash',  lv:[31], t:'Receta: hacha de guerra sombría', d:['Golpe en abanico que alcanza a todos los enemigos que tienes delante.'], ic:WAXE_SH},
   {id:'armsh',   lv:[33], t:'Receta: armadura sombría',   d:['Yelmo con cuernos y ojos que brillan. La mejor protección: 60 %. También para tu perro o lobo.'], ic:CHEST_SH},
   {id:'vision',  lv:[39], t:'Ojos de búho',               d:['Ves mejor de noche y en la oscuridad.']},
   {id:'arcog',   lv:[42], t:'Receta: arco del Guardián',  d:['Con el núcleo sombrío del jefe. El mejor arco del juego.'], ic:GBOW}
@@ -3270,6 +3380,7 @@ const XP_BLOCK={108:.5,1:.5,2:.5,3:1,4:.5,5:.5,6:.5,11:1,13:3,14:5,15:5,16:8,17:
 function craftXp(id){ const d=BLOCKS[id]; if(d.tool||d.armor||d.pet) return 3+(d.tier||({le:1,cu:2,fe:2,au:3,cr:3,sh:4})[d.metal]||2)*2; if(id===CAKE||id===GOLD_APPLE) return 4; return 1; }
 function gainXp(n){
   if(!n||plvl>=MAX_LVL) return;
+  if(rested>0) n*=1.5;
   pxp+=n; let up=false;
   while(plvl<MAX_LVL&&pxp>=xpNeed(plvl)){
     pxp-=xpNeed(plvl); const before=maxHp(); plvl++; up=true; reachMilestone(plvl);
@@ -3313,10 +3424,31 @@ function findTarget(ex,ey,ez,maxD){
   }
   return best;
 }
-function attackEntity(a,held){
+// golpe cuerpo a cuerpo: la lanza atraviesa al siguiente de la fila; el hacha de guerra barre en abanico
+function meleeHit(tgt,held,ex,ey,ez,reach){
+  attackEntity(tgt,held);
+  if(!held) return;
+  if(held.tool==='spear'){
+    let best=null, bd=reach;
+    for(const list of [animals,enemies]) for(const a of list){
+      if(a===tgt||a.tame||a.hp<=0) continue;
+      const cx=a.x-ex, cy=a.y+a.sp.h*.5-ey, cz=a.z-ez, t=cx*dir.x+cy*dir.y+cz*dir.z; if(t<0||t>bd) continue;
+      const px=cx-dir.x*t, pz=cz-dir.z*t, rr=a.sp.r+.5; if(px*px+pz*pz<rr*rr){ best=a; bd=t; } }
+    if(best) attackEntity(best,held,true);
+  }else if(held.tool==='waraxe'){
+    let n=0;
+    for(const list of [animals,enemies]) for(const a of [...list]){
+      if(a===tgt||a.tame||a.hp<=0) continue;
+      const dx=a.x-player.x, dz=a.z-player.z, d=Math.hypot(dx,dz); if(d>2.9||Math.abs(a.y-player.y)>2) continue;
+      if((dx*dir.x+dz*dir.z)/(d||1)/(Math.hypot(dir.x,dir.z)||1)<.3) continue;
+      attackEntity(a,held,true); n++; }
+    for(let k=0;k<8;k++){ const an=Math.atan2(dir.x,dir.z)+(k/7-.5)*1.6; burst(Math.floor(player.x+Math.sin(an)*2),Math.floor(player.y+1),Math.floor(player.z+Math.cos(an)*2),98); }
+  }
+}
+function attackEntity(a,held,noWear){
   const melee=held&&held.tool&&!held.rng;
   const dmg=(melee?(held.dmg||(held.tool==='sword'?[4,6,8,11]:[2,3,4,5])[held.tier-1]):1)*dmgMul()*[1,1.15,1.25,1.35,1.45][rk('fuerza')];
-  if(melee&&inv[selected]&&BLOCKS[inv[selected].id]===held) wearHeld(held.tool==='sword'?1:2);
+  if(melee&&!noWear&&inv[selected]&&BLOCKS[inv[selected].id]===held) wearHeld(['sword','spear','waraxe','dagger'].includes(held.tool)?1:2);
   damageEntity(a,dmg,dir.x,dir.z,false);
 }
 // daño a un animal o enemigo, venga de un golpe o de un disparo. Devuelve true si muere
@@ -3331,7 +3463,7 @@ function damageEntity(a,dmg,dx,dz,ranged){
     if(a.boss){ if(a.skey) slain.add(a.skey); addItem(CORE,1); addItem(SHARD,10); addItem(CRYSTAL,5); addItem(GOLD_APPLE,2); gainXp(150); flags.boss=true; cryptPt=null;
       toast('¡Has derrotado al Guardián sombrío! Con su núcleo puedes fabricar la Espada del Guardián.'); sfx('eat'); rumble(1,500);
       for(let k=0;k<14;k++) burst(Math.floor(a.x+(Math.random()-.5)*2),Math.floor(a.y+Math.random()*3),Math.floor(a.z+(Math.random()-.5)*2),99); saveGame(); }
-    else if(a.hostile){ if(Math.random()<.6) addItem(SHARD,1); gainXp(a.kind==='thrower'?12:10); }
+    else if(a.hostile){ if(Math.random()<.6) addItem(SHARD,1); gainXp((a.kind==='thrower'?12:10)*(1+.5*(a.zone||0))*(a.elite?2:1)); }
     else{ gainXp(a.sp.active?8:3); if(a.sp.meat&&addItem(RAW_MEAT,a.sc<1?1:a.sp.meat)>0) toast('Inventario lleno'); if(a.sp!==SPECIES.bird&&a.sp!==SPECIES.dog&&Math.random()<.7) addItem(LEATHER,1); }
     return true;
   }
@@ -3463,7 +3595,7 @@ function updateSurvival(dt){
   hungerAcc+=dt*(Math.hypot(player.vx,player.vz)>5?2.2:1);
   if(hungerAcc>=30){ hungerAcc=0; if(hunger>0){ hunger--; renderStats(); } }
   regenAcc+=dt;
-  if(regenAcc>=[4,3,2.2,1.6][rk('regen')]){
+  if(regenAcc>=[4,3,2.2,1.6][rk('regen')]*(rested>0?.5:1)){
     regenAcc=0;
     if(hunger>=14&&hp<maxHp()){ hp=Math.min(maxHp(),hp+1); hungerAcc+=6; renderStats(); }
     else if(hunger<=0) hurtPlayer(1,0,0);
@@ -3630,7 +3762,7 @@ function saveGame(){
     localStorage.setItem('tesela-last',String(curSlot));
     localStorage.setItem(slotKey(curSlot),JSON.stringify({v:1,seed:curSeed,at:Date.now(),goal:goalIdx,fl:{c:[...flags.crafted],n:flags.night,l:flags.loot,p:flags.plant,t:flags.tamed,d:flags.dloot,b:flags.boss},
       p:[+player.x.toFixed(3),+(player.y+.01).toFixed(3),+player.z.toFixed(3),+player.yaw.toFixed(3),+player.pitch.toFixed(3)],
-      inv:inv.map(s=>s?(s.d?[s.id,s.n,s.d]:[s.id,s.n]):0),sel:selected,dayT:+dayT.toFixed(4),hp,fd:hunger,pl:plvl,px:+pxp.toFixed(1),un:[...unlocked],sp:spawnPt,base,pets:animals.filter(a=>a.tame||a.owned).map(a=>({k:a.kind,x:+a.x.toFixed(2),y:+a.y.toFixed(2),z:+a.z.toFixed(2),hp:+a.hp.toFixed(1),sex:a.sex,baby:!!a.baby,grow:a.baby?Math.round(a.grow):0,tame:!!a.tame,owned:!!a.owned,lvl:a.lvl||0,xp:a.xp||0,sit:!!a.sit,bc:Math.round(a.breedCd||0),arm:a.arm||0})),looted:[...looted],wk:[...woken],sl:[...slain],cp:cryptPt,gt:+gameT.toFixed(1),crops:[...crops].map(c=>[c[0],+c[1].toFixed(1)]),arm:armor.map(s=>s?[s.id,s.d||0]:0),chests:ch,edits:ed}));
+      inv:inv.map(s=>s?(s.d?[s.id,s.n,s.d]:[s.id,s.n]):0),sel:selected,dayT:+dayT.toFixed(4),hp,fd:hunger,pl:plvl,px:+pxp.toFixed(1),un:[...unlocked],sp:spawnPt,base,pets:animals.filter(a=>a.tame||a.owned).map(a=>({k:a.kind,x:+a.x.toFixed(2),y:+a.y.toFixed(2),z:+a.z.toFixed(2),hp:+a.hp.toFixed(1),sex:a.sex,baby:!!a.baby,grow:a.baby?Math.round(a.grow):0,tame:!!a.tame,owned:!!a.owned,lvl:a.lvl||0,xp:a.xp||0,sit:!!a.sit,bc:Math.round(a.breedCd||0),arm:a.arm||0})),looted:[...looted],rs:Math.round(rested),wk:[...woken],sl:[...slain],cp:cryptPt,gt:+gameT.toFixed(1),crops:[...crops].map(c=>[c[0],+c[1].toFixed(1)]),arm:armor.map(s=>s?[s.id,s.d||0]:0),chests:ch,edits:ed}));
     return true;
   }catch(_){ return false; }
 }
@@ -3643,7 +3775,7 @@ function startGame(seed,save,slot){
   if(world) world.chunks.forEach(ch=>world.disposeMesh(ch));
   while(animals.length) removeEntity(animals[0]); while(enemies.length) removeEntity(enemies[0]);
   while(shots.length){ scene.remove(shots[0].m); shots.shift(); }
-  decayQ.length=0; chests.clear(); paused=false; crops.clear(); looted.clear(); woken.clear(); slain.clear(); cryptPt=null;
+  decayQ.length=0; chests.clear(); paused=false; crops.clear(); looted.clear(); woken.clear(); slain.clear(); rested=0; restT=0; curZone=-1; cryptPt=null;
   goalIdx=0; goalTxt=''; flags.crafted.clear(); flags.night=flags.loot=flags.plant=flags.tamed=flags.dloot=flags.boss=false; flowQ.length=0; gameT=0;
   if(save&&save.chests) for(const k in save.chests) chests.set(k,save.chests[k].map(s=>(s&&BLOCKS[s[0]])?{id:s[0],n:s[1],d:s[2]||0}:null));
   const R=settings.dist;
@@ -3658,6 +3790,7 @@ function startGame(seed,save,slot){
   let found=false;
   for(let r=0;r<260&&!found;r++) for(const q of [[r,0],[-r,0],[0,r],[0,-r]]){ const x=8+q[0]*6, z=8+q[1]*6; if(G.biomeAt(x,z)===0&&okSpot(x,z)){ sx=x; sz=z; found=true; break; } }
   if(!found) for(let r=0;r<400;r++){ if(okSpot(8+r*3,8)){ sx=8+r*3; break; } }
+  G.origin=[sx,sz];
   player.x=sx+.5; player.z=sz+.5; player.y=world.gen.heightAt(sx,sz)+1.01;
   world.update(player.x,player.z,13);
   while(player.collides(player.x,player.y,player.z)&&player.y<WH) player.y+=1;
@@ -3669,6 +3802,7 @@ function startGame(seed,save,slot){
     if(save.looted) for(const k of save.looted) looted.add(k);
     if(save.wk) for(const k of save.wk) woken.add(k);
     if(save.sl) for(const k of save.sl) slain.add(k);
+    rested=save.rs||0;
     cryptPt=save.cp||null;
     if(save.fl){ for(const c of save.fl.c||[]) flags.crafted.add(c); flags.night=!!save.fl.n; flags.loot=!!save.fl.l; flags.plant=!!save.fl.p; flags.tamed=!!save.fl.t; flags.dloot=!!save.fl.d; flags.boss=!!save.fl.b; }
     goalIdx=save.goal||0;
@@ -4033,8 +4167,9 @@ function loop(now){
   const held=inv[selected]?BLOCKS[inv[selected].id]:null;
   // golpear: si hay un animal o enemigo en la mira y a mano, el botón de picar ataca en vez de picar
   atkCd-=dt;
-  const tgt=(inp.mining||inp.attack)?findTarget(ex,ey,ez,Math.min(3.4,hit?hit.t:9)):null;
-  if(tgt&&atkCd<=0){ atkCd=.42; placeSwing=.2; attackEntity(tgt,held); }
+  const reach=(held&&held.reach)||3.4;
+  const tgt=(inp.mining||inp.attack)?findTarget(ex,ey,ez,Math.min(reach,hit?hit.t:9)):null;
+  if(tgt&&atkCd<=0){ atkCd=(held&&held.cd)||.42; placeSwing=.2; meleeHit(tgt,held,ex,ey,ez,reach); }
   inp.attack=false;
   if(inp.mining&&hit&&!tgt){
     const def=BLOCKS[hit.id];
@@ -4100,6 +4235,9 @@ function loop(now){
   updateEnemies(dt);
   updateShadows();
   updateAmbient(dt);
+  updateRest(dt);
+  zoneT-=dt; if(zoneT<=0){ zoneT=1; const z=world.gen.zoneAt(player.x,player.z);
+    if(z!==curZone){ if(curZone>=0) toast(z>curZone?'Entras en las '+ZONES[z]+': enemigos más fuertes, pero más minerales raros y mejor botín.':'Vuelves a las '+ZONES[z]+'.'); curZone=z; } }
   petT-=dt; if(petT<=0){ petT=.5; petStatus(); }
   tameT-=dt; if(tameT<=0){ tameT=.12; tameHud(ex,ey,ez,hit?hit.t:99); }
   updateSurvival(dt);
