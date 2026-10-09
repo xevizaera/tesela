@@ -604,28 +604,52 @@ function buildAtlas(){
       d[p]=cl(c[0]); d[p+1]=cl(c[1]); d[p+2]=cl(c[2]); d[p+3]=c[3]===undefined?255:c[3];
     }
   }
-  const grass=(x,y,r)=>{const n=(r-.5)*26; return [104+n*.6,172+n,84+n*.5];};
-  const dirt=(x,y,r)=>{const n=(r-.5)*22, k=r>.9?-22:0; return [136+n+k,98+n+k,68+n+k];};
+  // ruido que se repite exactamente cada 16 píxeles: así no se notan cortes entre bloques
+  const pn=(x,y,L,sd)=>{ const c=TS/L, gx=(x+.5)/c, gy=(y+.5)/c, i=Math.floor(gx), j=Math.floor(gy), fx=gx-i, fy=gy-j, sx=fx*fx*(3-2*fx), sy=fy*fy*(3-2*fy);
+    const h=(a,b)=>hash2(((a%L)+L)%L,((b%L)+L)%L,sd), a=h(i,j), b=h(i+1,j), c2=h(i,j+1), d2=h(i+1,j+1);
+    return a+(b-a)*sx+(c2-a)*sy+(a-b-c2+d2)*sx*sy; };
+  const grass=(x,y,r)=>{ const b=(pn(x,y,4,301)-.5)*22+(pn(x,y,8,302)-.5)*10;
+    const up=hash2(x,(y+15)%16,303), me=hash2(x,y,303);
+    const bl=me>.84||up>.86?16:me<.1||up<.08?-18:0, n=(r-.5)*10;
+    return [96+b*.6+bl*.7+n,166+b+bl+n,76+b*.5+bl*.5+n]; };
+  const dirt=(x,y,r)=>{ const b=(pn(x,y,4,311)-.5)*20+(pn(x,y,8,312)-.5)*8, n=(r-.5)*12;
+    if(r>.94) return [150+n,130+n,108+n]; if(r<.05) return [96+n,66+n,46+n];
+    return [134+b+n,96+b*.85+n,66+b*.7+n]; };
   tile(0,grass);
-  tile(1,(x,y,r)=>{const edge=3+(hash2(x,0,91)>.5?1:0)+(hash2(x,1,91)>.8?1:0); return y<edge?grass(x,y,r):dirt(x,y,r);});
+  tile(1,(x,y,r)=>{ const depth=3+Math.floor(hash2(x,7,304)*3)+(hash2(x,8,304)>.8?2:0);
+    if(y<depth){ const g=grass(x,y,r), k=y===depth-1?-22:-y*3; return [g[0]+k,g[1]+k,g[2]+k]; }
+    if(y===depth) { const d=dirt(x,y,r); return [d[0]-16,d[1]-16,d[2]-12]; }
+    return dirt(x,y,r); });
   tile(2,dirt);
-  tile(3,(x,y,r)=>{const b=(vnoise(x/3.5,y/3.5,5)-.5)*34, n=(r-.5)*12; return [128+b+n,133+b+n,140+b+n];});
-  tile(4,(x,y,r)=>{const n=(r-.5)*14; return [228+n,208+n,152+n];});
-  tile(5,(x,y,r)=>{const n=(r-.5)*60; return [132+n,128+n,124+n];});
-  tile(6,(x,y,r)=>{const n=(r-.5)*8; return [240+n,246+n,251+n];});
-  tile(7,(x,y,r)=>{const n=(r-.5)*12, line=(y%4===3)?-40:0, joint=((x+(Math.floor(y/4)%2)*8)%16===0&&y%4!==3)?-22:0;
-    return [190+n+line+joint,144+n+line+joint,90+n+line+joint];});
+  const stoneC=(x,y,r)=>{ const b=(pn(x,y,4,321)-.5)*26+(pn(x,y,8,322)-.5)*12, n=(r-.5)*10;
+    const cr=Math.abs(pn(x,y,4,323)-.5)<.035?-30:Math.abs(pn(x,y,4,323)-.5)<.07?-10:0;
+    return [126+b+n+cr,130+b+n+cr,137+b+n+cr]; };
+  tile(3,stoneC);
+  tile(4,(x,y,r)=>{ const w=Math.sin((y/16)*Math.PI*2*3+pn(x,y,4,331)*3)*9, n=(r-.5)*18, k=r>.95?-26:r<.04?14:0;
+    return [226+w+n+k,206+w+n+k,152+w*.8+n+k]; });
+  // grava: piedras sueltas de distintos tonos, con el borde más oscuro
+  const PEB=[...Array(9)].map((_,k)=>[hash2(k,1,501)*16,hash2(k,2,501)*16,hash2(k,3,501)]);
+  tile(5,(x,y,r)=>{ let d0=99,d1=99,t=0; for(const q of PEB){ let dx=Math.abs(x+.5-q[0]), dy=Math.abs(y+.5-q[1]); dx=Math.min(dx,16-dx); dy=Math.min(dy,16-dy); const d=Math.hypot(dx,dy); if(d<d0){ d1=d0; d0=d; t=q[2]; } else if(d<d1) d1=d; }
+    const n=(r-.5)*10, base=112+t*46, e=d1-d0<1.1?-34:(d0<1.6?12:0); return [base+n+e,base-4+n+e,base-8+n+e]; });
+  tile(6,(x,y,r)=>{ const b=(pn(x,y,4,341)-.5)*10, n=(r-.5)*6; if(r>.975) return [255,255,255]; return [238+b+n,244+b+n,252+b*.5+n]; });
+  const plank=(x,y,r)=>{ const row=Math.floor(y/4), gr=Math.sin(x*.7+row*2.1+Math.sin(x*.21+row)*2)*7, n=(r-.5)*8;
+    const line=(y%4===3)?-40:0, knot=(hash2(row,Math.floor(x/5),351)>.88&&(x%5===2)&&(y%4===1))?-34:0;
+    return [190+gr+n+line+knot,144+gr*.8+n+line+knot,90+gr*.6+n+line+knot]; };
+  tile(7,(x,y,r)=>{ const c=plank(x,y,r), joint=((x+(Math.floor(y/4)%2)*8)%16===0&&y%4!==3)?-22:0; return [c[0]+joint,c[1]+joint,c[2]+joint]; });
   tile(8,(x,y,r)=>{const n=(r-.5)*18, row=Math.floor(y/4);
     if(y%4===3||((x+(row%2)*4)%8===7)) return [204+n*.4,196+n*.4,184+n*.4];
-    const t=(hash2(Math.floor((x+(row%2)*4)/8),row,3)-.5)*26; return [172+n+t,84+n+t*.5,64+n+t*.4];});
+    const t=(hash2(Math.floor((x+(row%2)*4)/8),row,3)-.5)*26, hl=(y%4===0)?12:(y%4===2)?-8:0; return [172+n+t+hl,84+n+t*.5+hl,64+n+t*.4+hl];});
   tile(9,(x,y,r)=>{const n=(r-.5)*12; return [62+n,130+n,198+n];});
-  const stoneC=(x,y,r)=>{const b=(vnoise(x/3.5,y/3.5,5)-.5)*34, n=(r-.5)*12; return [128+b+n,133+b+n,140+b+n];};
-  const ore=(k,c)=>(x,y,r)=>{ if(vnoise(x/2.1+k*9,y/2.1,k+40)>.66){const n=(r-.5)*30; return [c[0]+n,c[1]+n,c[2]+n];} return stoneC(x,y,r); };
-  const plank=(x,y,r)=>{const n=(r-.5)*12, line=(y%4===3)?-40:0; return [190+n+line,144+n+line,90+n+line];};
+  // minerales: pepitas con brillo arriba a la izquierda y sombra abajo a la derecha
+  const ore=(k,c,sz)=>{ const nug=[...Array(6)].map((_,n)=>[2+Math.floor(hash2(n,k,601)*12),2+Math.floor(hash2(n,k,602)*12),hash2(n,k,603)>.45?2:1]);
+    return (x,y,r)=>{ for(const q of nug){ const dx=x-q[0], dy=y-q[1], m=Math.abs(dx)+Math.abs(dy);
+        if(m<=q[2]){ const hl=(dx<=0&&dy<=0&&m<q[2])?34:(dx>0&&dy>0)?-26:(dx>0||dy>0)?-10:0, n=(r-.5)*14; return [c[0]+n+hl,c[1]+n+hl,c[2]+n+hl]; }
+        if(m===q[2]+1&&dx>=0&&dy>=0){ const st=stoneC(x,y,r); return [st[0]-26,st[1]-26,st[2]-26]; } }
+      return stoneC(x,y,r); }; };
   tile(10,(x,y,r)=>{const dd=Math.max(Math.abs(x-7.5),Math.abs(y-7.5)), n=(r-.5)*10; if(dd>6.6) return [104+n,78+n,52+n]; const k=(Math.floor(dd)%2)?-22:0; return [186+n+k,150+n+k,98+n+k];});
-  tile(11,(x,y,r)=>{const st=(hash2(x,0,77)-.5)*30, n=(r-.5)*14; return [106+st+n,80+st*.8+n,54+st*.6+n];});
-  tile(12,(x,y,r)=>{const n=(r-.5)*34, k=r>.86?-30:0; return [56+n*.5+k,126+n+k,58+n*.5+k];});
-  tile(13,ore(1,[40,40,46])); tile(14,ore(2,[218,178,150])); tile(15,ore(3,[226,122,62])); tile(16,ore(4,[248,208,62])); tile(17,ore(5,[112,232,242]));
+  tile(11,(x,y,r)=>{const st=(hash2(x,0,77)-.5)*26, gro=((x+Math.floor(pn(x,y,4,361)*3))%4===0)?-26:0, cr=(hash2(x,Math.floor(y/3),362)>.86)?-18:0, n=(r-.5)*12; return [106+st+n+gro+cr,80+st*.8+n+gro+cr,54+st*.6+n+gro*.8+cr];});
+  tile(12,(x,y,r)=>{const b=(pn(x,y,4,371)-.5)*30, n=(r-.5)*18, k=r>.9?-38:r<.07?24:0; return [56+b*.5+n*.5+k*.6,126+b+n+k,58+b*.5+n*.5+k*.5];});
+  tile(13,ore(1,[44,44,50])); tile(14,ore(2,[222,186,156])); tile(15,ore(3,[222,124,64])); tile(16,ore(4,[246,204,64])); tile(17,ore(5,[110,232,244]));
   tile(18,(x,y,r)=>{const c=plank(x,y,r); const e=(x===0||x===15||y===0||y===15||x===7||y===8)?-46:0; return [c[0]+e,c[1]+e,c[2]+e];});
   tile(19,(x,y,r)=>{const c=plank(x,y,r); const e=(y<3)?-50:((x<2||x>13)?-34:0); const t=(y>5&&y<12&&(x===5||x===10))?-60:0; return [c[0]+e+t,c[1]+e+t,c[2]+e+t];});
   tile(20,(x,y,r)=>{ if(x>=4&&x<=11&&y>=7&&y<=13){ if(y>=12) return [250,150+r*60,40]; return [26,22,22]; } const c=stoneC(x,y,r); const m=(y%5===4||((x+(Math.floor(y/5)%2)*4)%8===7))?-34:-14; return [c[0]+m,c[1]+m,c[2]+m];});
@@ -938,6 +962,7 @@ function buildLight(world,cx,cz){
   flood(lsky,qt);
   if(torches.length){ qt=0; for(const i of torches){ ltor[i]=lblk[i]===LAMP?15:14; lq[qt++]=i; } flood(ltor,qt); }
 }
+const ROT_TOP=new Uint8Array(256); for(const i of [1,2,3,4,5,6]) ROT_TOP[i]=1;
 function LI(x,y,z){ return y<0?-1:y>lTop?-2:(x+LP)+(z+LP)*LW+y*LA; }
 
 function buildChunkGeometry(world,cx,cz){
@@ -959,7 +984,7 @@ function buildChunkGeometry(world,cx,cz){
       if(isW){ if(n!==AIR) continue; } else if(OPAQUE[n]||(id===GLASS&&n===GLASS)) continue;
       const fs=fi===-1?0:fi===-2?15:lsky[fi], ft=fi<0?0:ltor[fi];
       const t=dy>0?def.tex[0]:dy<0?def.tex[2]:def.tex[1], tc=t%AT, tr=Math.floor(t/AT);
-      const base=out.p.length/3;
+      const base=out.p.length/3, rot=(dy>0&&ROT_TOP[id])?Math.floor(hash2(cx*CS+x,cz*CS+z,y*13+5)*4):0;
       const a=dx!==0?1:0, b=dz!==0?1:2; // ejes tangentes a la cara
       for(let k=0;k<4;k++){
         const C=F.c[k];
@@ -980,7 +1005,8 @@ function buildChunkGeometry(world,cx,cz){
         ao[k]=(s1&&s2)?0:3-(s1+s2+cr);
         out.s.push(F.sh*AO_MUL[ao[k]]+(id===LEAVES?2:0)+(isW&&dy>0&&shoreAt(x+C[0],y,z+C[2])?6:0));
         out.l.push(LUT[Math.round(sk/cnt*4)], LUT[Math.round(tl/cnt*4)]);
-        out.u.push((tc+(C[3]?1-e:e))/AT, 1-(tr+(C[4]?e:1-e))/AT);
+        let fu=C[3], fv=C[4]; for(let q=0;q<rot;q++){ const t=fu; fu=fv; fv=1-t; }
+        out.u.push((tc+(fu?1-e:e))/AT, 1-(tr+(fv?e:1-e))/AT);
       }
       if(ao[0]+ao[3]>ao[1]+ao[2]) out.i.push(base,base+1,base+3, base,base+3,base+2);
       else out.i.push(base,base+1,base+2, base+2,base+1,base+3);
@@ -2577,6 +2603,75 @@ function updateShadows(){
   for(const e of enemies) put(e,e.sp.r*2.8*(e.boss?1.6:1));
   for(let i=n;i<shadowPool.length;i++) shadowPool[i].visible=false;
 }
+/* ---------- PARTÍCULAS DE AMBIENTE: hojas que caen, luciérnagas de noche, polvo en cuevas y salpicaduras ---------- */
+const AMB_N=240, ambPos=new Float32Array(AMB_N*3).fill(-999), ambCol=new Float32Array(AMB_N*3), amb=[];
+for(let i=0;i<AMB_N;i++) amb.push({life:0,t:0,vx:0,vy:0,vz:0,ph:0,c:[1,1,1]});
+const ambGeo=new THREE.BufferGeometry(); ambGeo.setAttribute('position',new THREE.BufferAttribute(ambPos,3)); ambGeo.setAttribute('color',new THREE.BufferAttribute(ambCol,3));
+const ambPts=new THREE.Points(ambGeo,new THREE.PointsMaterial({size:.17,vertexColors:true,transparent:true,opacity:.95,depthWrite:false})); ambPts.frustumCulled=false; scene.add(ambPts);
+// las luciérnagas van aparte: más grandes y sumando luz, para que brillen de noche
+const FF_N=40, ffPos=new Float32Array(FF_N*3).fill(-999), ffCol=new Float32Array(FF_N*3), ff=[];
+for(let i=0;i<FF_N;i++) ff.push({life:0,vx:0,vy:0,vz:0,ph:0});
+const ffGeo=new THREE.BufferGeometry(); ffGeo.setAttribute('position',new THREE.BufferAttribute(ffPos,3)); ffGeo.setAttribute('color',new THREE.BufferAttribute(ffCol,3));
+const ffPts=new THREE.Points(ffGeo,new THREE.PointsMaterial({size:.3,vertexColors:true,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false})); ffPts.frustumCulled=false; scene.add(ffPts);
+const ambCount=[0,0,0,0,0];      // 1 hoja · 2 luciérnaga · 3 polvo · 4 salpicadura
+let ambNext=0, ambUnderT=0, ambUnder=false, ambWasW=false, ambVy=0;
+function ambSpawn(t,x,y,z,vx,vy,vz,c,life){
+  for(let k=0;k<AMB_N;k++){ const i=(ambNext+k)%AMB_N, a=amb[i]; if(a.life>0) continue;
+    ambNext=(i+1)%AMB_N; a.t=t; a.life=life; a.vx=vx; a.vy=vy; a.vz=vz; a.ph=Math.random()*6.28; a.c=c; ambCount[t]++;
+    ambPos[i*3]=x; ambPos[i*3+1]=y; ambPos[i*3+2]=z; return; }
+}
+function splashAt(x,y,z){ for(let k=0;k<26;k++){ const an=Math.random()*6.28, sp=1+Math.random()*2.2; ambSpawn(4,x+Math.cos(an)*.3,y,z+Math.sin(an)*.3,Math.cos(an)*sp,3+Math.random()*3.5,Math.sin(an)*sp,[.85,.93,1],1.1); } }
+function updateAmbient(dt){
+  if(!player) return;
+  const px=player.x, py=player.y, pz=player.z, night=dayLight<.35, rain=wx.w>.25;
+  ambUnderT-=dt; if(ambUnderT<=0){ ambUnderT=.5; ambUnder=!skyExposed(Math.floor(px),Math.floor(py+1),Math.floor(pz)); }
+  // hojas: buscan hojas con aire debajo cerca de ti
+  for(let k=0;k<4&&ambCount[1]<40;k++){
+    const x=Math.floor(px+(Math.random()-.5)*26), y=Math.floor(py+(Math.random()-.3)*14), z=Math.floor(pz+(Math.random()-.5)*26);
+    if(world.getBlock(x,y,z)===LEAVES&&world.getBlock(x,y-1,z)===AIR&&Math.random()<.35){
+      const g=.75+Math.random()*.4; ambSpawn(1,x+Math.random(),y-.02,z+Math.random(),0,-.55-Math.random()*.3,0,[.36*g,.62*g,.26*g],9); }
+  }
+  // luciérnagas: de noche, sin lluvia, sobre la hierba
+  if(night&&!rain&&!ambUnder) for(let k=0;k<2&&ambCount[2]<FF_N;k++){
+    const x=Math.floor(px+(Math.random()-.5)*24), z=Math.floor(pz+(Math.random()-.5)*24);
+    let y=Math.floor(py)+4; while(y>Math.floor(py)-6&&!SOLID[world.getBlock(x,y-1,z)]) y--;
+    if(world.getBlock(x,y-1,z)!==GRASS||SOLID[world.getBlock(x,y,z)]) continue;
+    for(let i=0;i<FF_N;i++){ const a=ff[i]; if(a.life>0) continue; a.life=8+Math.random()*6; a.ph=Math.random()*6.28; a.vx=a.vy=a.vz=0; ambCount[2]++;
+      ffPos[i*3]=x+Math.random(); ffPos[i*3+1]=y+.3+Math.random()*1.6; ffPos[i*3+2]=z+Math.random(); break; }
+  }
+  for(let i=0;i<FF_N;i++){ const a=ff[i], j=i*3; if(a.life<=0) continue; a.life-=dt; a.ph+=dt;
+    if(a.life<=0||Math.abs(ffPos[j]-px)>30||Math.abs(ffPos[j+2]-pz)>30){ a.life=0; ambCount[2]--; ffPos[j+1]=-999; continue; }
+    if(!night) a.life=Math.min(a.life,.5);
+    a.vx+=(Math.random()-.5)*dt*2; a.vy+=(Math.random()-.5)*dt*1.5; a.vz+=(Math.random()-.5)*dt*2; a.vx*=.98; a.vy*=.98; a.vz*=.98;
+    ffPos[j]+=a.vx*dt; ffPos[j+1]+=a.vy*dt; ffPos[j+2]+=a.vz*dt;
+    const f=(Math.max(0,Math.sin(a.ph*2.6+i))*.85+.15)*Math.min(1,a.life*1.5); ffCol[j]=.8*f; ffCol[j+1]=1*f; ffCol[j+2]=.3*f; }
+  ffGeo.attributes.position.needsUpdate=true; ffGeo.attributes.color.needsUpdate=true;
+  // polvo flotando bajo tierra
+  if(ambUnder) for(let k=0;k<2&&ambCount[3]<36;k++){
+    const x=px+(Math.random()-.5)*12, y=py+Math.random()*3, z=pz+(Math.random()-.5)*12;
+    if(world.getBlock(Math.floor(x),Math.floor(y),Math.floor(z))===AIR) ambSpawn(3,x,y,z,(Math.random()-.5)*.15,(Math.random()-.5)*.08,(Math.random()-.5)*.15,[.8,.76,.68],5+Math.random()*4);
+  }
+  // salpicadura al caer al agua
+  const inW=!!WATERISH[world.getBlock(Math.floor(px),Math.floor(py+.15),Math.floor(pz))];
+  if(inW&&!ambWasW&&ambVy<-3.5){ splashAt(px,Math.floor(py+.15)+.95,pz); sfx('place'); }
+  ambWasW=inW; ambVy=player.vy;
+  const k=.3+.7*dayLight;
+  for(let i=0;i<AMB_N;i++){
+    const a=amb[i]; if(a.life<=0) continue;
+    a.life-=dt; const j=i*3;
+    if(a.life<=0||Math.abs(ambPos[j]-px)>30||Math.abs(ambPos[j+2]-pz)>30){ a.life=0; ambCount[a.t]--; ambPos[j+1]=-999; continue; }
+    a.ph+=dt;
+    if(a.t===1){ ambPos[j]+=Math.sin(a.ph*2.2)*dt*.6+wx.w*dt*.8; ambPos[j+2]+=Math.cos(a.ph*1.7)*dt*.4; ambPos[j+1]+=a.vy*dt;
+      if(SOLID[world.getBlock(Math.floor(ambPos[j]),Math.floor(ambPos[j+1]),Math.floor(ambPos[j+2]))]){ a.vy=0; if(a.life>1.2) a.life=1.2; } }
+    else if(a.t===3){ ambPos[j]+=a.vx*dt; ambPos[j+1]+=a.vy*dt; ambPos[j+2]+=a.vz*dt; }
+    else { a.vy-=14*dt; ambPos[j]+=a.vx*dt; ambPos[j+1]+=a.vy*dt; ambPos[j+2]+=a.vz*dt; }
+    // color: las luciérnagas parpadean y brillan de noche; lo demás se oscurece con la noche
+    let f=a.t===3?.5:k;
+    const fade=Math.min(1,a.life*1.5); f*=fade;
+    ambCol[j]=a.c[0]*f; ambCol[j+1]=a.c[1]*f; ambCol[j+2]=a.c[2]*f;
+  }
+  ambGeo.attributes.position.needsUpdate=true; ambGeo.attributes.color.needsUpdate=true;
+}
 function boxHits(x,y,z,r,hh){ return aabbTop(x-r,y,z-r,x+r,y+hh,z+r)!==null; }
 function spawnAnimal(){
   const ang=Math.random()*Math.PI*2, dist=18+Math.random()*26;
@@ -3967,6 +4062,7 @@ function loop(now){
   updateAnimals(dt);
   updateEnemies(dt);
   updateShadows();
+  updateAmbient(dt);
   petT-=dt; if(petT<=0){ petT=.5; petStatus(); }
   tameT-=dt; if(tameT<=0){ tameT=.12; tameHud(ex,ey,ez,hit?hit.t:99); }
   updateSurvival(dt);
