@@ -1560,7 +1560,7 @@ const RECIPES=[
   {out:BREAD,n:1,inp:[[WHEAT_ITEM,3]],st:WORKBENCH},
   {out:BUCKET,n:1,inp:[[IRON_INGOT,3]],st:WORKBENCH},
   {out:BANDAGE,n:2,inp:[[LEATHER,2]],lock:'vendas'},
-  {out:STEW,n:1,inp:[[COOKED_MEAT,1],[BREAD,1],[APPLE,1]],lock:'estofado'},
+  {out:STEW,n:1,inp:[[COOKED_MEAT,1],[BREAD,1],[APPLE,1]],st:FURNACE,lock:'estofado'},
   {out:SWORD_CU,n:1,inp:[[COPPER_INGOT,3],[STICK,1]],st:WORKBENCH,lock:'espcu'},
   {out:PICK_AU,n:1,inp:[[GOLD_INGOT,3],[STICK,2]],st:WORKBENCH,lock:'picoau'},
   {out:HELM_CR,n:1,inp:[[CRYSTAL,5]],st:WORKBENCH,lock:'armcr'},
@@ -3380,7 +3380,7 @@ const perk=id=>unlocked.has(id);
 const UNLOCKS=[
   {id:'vendas',  lv:[2],  t:'Receta: vendas',             d:['2 de cuero dan 2 vendas. Cada una cura 6 de vida.'], ic:BANDAGE},
   {id:'piel',    lv:[2,15,30,44], t:'Piel dura',          d:['Los golpes te hacen un 10 % menos de daño.','Un 18 % menos de daño.','Un 25 % menos de daño.','Un 30 % menos de daño.']},
-  {id:'estofado',lv:[3],  t:'Receta: estofado',           d:['Carne asada, pan y manzana. Quita mucha hambre y cura.'], ic:STEW},
+  {id:'estofado',lv:[3],  t:'Receta: estofado',           d:['Carne asada, pan y manzana, cocinados en el horno. Quita mucha hambre y cura.'], ic:STEW},
   {id:'comer',   lv:[3,20], t:'Buen comer',               d:['La comida te quita un 30 % más de hambre.','Un 60 % más.']},
   {id:'espcu',   lv:[4],  t:'Receta: espada de cobre',    d:['3 lingotes de cobre y 1 palo. Pega casi como la de hierro.'], ic:SWORD_CU},
   {id:'minero',  lv:[5,18,35], t:'Ojo de minero',         d:['Los minerales sueltan el doble una de cada cuatro veces.','El doble un 40 % de las veces.','El doble un 55 % de las veces.']},
