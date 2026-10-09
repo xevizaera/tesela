@@ -94,6 +94,8 @@ body.touchmode .tonly{display:flex}
 body.editing #bJump,body.editing #bPlace,body.editing #bMine{outline:2px dashed var(--moss);outline-offset:3px;opacity:1}
 body.padmode .touch{display:none!important}
 .padfocus{outline:3px solid var(--moss)!important;outline-offset:2px;box-shadow:0 0 0 5px rgba(185,224,122,.25)}
+#stats #goal,#stats #info{position:static;left:auto;top:auto;margin-top:4px}
+#pets{display:none;background:var(--panel);padding:5px 9px;border-radius:6px;font-size:12px;line-height:1.4;white-space:pre-line;border-left:3px solid #e7a3a8;max-width:min(250px,34vw);margin-top:2px}
 #armorPct{font-size:12px;opacity:.85;margin-top:6px}
 #hpBar i.f{background:#e5484d}
 #hpBar i.h{background:linear-gradient(90deg,#e5484d 50%,rgba(0,0,0,.4) 50%)}
@@ -225,9 +227,8 @@ body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width
   <div id="uw"></div>
   <div id="cross"></div><div id="dot"></div>
   <div id="dmg"></div>
-  <div id="stats"><div id="hpBar" aria-label="Vida"></div><div id="fdBar" aria-label="Hambre"></div><div id="arBar" aria-label="Armadura"></div></div>
-  <div id="goal" role="status"></div>
-  <div id="info"></div>
+  <div id="stats"><div id="hpBar" aria-label="Vida"></div><div id="fdBar" aria-label="Hambre"></div><div id="arBar" aria-label="Armadura"></div><div id="goal" role="status"></div><div id="pets" role="status"></div><div id="info"></div></div>
+
   <div id="compass" aria-hidden="true"><div id="cmpIn"></div><i id="cmpMid"></i></div>
   <div id="hint"></div>
   <div id="bname"></div>
@@ -313,6 +314,7 @@ body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width
     <tr><th>Mochila</th><td>Botón de la mochila, arriba a la derecha. Arrastra objetos para moverlos y tócalos para ver qué son.</td></tr>
     <tr><th>Mapa</th><td>Botón del mapa, arriba a la derecha. Desde ahí marcas tu base.</td></tr>
     <tr><th>Pausa</th><td>Botón de pausa, arriba a la derecha.</td></tr>
+    <tr><th>Animales</th><td>Con carne cruda en la mano, Usar sobre un perro salvaje para domesticarlo (puede costar varios intentos). Usar sobre tu perro: quieto o sígueme. Con trigo, las vacas te siguen; dale trigo a una vaca y a un toro para que críen. Con un cubo, Usar sobre una vaca para ordeñarla.</td></tr>
   </table>
   <table class="keys" id="ctlK">
     <tr><th>Moverse</th><td><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> o flechas</td></tr>
@@ -325,6 +327,7 @@ body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width
     <tr><th>Mochila</th><td><kbd>E</kbd></td></tr>
     <tr><th>Mapa</th><td><kbd>M</kbd></td></tr>
     <tr><th>Controles</th><td><kbd>H</kbd></td></tr>
+    <tr><th>Animales</th><td>Con carne cruda en la mano, clic derecho sobre un perro salvaje para domesticarlo (puede costar varios intentos). clic derecho sobre tu perro: quieto o sígueme. Con trigo, las vacas te siguen; dale trigo a una vaca y a un toro para que críen. Con un cubo, clic derecho sobre una vaca para ordeñarla.</td></tr>
     <tr><th>Pausa y cerrar ventanas</th><td><kbd>Esc</kbd>. Si el ratón está capturado, la primera pulsación solo lo suelta.</td></tr>
   </table>
   <table class="keys" id="ctlP">
@@ -337,6 +340,7 @@ body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width
     <tr><th>Mochila</th><td><kbd>Y</kbd></td></tr>
     <tr><th>Mapa</th><td>Botón Vista (el pequeño de la izquierda)</td></tr>
     <tr><th>Pausa</th><td>Botón Menú</td></tr>
+    <tr><th>Animales</th><td>Con carne cruda en la mano, LT sobre un perro salvaje para domesticarlo (puede costar varios intentos). LT sobre tu perro: quieto o sígueme. Con trigo, las vacas te siguen; dale trigo a una vaca y a un toro para que críen. Con un cubo, LT sobre una vaca para ordeñarla.</td></tr>
     <tr><th>En menús y mochila</th><td>Cruceta o stick izquierdo para moverte, <kbd>A</kbd> para elegir, <kbd>B</kbd> para volver. En la mochila, <kbd>A</kbd> coge un objeto y <kbd>A</kbd> otra vez lo deja; <kbd>X</kbd> te dice qué es.</td></tr>
   </table>
   <button id="ctlDone" class="mbtn pri">Hecho</button>
@@ -415,7 +419,7 @@ const AIR=0, GRASS=1, DIRT=2, STONE=3, SAND=4, GRAVEL=5, SNOW=6, PLANKS=7, BRICK
   COPPER_INGOT=45, GOLD_INGOT=46, HELM_CU=47, CHEST_CU=48, BOOTS_CU=49, HELM_AU=50, CHEST_AU=51, BOOTS_AU=52,
   GOLD_APPLE=53, PICK_CRYSTAL=54, AXE_CRYSTAL=55, SWORD_CRYSTAL=56, LAMP=57,
   SLAB_W=58, SLAB_S=59, STAIR_W=60, STAIR_S=64, FENCE=68, DOOR=69, DOOR_X=70, DOOR_Z=71, DOOR_XO=72, DOOR_ZO=73,
-  BED=74, LEATHER=75, SEEDS=76, HOE=77, FARMLAND=78, WHEAT0=79, WHEAT_ITEM=83, BREAD=84, WATER_F1=85, WATER_F2=86, WATER_F3=87;
+  BED=74, LEATHER=75, SEEDS=76, HOE=77, FARMLAND=78, WHEAT0=79, WHEAT_ITEM=83, BREAD=84, WATER_F1=85, WATER_F2=86, WATER_F3=87, BUCKET=88, MILK=89, CAKE=90;
 // tex: [arriba, lados, abajo] · hard: segundos a mano · mat: qué herramienta lo acelera
 // need: nivel mínimo de pico para que suelte algo · drop: qué suelta (por defecto, él mismo)
 const BLOCKS=[null,
@@ -485,7 +489,8 @@ const BLOCKS=[null,
   {name:'Trigo maduro', tex:[38,38,38], hard:.05, shape:'crop'},
   {name:'Trigo'},
   {name:'Pan', food:6},
-  {name:'Agua', tex:[9,9,9], hard:0},{name:'Agua', tex:[9,9,9], hard:0},{name:'Agua', tex:[9,9,9], hard:0}
+  {name:'Agua', tex:[9,9,9], hard:0},{name:'Agua', tex:[9,9,9], hard:0},{name:'Agua', tex:[9,9,9], hard:0},
+  {name:'Cubo'},{name:'Cubo de leche', food:5, heal:2, one:true},{name:'Pastel', food:10, heal:4}
 ];
 // agua: la quieta (fuente) y tres niveles de agua que corre
 const WATERISH=new Uint8Array(256); for(const i of [9,85,86,87]) WATERISH[i]=1;
@@ -1160,7 +1165,7 @@ const atlasCanvas=buildAtlas();
 
 /* ---------- INVENTORY: 27 huecos, los 9 primeros son la barra rápida ---------- */
 const INV_N=27, inv=new Array(INV_N).fill(null);
-const maxStack=id=>(BLOCKS[id].tool||BLOCKS[id].armor)?1:64;
+const maxStack=id=>(BLOCKS[id].tool||BLOCKS[id].armor||BLOCKS[id].one)?1:64;
 function countItem(id){ let c=0; for(const s of inv) if(s&&s.id===id) c+=s.n; return c; }
 function addItem(id,n){
   for(let i=0;i<INV_N&&n>0;i++){ const s=inv[i]; if(s&&s.id===id&&s.n<maxStack(id)){ const k=Math.min(n,maxStack(id)-s.n); s.n+=k; n-=k; } }
@@ -1217,6 +1222,9 @@ function icon(id){
   else if(id===SEEDS){ x.fillStyle='#7aa04a'; for(const q of [[4,6],[8,4],[11,7],[6,10],[10,11]]) x.fillRect(q[0],q[1],2,3); }
   else if(id===WHEAT_ITEM){ x.fillStyle='#d9b24a'; for(let j=0;j<3;j++){ x.fillRect(4+j*3,2,2,6); } x.fillStyle='#a8863a'; x.fillRect(5,8,6,7); }
   else if(id===BREAD){ x.fillStyle='#c58a3e'; x.fillRect(2,6,12,6); x.fillRect(3,5,10,8); x.fillStyle='#e3b066'; x.fillRect(4,6,2,1); x.fillRect(8,6,2,1); x.fillRect(12,7,1,1); }
+  else if(id===BUCKET||id===MILK){ x.fillStyle='#8f979f'; x.fillRect(3,5,10,9); x.fillRect(4,14,8,1); x.fillStyle='#c3cad2'; x.fillRect(3,5,10,2); x.fillStyle='#5b6168'; x.fillRect(2,2,1,4); x.fillRect(13,2,1,4); x.fillRect(3,1,10,1);
+    if(id===MILK){ x.fillStyle='#f6f4ee'; x.fillRect(4,6,8,2); } else { x.fillStyle='#4a5056'; x.fillRect(4,6,8,1); } }
+  else if(id===CAKE){ x.fillStyle='#e9d9b8'; x.fillRect(2,7,12,7); x.fillStyle='#fbf7ef'; x.fillRect(2,5,12,3); x.fillStyle='#d8362f'; x.fillRect(4,4,2,2); x.fillRect(9,4,2,2); x.fillStyle='#b98d54'; x.fillRect(2,13,12,1); }
   else if(id===GOLD_APPLE){ x.fillStyle='#f2c54a'; x.fillRect(4,6,8,7); x.fillRect(5,5,6,9); x.fillStyle='#fff2b0'; x.fillRect(5,7,2,2); x.fillStyle='#5a3a1e'; x.fillRect(8,3,1,3); x.fillStyle='#4f9a45'; x.fillRect(9,3,3,2); }
   return icons[id]={canvas:c,url:c.toDataURL()};
 }
@@ -1265,6 +1273,8 @@ const RECIPES=[
   {out:BED,n:1,inp:[[PLANKS,3],[LEATHER,3]],st:WORKBENCH},
   {out:HOE,n:1,inp:[[PLANKS,2],[STICK,2]],st:WORKBENCH},
   {out:BREAD,n:1,inp:[[WHEAT_ITEM,3]],st:WORKBENCH},
+  {out:BUCKET,n:1,inp:[[IRON_INGOT,3]],st:WORKBENCH},
+  {out:CAKE,n:1,inp:[[MILK,2],[WHEAT_ITEM,3],[APPLE,1]],st:WORKBENCH,ret:[[BUCKET,2]]},
   {out:GLASS,n:4,inp:[[SAND,4],[COAL,1]],st:FURNACE},
   {out:BRICKS,n:4,inp:[[CLAY,4],[COAL,1]],st:FURNACE},
   {out:POLISHED,n:4,inp:[[STONE,4],[COAL,1]],st:FURNACE},
@@ -1318,7 +1328,7 @@ function craft(r,quiet){
   if(!canCraft(r)) return;
   if(!canFit(r.out,r.n)){ toast('No cabe en la mochila.'); return; }
   r.inp.forEach(q=>removeItem(q[0],q[1]));
-  addItem(r.out,r.n); flags.crafted.add(r.out); if(!quiet) sfx('place');
+  addItem(r.out,r.n); if(r.ret) r.ret.forEach(q=>addItem(q[0],q[1])); flags.crafted.add(r.out); if(!quiet) sfx('place');
 }
 
 /* ---------- UI: mochila y lista de fabricación ---------- */
@@ -1613,7 +1623,7 @@ for(let i=0;i<PN;i++) pPos[i*3+1]=-999;
 const pGeo=new THREE.BufferGeometry();
 pGeo.setAttribute('position',new THREE.BufferAttribute(pPos,3)); pGeo.setAttribute('color',new THREE.BufferAttribute(pCol,3));
 const pts=new THREE.Points(pGeo,new THREE.PointsMaterial({size:.13,vertexColors:true})); pts.frustumCulled=false; scene.add(pts);
-const BCOL={1:[.41,.67,.33],2:[.53,.38,.27],3:[.5,.52,.55],4:[.89,.82,.6],5:[.52,.5,.49],6:[.94,.96,.98],7:[.75,.56,.35],8:[.67,.33,.25],11:[.42,.31,.2],12:[.23,.5,.24],18:[.75,.56,.35],29:[.9,.7,.3],30:[.26,.54,.27],31:[.66,.83,.93],39:[.61,.64,.7],40:[.82,.92,.96],41:[.59,.61,.64],42:[.62,.44,.25],43:[.33,.63,.29],44:[.88,.28,.36],57:[.6,.9,.95],98:[.85,.16,.16],99:[.42,.22,.62]};
+const BCOL={1:[.41,.67,.33],2:[.53,.38,.27],3:[.5,.52,.55],4:[.89,.82,.6],5:[.52,.5,.49],6:[.94,.96,.98],7:[.75,.56,.35],8:[.67,.33,.25],11:[.42,.31,.2],12:[.23,.5,.24],18:[.75,.56,.35],29:[.9,.7,.3],30:[.26,.54,.27],31:[.66,.83,.93],39:[.61,.64,.7],40:[.82,.92,.96],41:[.59,.61,.64],42:[.62,.44,.25],43:[.33,.63,.29],44:[.88,.28,.36],57:[.6,.9,.95],97:[.96,.4,.55],98:[.85,.16,.16],99:[.42,.22,.62]};
 let pNext=0;
 function burst(x,y,z,id){
   const c=BCOL[id]||BCOL[3];
@@ -1708,7 +1718,7 @@ function useBed(hit){
 
 /* ---------- FARMING: el trigo crece por etapas mientras juegas ---------- */
 const crops=new Map(); let gameT=0, cropT=0;
-const flags={crafted:new Set(),night:false,base:false,loot:false,plant:false};
+const flags={crafted:new Set(),night:false,base:false,loot:false,plant:false,tamed:false};
 const CROP_STAGE=70;   // segundos por etapa
 function updateCrops(dt){
   cropT+=dt; if(cropT<1) return; cropT=0;
@@ -1876,7 +1886,7 @@ const animals=[], ANIMAL_MAX=8, animalMats=[];
 function amat(c){ const m=new THREE.MeshBasicMaterial({color:c}); m.userData.base=new THREE.Color(c); animalMats.push(m); return m; }
 function abox(w,hh,d,m,x,y,z){ const me=new THREE.Mesh(new THREE.BoxGeometry(w,hh,d),m); me.position.set(x,y,z); return me; }
 function aleg(w,hh,m,x,z,top){ const g=new THREE.BoxGeometry(w,hh,w); g.translate(0,-hh/2,0); const me=new THREE.Mesh(g,m); me.position.set(x,top,z); return me; }
-const AM={deerA:amat(0xa9743f),deerB:amat(0x7d5630),deerC:amat(0xe8dfc4),boarA:amat(0x5c4838),boarB:amat(0x8d7361),boarC:amat(0xf0ead8),birdA:amat(0xd9523c),birdB:amat(0x8c2f22),birdC:amat(0xf2c14e)};
+const AM={cowW:amat(0xf0ece2),cowB:amat(0x2e2a28),cowP:amat(0xe7a3a8),cowH:amat(0xd8cfb4),bullB:amat(0x4a3a30),dogA:amat(0x8a8076),dogB:amat(0x6a615a),dogC:amat(0xd8d0c4),collar:amat(0xc0392b),deerA:amat(0xa9743f),deerB:amat(0x7d5630),deerC:amat(0xe8dfc4),boarA:amat(0x5c4838),boarB:amat(0x8d7361),boarC:amat(0xf0ead8),birdA:amat(0xd9523c),birdB:amat(0x8c2f22),birdC:amat(0xf2c14e)};
 const SPECIES={
   deer:{r:.32,h:1.3,speed:1.5,flee:5.4,hp:8,meat:2,build(g,a){
     g.add(abox(.5,.5,1.0,AM.deerA,0,.85,0)); g.add(abox(.26,.5,.26,AM.deerA,0,1.2,.48)); g.add(abox(.3,.3,.42,AM.deerA,0,1.5,.6));
@@ -1886,6 +1896,21 @@ const SPECIES={
     g.add(abox(.56,.46,.92,AM.boarA,0,.56,0)); g.add(abox(.4,.36,.36,AM.boarA,0,.5,.6)); g.add(abox(.22,.18,.14,AM.boarB,0,.44,.84));
     g.add(abox(.05,.12,.05,AM.boarC,.13,.48,.8)); g.add(abox(.05,.12,.05,AM.boarC,-.13,.48,.8));
     for(const q of [[.19,.32],[-.19,.32],[.19,-.32],[-.19,-.32]]){ const l=aleg(.13,.34,AM.boarB,q[0],q[1],.34); g.add(l); a.legs.push(l); } }},
+  // vaca: las hembras tienen ubre rosa y dan leche; los machos (toros) son más oscuros y con cuernos
+  cow:{r:.36,h:1.25,speed:1.05,flee:3.6,hp:10,meat:3,build(g,a){
+    const m=a.sex==='m', base=m?AM.bullB:AM.cowW;
+    g.add(abox(.62,.6,1.0,base,0,.85,0)); g.add(abox(.42,.42,.4,base,0,1.08,.62)); g.add(abox(.3,.18,.08,AM.cowP,0,.98,.84));
+    g.add(abox(.64,.3,.32,AM.cowB,0,.92,-.12)); g.add(abox(.2,.24,.3,AM.cowB,.22,.98,.26));
+    if(m){ g.add(abox(.06,.14,.06,AM.cowH,.2,1.34,.62)); g.add(abox(.06,.14,.06,AM.cowH,-.2,1.34,.62)); g.add(abox(.12,.06,.06,AM.cowH,.26,1.3,.62)); g.add(abox(.12,.06,.06,AM.cowH,-.26,1.3,.62)); }
+    else g.add(abox(.24,.1,.22,AM.cowP,0,.5,-.1));
+    for(const q of [[.2,.36],[-.2,.36],[.2,-.36],[-.2,-.36]]){ const l=aleg(.15,.56,AM.cowB,q[0],q[1],.56); g.add(l); a.legs.push(l); } }},
+  // perro: salvaje es gris pardo; domesticado lleva collar rojo
+  dog:{r:.28,h:.85,speed:1.6,flee:5,hp:12,meat:0,build(g,a){
+    g.add(abox(.32,.34,.72,AM.dogA,0,.6,0)); g.add(abox(.32,.3,.32,AM.dogA,0,.78,.46)); g.add(abox(.16,.13,.16,AM.dogC,0,.72,.66));
+    g.add(abox(.08,.12,.06,AM.dogB,.1,.98,.42)); g.add(abox(.08,.12,.06,AM.dogB,-.1,.98,.42));
+    const t=abox(.08,.08,.32,AM.dogB,0,.72,-.48); t.rotation.x=.6; g.add(t);
+    a.collar=abox(.36,.08,.1,AM.collar,0,.7,.32); a.collar.visible=!!a.tame; g.add(a.collar);
+    for(const q of [[.11,.26],[-.11,.26],[.11,-.26],[-.11,-.26]]){ const l=aleg(.1,.43,AM.dogB,q[0],q[1],.43); g.add(l); a.legs.push(l); } }},
   bird:{r:.2,h:.3,speed:3.4,flee:6.5,fly:true,hp:3,meat:1,build(g,a){
     g.add(abox(.2,.2,.36,AM.birdA,0,0,0)); g.add(abox(.16,.16,.16,AM.birdA,0,.1,.24)); g.add(abox(.06,.05,.1,AM.birdC,0,.08,.36));
     for(const sd of [1,-1]){ const wg=new THREE.BoxGeometry(.36,.03,.22); wg.translate(sd*.18,0,0); const w=new THREE.Mesh(wg,AM.birdB); w.position.set(sd*.1,.05,0); g.add(w); a.wings.push(w); } }}
@@ -1900,27 +1925,44 @@ function spawnAnimal(){
   else{
     if(bio===2||h<=SEA||h>=42) return;
     if(!OPAQUE[world.getBlock(gx,h,gz)]||SOLID[world.getBlock(gx,h+1,gz)]||SOLID[world.getBlock(gx,h+2,gz)]) return;
-    kind=bio===3?'deer':bio===1?'boar':(Math.random()<.6?'deer':'boar');
+    const r=Math.random();
+    kind=bio===3?(r<.6?'deer':'dog'):bio===1?(r<.45?'boar':'cow'):(r<.35?'deer':r<.55?'boar':r<.8?'cow':'dog');
   }
+  makeAnimal(kind,x,SPECIES[kind].fly?Math.max(h,SEA)+8:h+1.01,z,{sex:Math.random()<.5?'m':'f'});
+}
+// crea un animal; extra lleva lo que es suyo: sexo, si es cría, si está domesticado, nivel…
+function makeAnimal(kind,x,y,z,extra){
   const sp=SPECIES[kind], g=new THREE.Group();
-  const a={sp,g,x,y:sp.fly?Math.max(h,SEA)+8:h+1.01,z,vy:0,yaw:Math.random()*6.28,state:'walk',t:2+Math.random()*3,legs:[],wings:[],ph:Math.random()*6,ground:false,hp:sp.hp,kx:0,kz:0,hurtT:0};
-  sp.build(g,a); g.position.set(a.x,a.y,a.z); scene.add(g); animals.push(a);
+  const a=Object.assign({kind,sp,g,x,y,z,vy:0,yaw:Math.random()*6.28,state:'walk',t:2+Math.random()*3,legs:[],wings:[],ph:Math.random()*6,ground:false,hp:sp.hp,kx:0,kz:0,hurtT:0,sc:1,love:0,breedCd:0,milkCd:0},extra||{});
+  if(a.baby){ a.sc=.55; if(a.grow===undefined) a.grow=GROW_TIME; }
+  if(a.tame){ a.noTurn=true; if(!a.lvl) a.lvl=1; a.xp=a.xp||0; a.maxhp=dogMaxHp(a.lvl); if(!extra||extra.hp===undefined) a.hp=a.maxhp; }
+  sp.build(g,a); g.position.set(a.x,a.y,a.z); g.scale.setScalar(a.sc); scene.add(g); animals.push(a); return a;
 }
 let spawnT=2;
 function updateAnimals(dt){
   spawnT-=dt;
-  if(spawnT<=0){ spawnT=1.5; if(animals.length<ANIMAL_MAX) spawnAnimal(); }
+  if(spawnT<=0){ spawnT=1.5; if(animals.filter(a=>!a.tame&&!a.owned).length<ANIMAL_MAX) spawnAnimal(); }
   const k=.25+.75*dayLight; for(const m of animalMats) m.color.copy(m.userData.base).multiplyScalar(k);
   for(let i=animals.length-1;i>=0;i--){
     const a=animals[i], sp=a.sp, dx=a.x-player.x, dz=a.z-player.z, d2=dx*dx+dz*dz;
-    if(d2>80*80){ scene.remove(a.g); animals.splice(i,1); continue; }
-    if(d2<36&&a.state!=='flee'){ a.state='flee'; a.t=3; a.yaw=Math.atan2(dx,dz); }
+    if(a.tame||a.owned){
+      // los tuyos no desaparecen: si su zona del mundo no está cargada, esperan quietos (el perro que te sigue viene a ti)
+      const ch=world.chunks.get((Math.floor(a.x)>>4)+','+(Math.floor(a.z)>>4));
+      if(a.tame&&!a.sit&&d2>28*28){ dogTeleport(a); continue; }
+      if(!ch||!ch.meshed){ a.g.visible=false; continue; }
+      a.g.visible=true;
+    }else if(d2>80*80){ scene.remove(a.g); animals.splice(i,1); continue; }
+    if(d2<36&&a.state!=='flee'&&sp!==SPECIES.cow&&sp!==SPECIES.dog){ a.state='flee'; a.t=3; a.yaw=Math.atan2(dx,dz); }
     a.t-=dt;
     if(a.t<=0){
       if(a.state==='walk'&&!sp.fly){ a.state='idle'; a.t=1+Math.random()*3; }
       else{ a.state='walk'; a.yaw=Math.random()*Math.PI*2; a.t=2+Math.random()*4; }
     }
-    const speed=a.state==='flee'?sp.flee:a.state==='walk'?sp.speed:0;
+    let speed=a.state==='flee'?sp.flee:a.state==='walk'?sp.speed:0;
+    // comportamientos propios: el perro domesticado y las vacas
+    const ov=a.tame?dogAI(a,dt):sp===SPECIES.cow?cowAI(a,dt):null;
+    if(ov!==null) speed=ov;
+    if(a.baby){ a.grow-=dt; if(a.grow<=0){ a.baby=false; a.sc=1; } }
     const vx=Math.sin(a.yaw)*speed, vz=Math.cos(a.yaw)*speed;
     if(sp.fly){
       const target=Math.max(world.gen.heightAt(Math.floor(a.x),Math.floor(a.z)),SEA)+(a.state==='flee'?9:3.5);
@@ -1930,8 +1972,9 @@ function updateAnimals(dt){
       landMove(a,vx,vz,dt,speed);
     }
     if(a.hurtT>0) a.hurtT-=dt;
-    a.g.position.set(a.x,a.y,a.z); a.g.rotation.y=a.yaw; a.g.scale.setScalar(a.hurtT>0?1.18:1);
+    a.g.position.set(a.x,a.y,a.z); a.g.rotation.y=a.yaw; a.g.scale.setScalar((a.sc||1)*(a.hurtT>0?1.18:1));
   }
+  breedCows();
 }
 // movimiento por tierra común a animales y enemigos: gravedad, choque con bloques, salto de escalón y empujón al recibir un golpe
 function landMove(a,vx,vz,dt,speed){
@@ -1946,10 +1989,141 @@ function landMove(a,vx,vz,dt,speed){
   else{ if(a.vy<0){ a.ground=true; const tp=aabbTop(a.x-sp.r,ny,a.z-sp.r,a.x+sp.r,ny+sp.h,a.z+sp.r); if(tp!==null&&tp<=a.y+.001) a.y=tp; } a.vy=0; }
   if(blocked&&a.ground&&speed>0){
     if(!boxHits(a.x+Math.sin(a.yaw)*.6,a.y+1.05,a.z+Math.cos(a.yaw)*.6,sp.r,sp.h)){ a.vy=7.6; a.ground=false; }
-    else if(!a.hostile) a.yaw+=Math.PI/2*(Math.random()<.5?1:-1);
+    else if(!a.hostile&&!a.noTurn) a.yaw+=Math.PI/2*(Math.random()<.5?1:-1);
   }
   a.ph+=dt*speed*4.5; const sw=speed>0?Math.sin(a.ph)*.6:0;
   for(let j=0;j<a.legs.length;j++) a.legs[j].rotation.x=(j===0||j===3)?sw:-sw;
+}
+
+/* ---------- PETS: perros domesticados que suben de nivel y vacas que se crían ---------- */
+const GROW_TIME=300;                 // segundos que tarda un ternero en crecer
+const dogMaxHp=l=>16+l*4, dogDmg=l=>2+l, DOG_MAXLVL=10;
+let petT=0;
+function nearestEnemy(x,z,r){ let best=null, bd=r*r; for(const e of enemies){ const d=(e.x-x)**2+(e.z-z)**2; if(d<bd){ bd=d; best=e; } } return best; }
+function dogTeleport(a){
+  for(let k=0;k<8;k++){
+    const x=player.x+(Math.random()-.5)*4, z=player.z+(Math.random()-.5)*4; let y=Math.floor(player.y)+.01;
+    let n=0; while(boxHits(x,y,z,a.sp.r,a.sp.h)&&n<4){ y+=1; n++; }
+    if(!boxHits(x,y,z,a.sp.r,a.sp.h)){ a.x=x; a.y=y; a.z=z; a.vy=0; a.g.visible=true; return; }
+  }
+}
+function dogAI(a,dt){
+  a.regen=(a.regen||0)+dt; if(a.regen>=10){ a.regen=0; if(a.hp<a.maxhp) a.hp=Math.min(a.maxhp,a.hp+1); }
+  a.bite=(a.bite||0)-dt;
+  if(a.sit) return 0;
+  // defiende: el bicho más cercano a ti, si no está demasiado lejos del perro
+  const e=dead?null:nearestEnemy(player.x,player.z,14);
+  if(e&&Math.hypot(e.x-a.x,e.z-a.z)<20){
+    const dx=e.x-a.x, dz=e.z-a.z, d=Math.hypot(dx,dz); a.yaw=Math.atan2(dx,dz);
+    if(d<1.35&&Math.abs(e.y-a.y)<1.6){ if(a.bite<=0){ a.bite=.8; dogBite(a,e); } return 0; }
+    return 4.8+a.lvl*.15;
+  }
+  const dx=player.x-a.x, dz=player.z-a.z, d=Math.hypot(dx,dz);
+  if(d>3){ a.yaw=Math.atan2(dx,dz); return d>10?6.2:3.4; }
+  return 0;
+}
+function dogBite(a,e){
+  e.hp-=dogDmg(a.lvl); e.hurtT=.2; const l=Math.hypot(e.x-a.x,e.z-a.z)||1; e.kx=(e.x-a.x)/l*5; e.kz=(e.z-a.z)/l*5; e.vy=3.5; e.ground=false;
+  sfx('hit'); burst(Math.floor(e.x),Math.floor(e.y+.7),Math.floor(e.z),99);
+  dogXp(a,1);
+  if(e.hp<=0){ removeEntity(e); if(Math.random()<.5) addItem(SHARD,1); dogXp(a,4); }
+}
+function dogXp(a,n){
+  if(a.lvl>=DOG_MAXLVL) return;
+  a.xp+=n;
+  while(a.lvl<DOG_MAXLVL&&a.xp>=a.lvl*10){
+    a.xp-=a.lvl*10; a.lvl++; a.maxhp=dogMaxHp(a.lvl); a.hp=a.maxhp;
+    toast('Tu perro ha subido a nivel '+a.lvl+'.'); sfx('eat'); burst(Math.floor(a.x),Math.floor(a.y+.6),Math.floor(a.z),97);
+  }
+  if(a.lvl>=DOG_MAXLVL) a.xp=0;
+}
+function hurtDog(a,n){
+  a.hp-=n; a.hurtT=.2; sfx('hurt');
+  if(a.hp<=0){ removeEntity(a); toast('Tu perro ha muerto.'); burst(Math.floor(a.x),Math.floor(a.y+.5),Math.floor(a.z),98); }
+}
+function holding(id){ return inv[selected]&&inv[selected].id===id; }
+function cowAI(a,dt){
+  a.love=Math.max(0,a.love-dt); a.breedCd=Math.max(0,a.breedCd-dt); a.milkCd=Math.max(0,a.milkCd-dt);
+  if(a.love>0&&Math.random()<dt*2) burst(Math.floor(a.x),Math.floor(a.y+1.2),Math.floor(a.z),97);
+  if(a.state==='flee') return null;
+  if(a.love>0&&a.mate){ const dx=a.mate.x-a.x, dz=a.mate.z-a.z; a.yaw=Math.atan2(dx,dz); return Math.hypot(dx,dz)>1.2?1.6:0; }
+  // te siguen si llevas trigo en la mano
+  if(holding(WHEAT_ITEM)){
+    const dx=player.x-a.x, dz=player.z-a.z, d=Math.hypot(dx,dz);
+    if(d<10){ a.yaw=Math.atan2(dx,dz); return d>2.2?1.7:0; }
+  }
+  return null;
+}
+function breedCows(){
+  const ready=animals.filter(a=>a.sp===SPECIES.cow&&a.love>0&&!a.baby);
+  for(const a of ready){
+    if(a.mate&&(a.mate.love<=0||animals.indexOf(a.mate)<0)) a.mate=null;
+    if(!a.mate) a.mate=ready.find(b=>b!==a&&b.sex!==a.sex&&Math.hypot(b.x-a.x,b.z-a.z)<8)||null;
+    const b=a.mate;
+    if(b&&Math.hypot(b.x-a.x,b.z-a.z)<1.6){
+      makeAnimal('cow',(a.x+b.x)/2,Math.max(a.y,b.y)+.2,(a.z+b.z)/2,{sex:Math.random()<.5?'m':'f',baby:true,owned:true});
+      a.love=b.love=0; a.breedCd=b.breedCd=90; a.mate=b.mate=null;
+      toast('¡Ha nacido un ternero!'); sfx('eat'); burst(Math.floor(a.x),Math.floor(a.y+1),Math.floor(a.z),97);
+      return;
+    }
+  }
+}
+// el animal que tienes delante, para usarlo (no para atacarlo)
+function targetAnimal(ex,ey,ez,maxD){
+  let best=null, bd=maxD;
+  for(const a of animals){
+    if(a.sp.fly) continue;
+    const cx=a.x-ex, cy=a.y+a.sp.h*.5*(a.sc||1)-ey, cz=a.z-ez, t=cx*dir.x+cy*dir.y+cz*dir.z;
+    if(t<0||t>bd) continue;
+    const px=cx-dir.x*t, py=cy-dir.y*t, pz=cz-dir.z*t, rr=a.sp.r+.4;
+    if(px*px+pz*pz<rr*rr&&Math.abs(py)<a.sp.h*.5+.35){ best=a; bd=t; }
+  }
+  return best;
+}
+// qué hace el botón de usar sobre un animal (o null si no hay nada que hacer con él)
+function animalAction(a){
+  if(!a) return null;
+  if(a.sp===SPECIES.dog){
+    if(!a.tame) return holding(RAW_MEAT)?'Domesticar':null;
+    if(holding(RAW_MEAT)&&a.hp<a.maxhp) return 'Alimentar';
+    return a.sit?'Sígueme':'Quieto';
+  }
+  if(a.sp===SPECIES.cow){
+    if(holding(BUCKET)&&a.sex==='f'&&!a.baby) return 'Ordeñar';
+    if(holding(WHEAT_ITEM)) return 'Alimentar';
+  }
+  return null;
+}
+function useOneHeld(){ const s=inv[selected]; s.n--; if(!s.n) inv[selected]=null; invChanged(); }
+function useAnimal(a){
+  const act=animalAction(a), cx=Math.floor(a.x), cy=Math.floor(a.y+.8), cz=Math.floor(a.z);
+  placeSwing=.2;
+  if(act==='Domesticar'){
+    useOneHeld();
+    if(Math.random()<1/3){
+      a.tame=true; a.noTurn=true; a.lvl=1; a.xp=0; a.maxhp=dogMaxHp(1); a.hp=a.maxhp; a.state='idle'; a.collar.visible=true;
+      flags.tamed=true; toast('¡Has domesticado un perro! Te seguirá y te ayudará a pelear.'); sfx('eat'); burst(cx,cy,cz,97); saveGame();
+    }else{ toast('El perro desconfía todavía. Prueba con más carne.'); burst(cx,cy,cz,6); }
+  }else if(act==='Alimentar'&&a.sp===SPECIES.dog){
+    useOneHeld(); a.hp=Math.min(a.maxhp,a.hp+6); sfx('eat'); burst(cx,cy,cz,97);
+  }else if(act==='Quieto'||act==='Sígueme'){
+    a.sit=act==='Quieto'; toast(a.sit?'Tu perro se queda quieto aquí.':'Tu perro te sigue.'); sfx('tick');
+  }else if(act==='Ordeñar'){
+    if(a.milkCd>0){ toast('Esta vaca necesita descansar un poco.'); return; }
+    useOneHeld(); if(addItem(MILK,1)>0) toast('Inventario lleno'); a.milkCd=60; a.owned=true; sfx('place');
+  }else if(act==='Alimentar'){
+    if(a.baby){ useOneHeld(); a.grow=Math.max(0,a.grow-60); burst(cx,cy,cz,97); sfx('eat'); return; }
+    if(a.breedCd>0){ toast('Esta vaca aún no puede volver a criar.'); return; }
+    if(a.love>0) return;
+    useOneHeld(); a.love=12; a.owned=true; sfx('eat');
+    toast(a.sex==='m'?'El toro busca pareja. Dale trigo también a una vaca cerca.':'La vaca busca pareja. Dale trigo también a un toro cerca.');
+  }
+}
+function petStatus(){
+  const dogs=animals.filter(a=>a.tame), el=$('pets');
+  if(!dogs.length){ el.style.display='none'; return; }
+  el.style.display='block';
+  el.textContent=dogs.slice(0,3).map(a=>'Perro, nivel '+a.lvl+': '+Math.ceil(a.hp)+'/'+a.maxhp+' de vida'+(a.sit?' (quieto)':'')).join('\n');
 }
 
 /* ---------- ENEMIES: el umbrío, criatura nocturna que persigue y golpea ---------- */
@@ -2048,6 +2222,8 @@ function updateEnemies(dt){
     a.cd-=dt;
     if(a.kind!=='thrower'){
       if(!dead&&d2<1.45*1.45&&Math.abs(dy)<1.9&&a.cd<=0){ a.cd=1.2; hurtPlayer(2,dx,dz); }
+      a.cd2=(a.cd2||0)-dt;
+      if(a.cd2<=0) for(const p of animals){ if(p.tame&&Math.hypot(p.x-a.x,p.z-a.z)<1.4&&Math.abs(p.y-a.y)<1.6){ a.cd2=1.2; hurtDog(p,2); break; } }
       const reach=a.aggro?-1.25+Math.sin(a.ph*.5)*.25:Math.sin(a.ph)*.3;
       a.arms[0].rotation.x=reach; a.arms[1].rotation.x=a.aggro?reach:-reach;
     }
@@ -2073,6 +2249,7 @@ function renderStats(){
 function findTarget(ex,ey,ez,maxD){
   let best=null, bd=maxD;
   for(const list of [animals,enemies]) for(const a of list){
+    if(a.tame) continue;
     const cx=a.x-ex, cy=a.y+a.sp.h*.5-ey, cz=a.z-ez, t=cx*dir.x+cy*dir.y+cz*dir.z;
     if(t<0||t>bd) continue;
     const px=cx-dir.x*t, py=cy-dir.y*t, pz=cz-dir.z*t, rr=a.sp.r+.38;
@@ -2089,7 +2266,7 @@ function attackEntity(a,held){
   if(a.hp<=0){
     removeEntity(a);
     if(a.hostile){ if(Math.random()<.6) addItem(SHARD,1); }
-    else{ if(addItem(RAW_MEAT,a.sp.meat)>0) toast('Inventario lleno'); if(a.sp!==SPECIES.bird&&Math.random()<.7) addItem(LEATHER,1); }
+    else{ if(a.sp.meat&&addItem(RAW_MEAT,a.sc<1?1:a.sp.meat)>0) toast('Inventario lleno'); if(a.sp!==SPECIES.bird&&a.sp!==SPECIES.dog&&Math.random()<.7) addItem(LEATHER,1); }
   }
 }
 function hurtPlayer(n,dx,dz){
@@ -2114,7 +2291,9 @@ function eatHeld(){
   const s=inv[selected]; if(!s||!BLOCKS[s.id].food) return;
   const d=BLOCKS[s.id];
   if(hunger>=20&&!(d.heal&&hp<20)){ toast('No tienes hambre.'); return; }
+  const eid=s.id;
   hunger=Math.min(20,hunger+d.food); if(d.heal) hp=Math.min(20,hp+d.heal); s.n--; if(!s.n) inv[selected]=null;
+  if(eid===MILK) addItem(BUCKET,1);   // la leche deja el cubo vacío
   invChanged(); renderStats(); sfx('eat'); placeSwing=.2;
 }
 function updateSurvival(dt){
@@ -2253,7 +2432,8 @@ const GOALS=[
   {t:'Ponte una pieza de armadura', ok:()=>armorPts()>0},
   {t:'Abre el cofre de una cabaña o una ruina', ok:()=>flags.loot},
   {t:'Planta semillas en tierra arada', ok:()=>flags.plant},
-  {t:'Fabrica una herramienta de cristal', ok:()=>[PICK_CRYSTAL,AXE_CRYSTAL,SWORD_CRYSTAL].some(hasIt)}
+  {t:'Fabrica una herramienta de cristal', ok:()=>[PICK_CRYSTAL,AXE_CRYSTAL,SWORD_CRYSTAL].some(hasIt)},
+  {t:'Domestica un perro con carne cruda', ok:()=>flags.tamed||animals.some(a=>a.tame)}
 ];
 function goalDone(g){ return g.ok?g.ok():(g.p()>=g.n||(g.alt&&g.alt())); }
 function updateGoals(dt,silent){
@@ -2281,9 +2461,9 @@ function saveGame(){
     const ch={}; chests.forEach((c,k)=>{ if(c.some(Boolean)) ch[k]=c.map(s=>s?(s.d?[s.id,s.n,s.d]:[s.id,s.n]):0); });
     const ed={}; world.edits.forEach((m,k)=>{ const a=[]; m.forEach((id,idx)=>{ a.push(idx,id); }); ed[k]=a; });
     localStorage.setItem('tesela-last',String(curSlot));
-    localStorage.setItem(slotKey(curSlot),JSON.stringify({v:1,seed:curSeed,at:Date.now(),goal:goalIdx,fl:{c:[...flags.crafted],n:flags.night,l:flags.loot,p:flags.plant},
+    localStorage.setItem(slotKey(curSlot),JSON.stringify({v:1,seed:curSeed,at:Date.now(),goal:goalIdx,fl:{c:[...flags.crafted],n:flags.night,l:flags.loot,p:flags.plant,t:flags.tamed},
       p:[+player.x.toFixed(3),+(player.y+.01).toFixed(3),+player.z.toFixed(3),+player.yaw.toFixed(3),+player.pitch.toFixed(3)],
-      inv:inv.map(s=>s?(s.d?[s.id,s.n,s.d]:[s.id,s.n]):0),sel:selected,dayT:+dayT.toFixed(4),hp,fd:hunger,sp:spawnPt,base,looted:[...looted],gt:+gameT.toFixed(1),crops:[...crops].map(c=>[c[0],+c[1].toFixed(1)]),arm:armor.map(s=>s?[s.id,s.d||0]:0),chests:ch,edits:ed}));
+      inv:inv.map(s=>s?(s.d?[s.id,s.n,s.d]:[s.id,s.n]):0),sel:selected,dayT:+dayT.toFixed(4),hp,fd:hunger,sp:spawnPt,base,pets:animals.filter(a=>a.tame||a.owned).map(a=>({k:a.kind,x:+a.x.toFixed(2),y:+a.y.toFixed(2),z:+a.z.toFixed(2),hp:+a.hp.toFixed(1),sex:a.sex,baby:!!a.baby,grow:a.baby?Math.round(a.grow):0,tame:!!a.tame,owned:!!a.owned,lvl:a.lvl||0,xp:a.xp||0,sit:!!a.sit,bc:Math.round(a.breedCd||0)})),looted:[...looted],gt:+gameT.toFixed(1),crops:[...crops].map(c=>[c[0],+c[1].toFixed(1)]),arm:armor.map(s=>s?[s.id,s.d||0]:0),chests:ch,edits:ed}));
     return true;
   }catch(_){ return false; }
 }
@@ -2297,7 +2477,7 @@ function startGame(seed,save,slot){
   while(animals.length) removeEntity(animals[0]); while(enemies.length) removeEntity(enemies[0]);
   while(shots.length){ scene.remove(shots[0].m); shots.shift(); }
   decayQ.length=0; chests.clear(); paused=false; crops.clear(); looted.clear();
-  goalIdx=0; goalTxt=''; flags.crafted.clear(); flags.night=flags.loot=flags.plant=false; flowQ.length=0; gameT=0;
+  goalIdx=0; goalTxt=''; flags.crafted.clear(); flags.night=flags.loot=flags.plant=flags.tamed=false; flowQ.length=0; gameT=0;
   if(save&&save.chests) for(const k in save.chests) chests.set(k,save.chests[k].map(s=>(s&&BLOCKS[s[0]])?{id:s[0],n:s[1],d:s[2]||0}:null));
   const R=settings.dist;
   world=new World(scene,seed,atlasTex,R,isTouch?1:2);
@@ -2320,7 +2500,7 @@ function startGame(seed,save,slot){
     if(save.sp&&save.sp.length===3) spawnPt=save.sp;
     if(save.base&&save.base.length===3) base=save.base;
     if(save.looted) for(const k of save.looted) looted.add(k);
-    if(save.fl){ for(const c of save.fl.c||[]) flags.crafted.add(c); flags.night=!!save.fl.n; flags.loot=!!save.fl.l; flags.plant=!!save.fl.p; }
+    if(save.fl){ for(const c of save.fl.c||[]) flags.crafted.add(c); flags.night=!!save.fl.n; flags.loot=!!save.fl.l; flags.plant=!!save.fl.p; flags.tamed=!!save.fl.t; }
     goalIdx=save.goal||0;
     if(save.gt) gameT=save.gt; if(save.crops) for(const c of save.crops) crops.set(c[0],c[1]);
     if(save.hp>0) hp=save.hp; if(save.fd>=0) hunger=save.fd;
@@ -2330,6 +2510,12 @@ function startGame(seed,save,slot){
     dayT=save.dayT||.04; selected=save.sel>=0&&save.sel<9?save.sel:0;
     world.update(player.x,player.z,13);
     while(player.collides(player.x,player.y,player.z)&&player.y<WH) player.y+=1;
+  }
+  if(save&&save.pets) for(const q of save.pets){
+    if(!SPECIES[q.k]) continue;
+    const ex=q.tame?{tame:true,lvl:q.lvl||1,xp:q.xp||0,sit:!!q.sit,hp:q.hp}:{owned:true,hp:q.hp};
+    Object.assign(ex,{sex:q.sex||'f',baby:!!q.baby,grow:q.grow,breedCd:q.bc||0,owned:!!q.owned||!!q.tame});
+    makeAnimal(q.k,q.x,q.y,q.z,ex);
   }
   peakY=player.y; renderStats();
   if(save&&save.goal===undefined) updateGoals(0,true);   // partidas antiguas: salta en silencio lo que ya has hecho
@@ -2692,14 +2878,16 @@ function loop(now){
   const useT=!!hit&&(hit.id===WORKBENCH||hit.id===FURNACE||hit.id===CHEST||hit.id===BED||BLOCKS[hit.id].shape==='door');
   const tillT=!!hit&&held&&held.tool==='hoe'&&(hit.id===GRASS||hit.id===DIRT);
   const plantT=!!hit&&inv[selected]&&inv[selected].id===SEEDS&&hit.id===FARMLAND;
-  const mode=useT?'Usar':tillT?'Arar':plantT?'Plantar':(held&&held.food)?'Comer':(held&&held.armor)?'Equipar':'Colocar';
+  const anim=targetAnimal(ex,ey,ez,Math.min(3.6,hit?hit.t+.3:9)), animAct=animalAction(anim);
+  const mode=animAct?animAct:useT?'Usar':tillT?'Arar':plantT?'Plantar':(held&&held.food)?'Comer':(held&&held.armor)?'Equipar':'Colocar';
   if(mode!==lastUse){ lastUse=mode; $('placeLbl').textContent=mode; $('bPlace').classList.toggle('use',mode!=='Colocar'); }
 
   // colocar
   placeCd-=dt;
   if(inp.place){
     inp.place=false;
-    if(hit&&hit.id===CHEST){ chestKey=hit.x+','+hit.y+','+hit.z; lootChest(hit.x,hit.y,hit.z); openInv(CHEST); }
+    if(animAct){ useAnimal(anim); }
+    else if(hit&&hit.id===CHEST){ chestKey=hit.x+','+hit.y+','+hit.z; lootChest(hit.x,hit.y,hit.z); openInv(CHEST); }
     else if(hit&&(hit.id===WORKBENCH||hit.id===FURNACE)){ openInv(hit.id); }
     else if(hit&&BLOCKS[hit.id].shape==='door'){ toggleDoor(hit.x,hit.y,hit.z); }
     else if(hit&&hit.id===BED){ useBed(hit); }
@@ -2731,6 +2919,7 @@ function loop(now){
   updateCompass();
   updateAnimals(dt);
   updateEnemies(dt);
+  petT-=dt; if(petT<=0){ petT=.5; petStatus(); }
   updateSurvival(dt);
 
   // animación de la mano: balanceo al andar, golpe al picar o colocar
