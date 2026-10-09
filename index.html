@@ -31,6 +31,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:#1b2a2f;color:var(--bo
 #hud.on{display:block}
 #stats{position:absolute;left:calc(12px + var(--sl));top:calc(10px + var(--st));display:flex;flex-direction:column;gap:4px}
 #hpBar,#fdBar{display:flex;gap:3px}
+#hpBar{flex-wrap:wrap;max-width:240px}
 #stats i{width:13px;height:13px;border:1.5px solid rgba(0,0,0,.55);background:rgba(0,0,0,.4);display:block}
 #hpBar i{border-radius:3px}
 #fdBar i{border-radius:50%}
@@ -461,7 +462,7 @@ const AIR=0, GRASS=1, DIRT=2, STONE=3, SAND=4, GRAVEL=5, SNOW=6, PLANKS=7, BRICK
   BANDAGE=91, STEW=92, SWORD_CU=93, PICK_AU=94, HELM_CR=95, CHEST_CR=96, BOOTS_CR=97, SWORD_SH=98,
   SLING=99, BOW_W=100, BOW_FE=101, BOW_CR=102, BOW_SH=103, ARROW=104, TRANQ=105, BERRY=106, NARCO=107, BUSH=108,
   HELM_LE=109, CHEST_LE=110, BOOTS_LE=111, HELM_FE=112, CHEST_FE=113, BOOTS_FE=114, HELM_SH=115, CHEST_SH=116, BOOTS_SH=117,
-  PET_LE=118, PET_CU=119, PET_FE=120, PET_AU=121, PET_CR=122, PET_SH=123, CORE=124, GSWORD=125;
+  PET_LE=118, PET_CU=119, PET_FE=120, PET_AU=121, PET_CR=122, PET_SH=123, CORE=124, GSWORD=125, ELIXIR=126, GBOW=127;
 // tex: [arriba, lados, abajo] · hard: segundos a mano · mat: qué herramienta lo acelera
 // need: nivel mínimo de pico para que suelte algo · drop: qué suelta (por defecto, él mismo)
 const BLOCKS=[null,
@@ -554,7 +555,9 @@ const BLOCKS=[null,
   {name:'Armadura canina de cuero', pet:{pts:3}, metal:'le'},{name:'Armadura canina de cobre', pet:{pts:5}, metal:'cu'},{name:'Armadura canina de hierro', pet:{pts:8}, metal:'fe'},
   {name:'Armadura canina de oro', pet:{pts:9}, metal:'au'},{name:'Armadura canina de cristal', pet:{pts:12}, metal:'cr'},{name:'Armadura canina sombría', pet:{pts:15}, metal:'sh'},
   {name:'Núcleo sombrío'},
-  {name:'Espada del Guardián', tool:'sword', tier:4, dmg:20, dur:1500, col:'#c9a2ff', hc:0xc9a2ff, rep:[38,3]}
+  {name:'Espada del Guardián', tool:'sword', tier:4, dmg:20, dur:1500, col:'#c9a2ff', hc:0xc9a2ff, rep:[38,3]},
+  {name:'Elixir de cristal', food:4, heal:16},
+  {name:'Arco del Guardián', tool:'bow', tier:4, dur:1200, rng:{spd:42,cd:.4,dmg:15,tq:2.6}, col:'#c9a2ff', hc:0xc9a2ff, rep:[38,3]}
 ];
 // agua: la quieta (fuente) y tres niveles de agua que corre
 const WATERISH=new Uint8Array(256); for(const i of [9,85,86,87]) WATERISH[i]=1;
@@ -1081,14 +1084,14 @@ function toMesh(a,mat){
 /* ============================================================
    WORLD: carga/descarga dinámica de chunks y edición de bloques
    ============================================================ */
-const VSH=`attribute float aShade; attribute vec2 aLight; uniform float uDay; uniform float uWave; uniform float uTime; uniform float uWind;
+const VSH=`attribute float aShade; attribute vec2 aLight; uniform float uSeeDark; uniform float uDay; uniform float uWave; uniform float uTime; uniform float uWind;
 varying vec2 vUv; varying vec3 vL; varying float vD; varying vec3 vW; varying float vFoam;
 void main(){ vUv=uv; float sh=aShade, w=0.0, foam=0.0;
   if(sh>5.5){ foam=1.0; sh-=6.0; } else if(sh>3.5){ w=1.0; sh-=4.0; } else if(sh>1.5){ w=0.35; sh-=2.0; }
   vec3 p=position; vec4 wp=modelMatrix*vec4(p,1.0);
   float sk=aLight.x*uDay;
   float fl=0.93+0.07*sin(uTime*10.0+wp.x*1.7+wp.z*2.3)*sin(uTime*6.3+wp.y*1.3+wp.x);
-  float tl=aLight.y*fl, l=max(sk,tl), warm=clamp((tl-sk)*2.5,0.0,1.0);
+  float tl=aLight.y*fl, l=max(max(sk,tl),uSeeDark), warm=clamp((tl-sk)*2.5,0.0,1.0);
   vec3 skyTint=mix(vec3(0.74,0.82,1.06),vec3(1.0),smoothstep(0.25,0.8,uDay));
   vL=mix(skyTint,vec3(1.14,0.86,0.56),warm)*sh*(0.055+0.945*l);
   if(uWave>0.5) p.y+=sin(uTime*1.6+wp.x*0.9+wp.z*0.7)*0.035-0.03;
@@ -1116,9 +1119,9 @@ class World{
     this.scene=scene; this.gen=new WorldGenerator(seed); this.R=radius; this.budget=budget;
     this.chunks=new Map(); this.edits=new Map(); this.queue=[]; this.dirty=new Set(); this.later=new Set();
     this.lcx=1e9; this.lcz=1e9; this.meshed=0;
-    const U=this.U={uDay:{value:1},uFog:{value:new THREE.Color(0x9fd3f0)},uNear:{value:50},uFar:{value:90},uTime:{value:0},uWind:{value:1},uSun:{value:new THREE.Vector3(0,1,0)}};
+    const U=this.U={uDay:{value:1},uFog:{value:new THREE.Color(0x9fd3f0)},uNear:{value:50},uFar:{value:90},uTime:{value:0},uWind:{value:1},uSun:{value:new THREE.Vector3(0,1,0)},uSeeDark:{value:0}};
     const mk=(alpha,wave,extra)=>new THREE.ShaderMaterial(Object.assign({vertexShader:VSH,fragmentShader:FSH,
-      uniforms:{map:{value:atlasTex},uDay:U.uDay,uFog:U.uFog,uNear:U.uNear,uFar:U.uFar,uTime:U.uTime,uWind:U.uWind,uSun:U.uSun,uAlpha:{value:alpha},uWave:{value:wave}}},extra));
+      uniforms:{map:{value:atlasTex},uDay:U.uDay,uFog:U.uFog,uNear:U.uNear,uFar:U.uFar,uTime:U.uTime,uWind:U.uWind,uSun:U.uSun,uSeeDark:U.uSeeDark,uAlpha:{value:alpha},uWave:{value:wave}}},extra));
     this.mat=mk(1,0,{}); this.wmat=mk(.72,1,{transparent:true,depthWrite:false});
   }
   getChunk(cx,cz){
@@ -1222,7 +1225,7 @@ class Player{
     let f=inp.kf-inp.jy-inp.py, s=inp.ks+inp.jx+inp.px;
     const len=Math.hypot(f,s); if(len>1){ f/=len; s/=len; }
     const run=inp.run||inp.prun||Math.hypot(inp.jx,inp.jy)>.92;
-    const speed=(inWater?2.6:(run?6.6:4.3))*(perk('zancada')?1.12:1);
+    const speed=(inWater?2.6:(run?6.6:4.3))*[1,1.12,1.2,1.26][rk('zancada')];
     const sy=Math.sin(this.yaw), cy=Math.cos(this.yaw);
     const dx=-sy*f+cy*s, dz=-cy*f-sy*s, k=Math.min(1,dt*12);
     this.vx+=(dx*speed-this.vx)*k; this.vz+=(dz*speed-this.vz)*k;
@@ -1447,6 +1450,7 @@ function icon(id){
     x.fillStyle=pal[1]; x.fillRect(1,12,10,1); x.fillRect(4,6,1,3); x.fillRect(7,6,1,3); x.fillRect(11,4,4,1);
     if(pal[2]){ x.fillStyle=pal[2]; x.fillRect(2,6,2,1); x.fillRect(12,5,1,1); }
   }
+  else if(id===ELIXIR){ x.fillStyle='#d8e8ee'; x.fillRect(6,2,4,3); x.fillStyle='#8a5a34'; x.fillRect(6,1,4,2); x.fillStyle='#bfe9f0'; x.fillRect(4,5,8,9); x.fillRect(3,7,10,6); x.fillStyle='#4fd8e8'; x.fillRect(4,9,8,4); x.fillStyle='#f2fdff'; x.fillRect(5,7,2,2); }
   else if(id===CORE){ x.fillStyle='#2a1b40'; for(let j=1;j<=6;j++){ x.fillRect(8-j,1+j,2*j,1); x.fillRect(8-j,14-j,2*j,1); } x.fillStyle='#b79cf0'; for(let j=1;j<=4;j++){ x.fillRect(8-j,3+j,2*j,1); x.fillRect(8-j,12-j,2*j,1); } x.fillStyle='#f4e8ff'; x.fillRect(7,6,2,4); }
   else if(id===LEATHER){ x.fillStyle='#9a6038'; x.fillRect(3,3,10,10); x.fillRect(2,5,12,6); x.fillStyle='#b97a4c'; x.fillRect(5,5,3,3); }
   else if(id===SEEDS){ x.fillStyle='#7aa04a'; for(const q of [[4,6],[8,4],[11,7],[6,10],[10,11]]) x.fillRect(q[0],q[1],2,3); }
@@ -1541,6 +1545,8 @@ const RECIPES=[
   {out:CHEST_AU,n:1,inp:[[GOLD_INGOT,8]],st:WORKBENCH,lock:'armau'},
   {out:BOOTS_AU,n:1,inp:[[GOLD_INGOT,4]],st:WORKBENCH,lock:'armau'},
   {out:GSWORD,n:1,inp:[[CORE,1],[CRYSTAL,2],[STICK,1]],st:WORKBENCH},
+  {out:GBOW,n:1,inp:[[CORE,1],[CRYSTAL,3],[LEATHER,2]],st:WORKBENCH,lock:'arcog'},
+  {out:ELIXIR,n:1,inp:[[CRYSTAL,1],[GOLD_INGOT,2],[APPLE,1]],st:WORKBENCH,lock:'elixir'},
   {out:PET_LE,n:1,inp:[[LEATHER,4]],st:WORKBENCH},
   {out:PET_CU,n:1,inp:[[COPPER_INGOT,6]],st:WORKBENCH},
   {out:PET_FE,n:1,inp:[[IRON_INGOT,6]],st:WORKBENCH,lock:'armfe'},
@@ -1610,13 +1616,15 @@ for(let j=0;j<3;j++){ const b=document.createElement('button'); b.className='slo
 function maxDur(d){ if(!d) return 0; if(d.dur) return d.dur; if(d.tool) return d.tool==='hoe'?60:[60,130,250,600][d.tier-1]; if(d.armor||d.pet) return ({le:80,cu:120,fe:240,au:200,cr:320,sh:520})[d.metal]||200; return 0; }
 function wearHeld(n){
   const s=inv[selected]; if(!s) return; const d=BLOCKS[s.id], m=maxDur(d); if(!m) return;
+  if(Math.random()<[0,.25,.4,.5][rk('mant')]) return;
   s.d=(s.d||0)+n;
   if(s.d>=m){ inv[selected]=null; toast('Se ha roto: '+d.name); sfx('break'); }
   invChanged();
 }
 function wearArmor(){
   let ch=false;
-  for(let j=0;j<3;j++){ const a=armor[j]; if(!a) continue; a.d=(a.d||0)+1; ch=true;
+  const sk=[0,.25,.4,.5][rk('mant')];
+  for(let j=0;j<3;j++){ const a=armor[j]; if(!a||Math.random()<sk) continue; a.d=(a.d||0)+1; ch=true;
     if(a.d>=maxDur(BLOCKS[a.id])){ armor[j]=null; toast('Se ha roto: '+BLOCKS[a.id].name); sfx('break'); } }
   if(ch) invChanged();
 }
@@ -1986,7 +1994,7 @@ function lootChest(x,y,z){
   looted.add(k); flags.loot=true; gainXp(st.tier?10+st.tier*10:10);
   const T=st.tier===2?LOOT3:st.tier===1?LOOT2:LOOT;
   const R=rng(Math.imul(x,92837111)^Math.imul(z,689287499)^world.gen.seed), c=chestAt(k), tot=T.reduce((a,l)=>a+l[3],0);
-  const n=4+Math.floor(R()*4)+(st.tier||0);
+  const n=4+Math.floor(R()*4)+(st.tier||0)+(perk('tesoro')?2:0);
   for(let i=0;i<n;i++){
     let r=R()*tot, l=T[0]; for(const e of T){ r-=e[3]; if(r<=0){ l=e; break; } }
     let slot=Math.floor(R()*18); while(c[slot]) slot=(slot+1)%18;
@@ -2084,7 +2092,7 @@ function breakBlock(hit,held){
     if(hit.id===LEAVES){ const r=Math.random(); if(r<.07) drop=APPLE; else if(r<.25) drop=STICK; }
     if(hit.id===TALLGRASS&&Math.random()<.22) drop=SEEDS;
     if(hit.id===BUSH){ drop=BERRY; n=2+(Math.random()<.5?1:0); if(Math.random()<.45) addItem(NARCO,1+(Math.random()<.3?1:0)); }
-    if(hit.id>=13&&hit.id<=17&&perk('minero')&&Math.random()<.25) n=2;
+    if(hit.id>=13&&hit.id<=17&&Math.random()<[0,.25,.4,.55][rk('minero')]) n=2;
     if(hit.id>=WHEAT0&&hit.id<=WHEAT0+3){ drop=SEEDS; n=hit.id===WHEAT0+3?1+(Math.random()<.5?1:0):1; if(hit.id===WHEAT0+3) addItem(WHEAT_ITEM,1+(Math.random()<.35?1:0)); }
     if(drop&&addItem(drop,n)>0) toast('Inventario lleno');
     gainXp(XP_BLOCK[hit.id]||0);
@@ -2175,7 +2183,7 @@ function updateSky(dt,ex,ey,ez){
   skyCol.setRGB(Math.min(1,.03+.59*f+dusk*.3), Math.min(1,.05+.78*f+dusk*.06), Math.max(0,.12+.82*f-dusk*.12));
   if(wx.w>0){ const gr=(skyCol.r+skyCol.g+skyCol.b)/3*.85; skyCol.setRGB(skyCol.r+(gr-skyCol.r)*wx.w*.7, skyCol.g+(gr-skyCol.g)*wx.w*.7, skyCol.b+(gr-skyCol.b)*wx.w*.7); }
   if(scene.fog) scene.fog.color.copy(skyCol);
-  if(world){ world.U.uDay.value=dayLight; world.U.uFog.value.copy(skyCol); }
+  if(world){ world.U.uSeeDark.value=perk('vision')?.16:0; world.U.uDay.value=perk('vision')?Math.max(dayLight,.36):dayLight; world.U.uFog.value.copy(skyCol); }
   sun.position.set(ex+cs*290,ey+sn*290,ez+70); sun.lookAt(ex,ey,ez); sun.visible=sn>-.14;
   moon.position.set(ex-cs*290,ey-sn*290,ez-70); moon.lookAt(ex,ey,ez); moon.visible=sn<.14;
   stars.position.set(ex,ey,ez); stars.material.opacity=1-f; stars.visible=f<.97;
@@ -2760,8 +2768,8 @@ function landMove(a,vx,vz,dt,speed){
 /* ---------- PETS: perros domesticados que suben de nivel y vacas que se crían ---------- */
 const GROW_TIME=300;                 // segundos que tarda un ternero en crecer
 const dogMaxHp=l=>16+l*4, dogDmg=l=>2+l, DOG_MAXLVL=10;
-const petMaxHp=a=>a.kind==='wolf'?24+a.lvl*5:dogMaxHp(a.lvl);
-const petDmg=a=>a.kind==='wolf'?3+a.lvl*.8:dogDmg(a.lvl);
+const petMaxHp=a=>Math.round((a.kind==='wolf'?24+a.lvl*5:dogMaxHp(a.lvl))*[1,1.2,1.4,1.6][rk('lider')]);
+const petDmg=a=>(a.kind==='wolf'?3+a.lvl*.8:dogDmg(a.lvl))*[1,1.2,1.4,1.6][rk('lider')];
 const petMax=a=>a.kind==='wolf'?20:DOG_MAXLVL;
 const petName=a=>a.kind==='wolf'?'lobo':'perro';
 const ANAME={deer:'Ciervo',boar:'Jabalí',dog:'Perro',wolf:'Lobo',bird:'Pájaro'};
@@ -2844,7 +2852,7 @@ function feedAI(a,dt){
   return null;
 }
 const torpMax=a=>a.sp.torp*(1+(a.wl||1)*.12);
-const tameNeed=a=>(40+(a.wl||1)*8)*(perk('animales')?.75:1);
+const tameNeed=a=>(40+(a.wl||1)*8)*[1,.75,.55][rk('animales')];
 function addTorpor(a,n){
   if(a.hostile||a.tame||!a.sp.torp) return;
   const mx=torpMax(a); a.torp=Math.min(mx,(a.torp||0)+n);
@@ -2951,7 +2959,7 @@ function useAnimal(a){
   }
   if(act==='Domesticar'){
     useOneHeld();
-    if(Math.random()<(perk('animales')?.75:1/3)){
+    if(Math.random()<[1/3,.75,.95][rk('animales')]){
       a.tame=true; a.noTurn=true; a.lvl=1; a.xp=0; a.maxhp=dogMaxHp(1); a.hp=a.maxhp; a.state='idle'; a.collar.visible=true;
       flags.tamed=true; gainXp(15); toast('¡Has domesticado un perro! Te seguirá y te ayudará a pelear.'); sfx('eat'); burst(cx,cy,cz,97); saveGame();
     }else{ toast('El perro desconfía todavía. Prueba con más carne.'); burst(cx,cy,cz,6); }
@@ -3184,48 +3192,77 @@ let plvl=1, pxp=0;
 const unlocked=new Set();
 const perk=id=>unlocked.has(id);
 // lo que se puede desbloquear: recetas nuevas y habilidades. Un punto por nivel, desde el nivel que pide cada una
+// lv: nivel que pide cada rango · d: lo que da cada rango. Las recetas tienen un solo rango
 const UNLOCKS=[
-  {id:'vendas',  lvl:2, t:'Receta: vendas',             d:'2 de cuero dan 2 vendas. Cada una cura 6 de vida.', ic:BANDAGE},
-  {id:'piel',    lvl:2, t:'Piel dura',                  d:'Los golpes te hacen un 10 % menos de daño.'},
-  {id:'estofado',lvl:3, t:'Receta: estofado',           d:'Carne asada, pan y manzana. Quita mucha hambre y cura.', ic:STEW},
-  {id:'comer',   lvl:3, t:'Buen comer',                 d:'La comida te quita un 30 % más de hambre.'},
-  {id:'espcu',   lvl:4, t:'Receta: espada de cobre',    d:'3 lingotes de cobre y 1 palo. Pega casi como la de hierro.', ic:SWORD_CU},
-  {id:'arcofe',  lvl:5, t:'Receta: arco de hierro',     d:'Dispara más fuerte y más lejos. Sus dardos duermen un 35 % más.', ic:BOW_FE},
-  {id:'armfe',   lvl:4, t:'Receta: armadura de hierro', d:'Yelmo cerrado, peto por capas y grebas. Protege un 32 %. También para tu perro o lobo.', ic:CHEST_FE},
-  {id:'minero',  lvl:5, t:'Ojo de minero',              d:'Una de cada cuatro veces, los minerales sueltan el doble.'},
-  {id:'picoau',  lvl:6, t:'Receta: pico de oro',        d:'El pico más rápido del juego, aunque se gasta pronto.', ic:PICK_AU},
-  {id:'armau',   lvl:6, t:'Receta: armadura de oro',    d:'Casco con corona y peto con gema. Protege un 36 %. También para tu perro o lobo.', ic:CHEST_AU},
-  {id:'animales',lvl:6, t:'Amigo de los animales',      d:'Domesticas perros con más facilidad y los animales dormidos necesitan un 25 % menos de comida.'},
-  {id:'armcr',   lvl:8, t:'Receta: armadura de cristal',d:'Casco con cresta de cristales y hombreras de cristal. Protege un 48 %. También para tu perro o lobo.', ic:CHEST_CR},
-  {id:'arcocr',  lvl:9, t:'Receta: arco de cristal',    d:'Rápido y potente. Sus dardos duermen un 70 % más.', ic:BOW_CR},
-  {id:'zancada', lvl:9, t:'Zancada',                    d:'Andas y corres un 12 % más rápido.'},
-  {id:'fuerza',  lvl:10,t:'Brazo fuerte',               d:'Todos tus golpes hacen un 15 % más de daño.'},
-  {id:'espsh',   lvl:12,t:'Receta: espada sombría',     d:'Cristal y esquirlas sombrías. El arma más fuerte del juego.', ic:SWORD_SH},
-  {id:'arcosh',  lvl:13,t:'Receta: arco sombrío',       d:'El mejor arco: dispara rapidísimo y sus dardos duermen el doble.', ic:BOW_SH},
-  {id:'armsh',   lvl:14,t:'Receta: armadura sombría',   d:'Yelmo con cuernos y ojos que brillan. La mejor protección: 60 %. También para tu perro o lobo.', ic:CHEST_SH}
+  {id:'vendas',  lv:[2],  t:'Receta: vendas',             d:['2 de cuero dan 2 vendas. Cada una cura 6 de vida.'], ic:BANDAGE},
+  {id:'piel',    lv:[2,15,30,44], t:'Piel dura',          d:['Los golpes te hacen un 10 % menos de daño.','Un 18 % menos de daño.','Un 25 % menos de daño.','Un 30 % menos de daño.']},
+  {id:'estofado',lv:[3],  t:'Receta: estofado',           d:['Carne asada, pan y manzana. Quita mucha hambre y cura.'], ic:STEW},
+  {id:'comer',   lv:[3,20], t:'Buen comer',               d:['La comida te quita un 30 % más de hambre.','Un 60 % más.']},
+  {id:'espcu',   lv:[4],  t:'Receta: espada de cobre',    d:['3 lingotes de cobre y 1 palo. Pega casi como la de hierro.'], ic:SWORD_CU},
+  {id:'minero',  lv:[5,18,35], t:'Ojo de minero',         d:['Los minerales sueltan el doble una de cada cuatro veces.','El doble un 40 % de las veces.','El doble un 55 % de las veces.']},
+  {id:'armfe',   lv:[6],  t:'Receta: armadura de hierro', d:['Yelmo cerrado, peto por capas y grebas. Protege un 32 %. También para tu perro o lobo.'], ic:CHEST_FE},
+  {id:'animales',lv:[6,22], t:'Amigo de los animales',    d:['Domesticas perros con más facilidad y los animales dormidos necesitan un 25 % menos de comida.','Los perros casi siempre aceptan y los dormidos necesitan un 45 % menos de comida.']},
+  {id:'arcofe',  lv:[7],  t:'Receta: arco de hierro',     d:['Dispara más fuerte y más lejos. Sus dardos duermen un 35 % más.'], ic:BOW_FE},
+  {id:'picoau',  lv:[8],  t:'Receta: pico de oro',        d:['El pico más rápido del juego, aunque se gasta pronto.'], ic:PICK_AU},
+  {id:'zancada', lv:[9,28,43], t:'Zancada',               d:['Andas y corres un 12 % más rápido.','Un 20 % más rápido.','Un 26 % más rápido.']},
+  {id:'fuerza',  lv:[10,24,40,46], t:'Brazo fuerte',      d:['Tus golpes y flechas hacen un 15 % más de daño.','Un 25 % más de daño.','Un 35 % más de daño.','Un 45 % más de daño.']},
+  {id:'arquero', lv:[11,32,45], t:'Buen pulso',           d:['Tus flechas hacen un 20 % más de daño y tus dardos duermen un 20 % más.','Un 40 % más.','Un 60 % más.']},
+  {id:'armau',   lv:[12], t:'Receta: armadura de oro',    d:['Casco con corona y peto con gema. Protege un 36 %. También para tu perro o lobo.'], ic:CHEST_AU},
+  {id:'vital',   lv:[13,26,38,48], t:'Vitalidad',         d:['Un corazón más de vida.','Otro corazón más.','Otro corazón más.','Otro corazón más.']},
+  {id:'mant',    lv:[14,36,49], t:'Mantenimiento',        d:['Tus herramientas y armaduras se gastan un 25 % menos.','Un 40 % menos.','Un 50 % menos.']},
+  {id:'regen',   lv:[16,34,41], t:'Recuperación',         d:['Recuperas vida más deprisa cuando estás bien alimentado.','Aún más deprisa.','Mucho más deprisa.']},
+  {id:'armcr',   lv:[17], t:'Receta: armadura de cristal',d:['Casco con cresta de cristales y hombreras de cristal. Protege un 48 %. También para tu perro o lobo.'], ic:CHEST_CR},
+  {id:'arcocr',  lv:[19], t:'Receta: arco de cristal',    d:['Rápido y potente. Sus dardos duermen un 70 % más.'], ic:BOW_CR},
+  {id:'lider',   lv:[21,37,47], t:'Líder de la manada',   d:['Tu perro o lobo tiene un 20 % más de vida y de mordisco.','Un 40 % más.','Un 60 % más.']},
+  {id:'espsh',   lv:[23], t:'Receta: espada sombría',     d:['Cristal y esquirlas sombrías. Una de las mejores armas.'], ic:SWORD_SH},
+  {id:'elixir',  lv:[25], t:'Receta: elixir de cristal',  d:['Cristal, 2 lingotes de oro y una manzana. Cura 16 de vida de golpe.'], ic:ELIXIR},
+  {id:'tesoro',  lv:[27], t:'Ojo para el botín',          d:['Los cofres que encuentras traen 2 objetos más.']},
+  {id:'arcosh',  lv:[29], t:'Receta: arco sombrío',       d:['Dispara rapidísimo y sus dardos duermen el doble.'], ic:BOW_SH},
+  {id:'armsh',   lv:[33], t:'Receta: armadura sombría',   d:['Yelmo con cuernos y ojos que brillan. La mejor protección: 60 %. También para tu perro o lobo.'], ic:CHEST_SH},
+  {id:'vision',  lv:[39], t:'Ojos de búho',               d:['Ves mejor de noche y en la oscuridad.']},
+  {id:'arcog',   lv:[42], t:'Receta: arco del Guardián',  d:['Con el núcleo sombrío del jefe. El mejor arco del juego.'], ic:GBOW}
 ];
-const points=()=>Math.max(0,plvl-1-unlocked.size);
+// rango de una habilidad: el primero se guarda con su nombre y los siguientes como nombre2, nombre3…
+function rk(id){ if(!unlocked.has(id)) return 0; let r=1; while(unlocked.has(id+(r+1))) r++; return r; }
+const ROMAN=['','I','II','III','IV','V'];
+const MILESTONES={10:['Explorador','12 antorchas y 4 vendas'],20:['Aventurero','3 manzanas doradas'],30:['Veterano','6 cristales'],40:['Campeón','10 esquirlas sombrías y 3 cristales'],50:['Señor de Tesela','2 corazones más para siempre']};
+function titleFor(l){ let t=''; for(const k in MILESTONES) if(l>=+k) t=MILESTONES[k][0]; return t; }
+const points=()=>Math.max(0,plvl-1+Math.floor(plvl/10)-unlocked.size);
+function reachMilestone(l){
+  const m=MILESTONES[l]; if(!m) return;
+  if(l===10){ addItem(TORCH,12); addItem(BANDAGE,4); }
+  else if(l===20) addItem(GOLD_APPLE,3);
+  else if(l===30) addItem(CRYSTAL,6);
+  else if(l===40){ addItem(SHARD,10); addItem(CRYSTAL,3); }
+  setTimeout(()=>toast('¡Hito del nivel '+l+'! Ahora eres '+m[0]+'. Recompensa: '+m[1]+' y un punto extra.'),2800);
+}
 function renderSkills(){
-  $('skHead').textContent='Nivel '+plvl+'. Puntos para gastar: '+points()+'. Ganas un punto cada vez que subes de nivel.';
+  $('skHead').textContent='Nivel '+plvl+(titleFor(plvl)?' · '+titleFor(plvl):'')+'. Puntos para gastar: '+points()+'. Ganas un punto por nivel y uno extra en los niveles 10, 20, 30, 40 y 50.';
   const L=$('skList'); L.innerHTML='';
   for(const u of UNLOCKS){
-    const row=document.createElement('div'); row.className='skrow'+(perk(u.id)?' done':'');
+    const r=rk(u.id), max=u.lv.length, done=r>=max;
+    const row=document.createElement('div'); row.className='skrow'+(done?' done':'');
     const ic=document.createElement('div'); ic.className='skic';
-    if(u.ic!==undefined) ic.innerHTML='<img alt="" src="'+icon(u.ic).url+'">'; else ic.textContent='★';
-    const tx=document.createElement('div'); tx.className='sktx'; tx.innerHTML='<b></b><span></span>'; tx.firstChild.textContent=u.t; tx.lastChild.textContent=u.d;
+    if(u.ic!==undefined) ic.innerHTML='<img alt="" src="'+icon(u.ic).url+'">'; else ic.textContent=max>1&&r?ROMAN[r]:'★';
+    const tx=document.createElement('div'); tx.className='sktx'; tx.innerHTML='<b></b><span></span>';
+    tx.firstChild.textContent=u.t+(max>1?' · '+(r?ROMAN[r]:'0')+' de '+ROMAN[max]:'');
+    tx.lastChild.textContent=done?u.d[max-1]:(r?'Siguiente: ':'')+u.d[r];
     const b=document.createElement('button'); b.className='mini';
-    if(perk(u.id)){ b.textContent='Desbloqueado'; b.disabled=true; }
-    else if(plvl<u.lvl){ b.textContent='Nivel '+u.lvl; b.disabled=true; }
-    else{ b.textContent='Desbloquear'; b.className='mini pri'; b.disabled=points()<1;
-      b.addEventListener('click',()=>{ if(points()<1||perk(u.id)) return; unlocked.add(u.id); sfx('eat'); toast('Desbloqueado: '+u.t.replace('Receta: ','')+'.'); renderSkills(); renderXp(); saveGame(); }); }
+    if(done){ b.textContent=max>1?'Completo':'Desbloqueado'; b.disabled=true; }
+    else if(plvl<u.lv[r]){ b.textContent='Nivel '+u.lv[r]; b.disabled=true; }
+    else{ b.textContent=r?'Mejorar':'Desbloquear'; b.className='mini pri'; b.disabled=points()<1;
+      b.addEventListener('click',()=>{ if(points()<1||rk(u.id)!==r) return; unlocked.add(r?u.id+(r+1):u.id); sfx('eat');
+        toast((r?'Mejorado: ':'Desbloqueado: ')+u.t.replace('Receta: ','')+(max>1?' '+ROMAN[r+1]:'')+'.');
+        for(const a of animals) if(a.tame){ const f=a.hp/a.maxhp; a.maxhp=petMaxHp(a); a.hp=a.maxhp*f; }
+        renderSkills(); renderXp(); renderStats(); saveGame(); }); }
     row.appendChild(ic); row.appendChild(tx); row.appendChild(b); L.appendChild(row);
   }
 }
 function openSkills(){ if(!started) return; closeInv(); renderSkills(); $('skills').classList.add('on'); try{ if(document.exitPointerLock) document.exitPointerLock(); }catch(_){} }
 function closeSkills(){ $('skills').classList.remove('on'); }
-const MAX_LVL=30;
+const MAX_LVL=50;
 const xpNeed=l=>20+(l-1)*15;                         // experiencia para pasar del nivel l al siguiente
-const maxHp=()=>20+Math.min(10,Math.floor(plvl/3)*2); // +1 corazón cada 3 niveles, hasta 15 corazones
+const maxHp=()=>20+Math.min(10,Math.floor(plvl/3)*2)+rk('vital')*2+(plvl>=50?4:0); // +1 corazón cada 3 niveles hasta el 27, más Vitalidad y el hito del 50
 const mineMul=()=>1+.02*(plvl-1);                    // pica un 2 % más rápido por nivel
 const dmgMul=()=>1+.03*(plvl-1);                     // pega un 3 % más fuerte por nivel
 // experiencia por romper bloques (solo si sueltan algo)
@@ -3235,7 +3272,7 @@ function gainXp(n){
   if(!n||plvl>=MAX_LVL) return;
   pxp+=n; let up=false;
   while(plvl<MAX_LVL&&pxp>=xpNeed(plvl)){
-    pxp-=xpNeed(plvl); const before=maxHp(); plvl++; up=true;
+    pxp-=xpNeed(plvl); const before=maxHp(); plvl++; up=true; reachMilestone(plvl);
     const more=maxHp()>before;
     toast('¡Nivel '+plvl+'! Ganas un punto para Desbloqueos'+(more?' y un corazón más.':'.'));
     if(more) hp=Math.min(maxHp(),hp+2);
@@ -3245,7 +3282,7 @@ function gainXp(n){
   renderXp();
 }
 function renderXp(){
-  const pt=points(); $('xpLvl').textContent='Nivel '+plvl+(pt?' ('+pt+(pt>1?' puntos)':' punto)'):'');
+  const pt=points(), tt=titleFor(plvl); $('xpLvl').textContent='Nivel '+plvl+(tt?' · '+tt:'')+(pt?' ('+pt+(pt>1?' puntos)':' punto)'):'');
   $('skBtn').textContent='Desbloqueos'+(pt?' ('+pt+')':''); $('skBtn').classList.toggle('pri',pt>0);
   $('xpFill').style.width=(plvl>=MAX_LVL?100:Math.min(100,pxp/xpNeed(plvl)*100)).toFixed(1)+'%';
 }
@@ -3254,13 +3291,13 @@ let hp=20, hunger=20, dead=false, invuln=0, hungerAcc=0, regenAcc=0, peakY=0, at
 const hpPips=[], fdPips=[], arPips=[];
 for(let i=0;i<10;i++){ const a=document.createElement('i'); $('arBar').appendChild(a); arPips.push(a); }
 statsReady=true;
-for(let i=0;i<15;i++){ const a=document.createElement('i'); $('hpBar').appendChild(a); hpPips.push(a); }
+for(let i=0;i<21;i++){ const a=document.createElement('i'); $('hpBar').appendChild(a); hpPips.push(a); }
 for(let i=0;i<10;i++){ const b=document.createElement('i'); $('fdBar').appendChild(b); fdPips.push(b); }
 function renderStats(){
   const ap=armorPts(); $('arBar').style.display=ap?'flex':'none';
   for(let i=0;i<10;i++) arPips[i].className=ap>=i+1?'f':'';
   const hc=maxHp()/2;
-  for(let i=0;i<15;i++){ hpPips[i].style.display=i<hc?'block':'none'; hpPips[i].className=hp>=i*2+2?'f':hp>=i*2+1?'h':''; }
+  for(let i=0;i<21;i++){ hpPips[i].style.display=i<hc?'block':'none'; hpPips[i].className=hp>=i*2+2?'f':hp>=i*2+1?'h':''; }
   for(let i=0;i<10;i++){
     fdPips[i].className=hunger>=i*2+2?'f':hunger>=i*2+1?'h':'';
   }
@@ -3278,7 +3315,7 @@ function findTarget(ex,ey,ez,maxD){
 }
 function attackEntity(a,held){
   const melee=held&&held.tool&&!held.rng;
-  const dmg=(melee?(held.dmg||(held.tool==='sword'?[4,6,8,11]:[2,3,4,5])[held.tier-1]):1)*dmgMul()*(perk('fuerza')?1.15:1);
+  const dmg=(melee?(held.dmg||(held.tool==='sword'?[4,6,8,11]:[2,3,4,5])[held.tier-1]):1)*dmgMul()*[1,1.15,1.25,1.35,1.45][rk('fuerza')];
   if(melee&&inv[selected]&&BLOCKS[inv[selected].id]===held) wearHeld(held.tool==='sword'?1:2);
   damageEntity(a,dmg,dir.x,dir.z,false);
 }
@@ -3337,9 +3374,9 @@ function projHits(s){
   return null;
 }
 function projectileHit(s,a){
-  const dmg=s.am===ARROW?s.R.dmg*dmgMul()*(perk('fuerza')?1.15:1):1;
+  const arq=[1,1.2,1.4,1.6][rk('arquero')], dmg=s.am===ARROW?s.R.dmg*dmgMul()*[1,1.15,1.25,1.35,1.45][rk('fuerza')]*arq:1;
   if(damageEntity(a,dmg,s.vx,s.vz,true)) return;
-  if(s.am===TRANQ) addTorpor(a,10*s.R.tq);
+  if(s.am===TRANQ) addTorpor(a,10*s.R.tq*arq);
   if(s.am===STONE&&!a.boss){ if(!a.ko) a.stun=Math.max(a.stun||0,a.hostile?1.2:3); addTorpor(a,4); }
 }
 function updatePShots(dt){
@@ -3394,7 +3431,7 @@ function tameHud(ex,ey,ez,hitT){
 }
 function hurtPlayer(n,dx,dz){
   if(dead||invuln>0) return;
-  if(dx||dz){ n*=1-armorPts()*.04; if(perk('piel')) n*=.9; wearArmor(); }
+  if(dx||dz){ n*=1-armorPts()*.04; n*=[1,.9,.82,.75,.7][rk('piel')]; wearArmor(); }
   hp=Math.max(0,hp-n); renderStats(); sfx('hurt'); rumble(Math.min(1,.35+n*.08),140);
   const fx=$('dmg'); fx.style.transition='none'; fx.style.opacity='.55'; setTimeout(()=>{ fx.style.transition='opacity .5s'; fx.style.opacity='0'; },60);
   if(dx||dz){ const l=Math.hypot(dx,dz)||1; player.vx+=dx/l*8; player.vz+=dz/l*8; player.vy=5; player.onGround=false; }
@@ -3416,7 +3453,7 @@ function eatHeld(){
   if(!d.food&&hp>=maxHp()){ toast('Ya tienes la vida llena.'); return; }
   if(hunger>=20&&!(d.heal&&hp<maxHp())){ toast('No tienes hambre.'); return; }
   const eid=s.id;
-  hunger=Math.min(20,hunger+(d.food||0)*(perk('comer')?1.3:1)); if(d.heal) hp=Math.min(maxHp(),hp+d.heal); s.n--; if(!s.n) inv[selected]=null;
+  hunger=Math.min(20,hunger+(d.food||0)*[1,1.3,1.6][rk('comer')]); if(d.heal) hp=Math.min(maxHp(),hp+d.heal); s.n--; if(!s.n) inv[selected]=null;
   if(eid===MILK) addItem(BUCKET,1);   // la leche deja el cubo vacío
   invChanged(); renderStats(); sfx('eat'); placeSwing=.2;
 }
@@ -3426,7 +3463,7 @@ function updateSurvival(dt){
   hungerAcc+=dt*(Math.hypot(player.vx,player.vz)>5?2.2:1);
   if(hungerAcc>=30){ hungerAcc=0; if(hunger>0){ hunger--; renderStats(); } }
   regenAcc+=dt;
-  if(regenAcc>=4){
+  if(regenAcc>=[4,3,2.2,1.6][rk('regen')]){
     regenAcc=0;
     if(hunger>=14&&hp<maxHp()){ hp=Math.min(maxHp(),hp+1); hungerAcc+=6; renderStats(); }
     else if(hunger<=0) hurtPlayer(1,0,0);
