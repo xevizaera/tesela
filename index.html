@@ -453,7 +453,8 @@ const AIR=0, GRASS=1, DIRT=2, STONE=3, SAND=4, GRAVEL=5, SNOW=6, PLANKS=7, BRICK
   BED=74, LEATHER=75, SEEDS=76, HOE=77, FARMLAND=78, WHEAT0=79, WHEAT_ITEM=83, BREAD=84, WATER_F1=85, WATER_F2=86, WATER_F3=87, BUCKET=88, MILK=89, CAKE=90,
   BANDAGE=91, STEW=92, SWORD_CU=93, PICK_AU=94, HELM_CR=95, CHEST_CR=96, BOOTS_CR=97, SWORD_SH=98,
   SLING=99, BOW_W=100, BOW_FE=101, BOW_CR=102, BOW_SH=103, ARROW=104, TRANQ=105, BERRY=106, NARCO=107, BUSH=108,
-  HELM_LE=109, CHEST_LE=110, BOOTS_LE=111, HELM_FE=112, CHEST_FE=113, BOOTS_FE=114, HELM_SH=115, CHEST_SH=116, BOOTS_SH=117;
+  HELM_LE=109, CHEST_LE=110, BOOTS_LE=111, HELM_FE=112, CHEST_FE=113, BOOTS_FE=114, HELM_SH=115, CHEST_SH=116, BOOTS_SH=117,
+  PET_LE=118, PET_CU=119, PET_FE=120, PET_AU=121, PET_CR=122, PET_SH=123;
 // tex: [arriba, lados, abajo] · hard: segundos a mano · mat: qué herramienta lo acelera
 // need: nivel mínimo de pico para que suelte algo · drop: qué suelta (por defecto, él mismo)
 const BLOCKS=[null,
@@ -541,7 +542,10 @@ const BLOCKS=[null,
   {name:'Arbusto de bayas', tex:[40,40,40], hard:.3, mat:'leaf', plant:true, drop:0},
   {name:'Gorro de cuero', armor:{slot:0,pts:1}, metal:'le'},{name:'Chaleco de cuero', armor:{slot:1,pts:1}, metal:'le'},{name:'Botas de cuero', armor:{slot:2,pts:1}, metal:'le'},
   {name:'Yelmo de hierro', armor:{slot:0,pts:2}, metal:'fe'},{name:'Peto de hierro', armor:{slot:1,pts:4}, metal:'fe'},{name:'Grebas de hierro', armor:{slot:2,pts:2}, metal:'fe'},
-  {name:'Yelmo sombrío', armor:{slot:0,pts:4}, metal:'sh'},{name:'Peto sombrío', armor:{slot:1,pts:7}, metal:'sh'},{name:'Botas sombrías', armor:{slot:2,pts:4}, metal:'sh'}
+  {name:'Yelmo sombrío', armor:{slot:0,pts:4}, metal:'sh'},{name:'Peto sombrío', armor:{slot:1,pts:7}, metal:'sh'},{name:'Botas sombrías', armor:{slot:2,pts:4}, metal:'sh'},
+  // armaduras para el perro o el lobo domesticado: coraza y casco en una sola pieza
+  {name:'Armadura canina de cuero', pet:{pts:3}, metal:'le'},{name:'Armadura canina de cobre', pet:{pts:5}, metal:'cu'},{name:'Armadura canina de hierro', pet:{pts:8}, metal:'fe'},
+  {name:'Armadura canina de oro', pet:{pts:9}, metal:'au'},{name:'Armadura canina de cristal', pet:{pts:12}, metal:'cr'},{name:'Armadura canina sombría', pet:{pts:15}, metal:'sh'}
 ];
 // agua: la quieta (fuente) y tres niveles de agua que corre
 const WATERISH=new Uint8Array(256); for(const i of [9,85,86,87]) WATERISH[i]=1;
@@ -1221,7 +1225,7 @@ const atlasCanvas=buildAtlas();
 
 /* ---------- INVENTORY: 27 huecos, los 9 primeros son la barra rápida ---------- */
 const INV_N=27, inv=new Array(INV_N).fill(null);
-const maxStack=id=>(BLOCKS[id].tool||BLOCKS[id].armor||BLOCKS[id].one)?1:64;
+const maxStack=id=>(BLOCKS[id].tool||BLOCKS[id].armor||BLOCKS[id].pet||BLOCKS[id].one)?1:64;
 function countItem(id){ let c=0; for(const s of inv) if(s&&s.id===id) c+=s.n; return c; }
 function addItem(id,n){
   for(let i=0;i<INV_N&&n>0;i++){ const s=inv[i]; if(s&&s.id===id&&s.n<maxStack(id)){ const k=Math.min(n,maxStack(id)-s.n); s.n+=k; n-=k; } }
@@ -1295,6 +1299,12 @@ function icon(id){
     else if(d.armor.slot===1){ x.fillRect(2,3,4,3); x.fillRect(10,3,4,3); x.fillRect(4,5,8,9); x.fillStyle=c2; x.fillRect(7,6,2,7); }
     else { x.fillRect(3,6,3,6); x.fillRect(10,6,3,6); x.fillRect(2,11,5,3); x.fillRect(9,11,5,3); x.fillStyle=c2; x.fillRect(2,13,5,1); x.fillRect(9,13,5,1); }
     if(pal[2]){ x.fillStyle=pal[2]; if(d.armor.slot===0){ x.fillRect(4,4,3,1); } else if(d.armor.slot===1){ x.fillRect(5,6,1,3); x.fillRect(10,4,2,1); } else { x.fillRect(3,7,1,2); x.fillRect(10,7,1,2); } }
+  }
+  else if(d.pet){
+    const pal={le:['#8a5a34','#5e3a20'],cu:['#d9824a','#9c5228'],fe:['#c8ced6','#7d858f'],au:['#ffce3a','#c8901a','#fff3b8'],cr:['#7cf2fc','#38b6cc','#ffffff'],sh:['#4f3278','#d9bcff','#f4e8ff']}[d.metal];
+    x.fillStyle=pal[0]; x.fillRect(1,6,10,3); x.fillRect(1,9,2,4); x.fillRect(9,9,2,4); x.fillRect(11,4,4,3); x.fillRect(12,7,3,3);
+    x.fillStyle=pal[1]; x.fillRect(1,12,10,1); x.fillRect(4,6,1,3); x.fillRect(7,6,1,3); x.fillRect(11,4,4,1);
+    if(pal[2]){ x.fillStyle=pal[2]; x.fillRect(2,6,2,1); x.fillRect(12,5,1,1); }
   }
   else if(id===LEATHER){ x.fillStyle='#9a6038'; x.fillRect(3,3,10,10); x.fillRect(2,5,12,6); x.fillStyle='#b97a4c'; x.fillRect(5,5,3,3); }
   else if(id===SEEDS){ x.fillStyle='#7aa04a'; for(const q of [[4,6],[8,4],[11,7],[6,10],[10,11]]) x.fillRect(q[0],q[1],2,3); }
@@ -1388,6 +1398,12 @@ const RECIPES=[
   {out:HELM_AU,n:1,inp:[[GOLD_INGOT,5]],st:WORKBENCH,lock:'armau'},
   {out:CHEST_AU,n:1,inp:[[GOLD_INGOT,8]],st:WORKBENCH,lock:'armau'},
   {out:BOOTS_AU,n:1,inp:[[GOLD_INGOT,4]],st:WORKBENCH,lock:'armau'},
+  {out:PET_LE,n:1,inp:[[LEATHER,4]],st:WORKBENCH},
+  {out:PET_CU,n:1,inp:[[COPPER_INGOT,6]],st:WORKBENCH},
+  {out:PET_FE,n:1,inp:[[IRON_INGOT,6]],st:WORKBENCH,lock:'armfe'},
+  {out:PET_AU,n:1,inp:[[GOLD_INGOT,6]],st:WORKBENCH,lock:'armau'},
+  {out:PET_CR,n:1,inp:[[CRYSTAL,6]],st:WORKBENCH,lock:'armcr'},
+  {out:PET_SH,n:1,inp:[[CRYSTAL,3],[SHARD,6]],st:WORKBENCH,lock:'armsh'},
   {out:HELM_LE,n:1,inp:[[LEATHER,3]],st:WORKBENCH},
   {out:CHEST_LE,n:1,inp:[[LEATHER,5]],st:WORKBENCH},
   {out:BOOTS_LE,n:1,inp:[[LEATHER,2]],st:WORKBENCH},
@@ -1448,7 +1464,7 @@ function fits(i,v){ return i<200||!v||(BLOCKS[v.id].armor&&BLOCKS[v.id].armor.sl
 function armorPts(){ let p=0; for(const a of armor) if(a) p+=BLOCKS[a.id].armor.pts; return p; }
 const armorEls=[];
 for(let j=0;j<3;j++){ const b=document.createElement('button'); b.className='slot arm'; b.dataset.k=['Cabeza','Cuerpo','Pies'][j]; bindSlot(b,200+j); $('armorRow').appendChild(b); armorEls.push(b); }
-function maxDur(d){ if(!d) return 0; if(d.dur) return d.dur; if(d.tool) return d.tool==='hoe'?60:[60,130,250,600][d.tier-1]; if(d.armor) return ({le:80,cu:120,fe:240,au:200,cr:320,sh:520})[d.metal]||200; return 0; }
+function maxDur(d){ if(!d) return 0; if(d.dur) return d.dur; if(d.tool) return d.tool==='hoe'?60:[60,130,250,600][d.tier-1]; if(d.armor||d.pet) return ({le:80,cu:120,fe:240,au:200,cr:320,sh:520})[d.metal]||200; return 0; }
 function wearHeld(n){
   const s=inv[selected]; if(!s) return; const d=BLOCKS[s.id], m=maxDur(d); if(!m) return;
   s.d=(s.d||0)+n;
@@ -1463,7 +1479,7 @@ function wearArmor(){
 }
 function repairCost(d){
   if(d.rep) return d.rep;
-  if(d.armor) return ({le:[LEATHER,1],cu:[COPPER_INGOT,2],fe:[IRON_INGOT,2],au:[GOLD_INGOT,2],cr:[CRYSTAL,1],sh:[SHARD,2]})[d.metal];
+  if(d.armor||d.pet) return ({le:[LEATHER,1],cu:[COPPER_INGOT,2],fe:[IRON_INGOT,2],au:[GOLD_INGOT,2],cr:[CRYSTAL,1],sh:[SHARD,2]})[d.metal];
   if(d.tool==='hoe') return [PLANKS,2];
   return [[PLANKS,2],[STONE,2],[IRON_INGOT,2],[CRYSTAL,1]][d.tier-1];
 }
@@ -1507,6 +1523,7 @@ function slotText(s,i){
   if(d.armor) t+=' · protege un '+d.armor.pts*4+' %';
   else if(d.tool==='bow') t+=' · daño de flecha '+d.rng.dmg+' · dispara con Usar';
   else if(d.tool==='sling') t+=' · lanza piedras que aturden';
+  else if(d.pet) t+=' · para tu perro o lobo: protege un '+d.pet.pts*4+' %. Úsala sobre él';
   else if(s.id===TRANQ) t+=' · duerme animales';
   else if(s.id===NARCO) t+=' · para hacer tranquilizantes o mantener dormido a un animal';
   else if(d.heal) t+=' · cura y quita hambre';
@@ -2271,6 +2288,68 @@ function armorMesh(metal,slot){
   B.gain=c.gain||1; ADES[k][part](B,c); if(ASHINE[k]) ASHINE[k][part](B,c);
   const m=abMesh(B); m.material=armorMat; return m;
 }
+/* ---------- ARMADURA DE MASCOTA: coraza sobre el lomo y pieza en la cabeza, para perro y lobo ---------- */
+// medidas del cuerpo, el pecho y la cabeza de cada animal (las mismas que su modelo)
+const PETDIM={
+  dog:{bw:.3,bh:.3,bd:.62,by:.62,bz:-.02, cw:.34,ch:.36,cd:.24,cy:.66,cz:.22, hw:.3,hh:.28,hd:.28,hy:.88,hz:.42},
+  wolf:{bw:.4,bh:.4,bd:.86,by:.8,bz:-.04, cw:.46,ch:.48,cd:.34,cy:.86,cz:.26, hw:.36,hh:.32,hd:.34,hy:1.06,hz:.6}
+};
+function petArmorBuild(B,key,kind){
+  const k=ASETS[key], D=PETDIM[kind], s=D.bw/.3;     // s: escala respecto al perro
+  B.gain=k.gain||1;
+  const top=D.by+D.bh/2, ctop=D.cy+D.ch/2, htop=D.hy+D.hh/2, hf=D.hz+D.hd/2;
+  const W=D.bw+.06*s, cw=D.cw+.05*s;
+  // coraza: manta sobre el lomo que baja por los costados
+  const coatD=D.bd*.78, coatZ=D.bz-.02*s;
+  abr(B,W,.07*s,coatD,k.c,0,top+.025*s,coatZ,.02*s);
+  for(const sd of ASD) abx(B,.04*s,D.bh*.62,coatD,k.c,sd*(W/2-.01*s),top-D.bh*.3,coatZ);
+  abx(B,W+.01,.035*s,coatD+.02,k.d,0,top-D.bh*.62+.01,coatZ);                      // ribete inferior
+  // pechera
+  abr(B,cw,.07*s,D.cd*.9,k.c,0,ctop+.02*s,D.cz,.02*s);
+  abx(B,cw*.8,D.ch*.55,.04*s,k.c,0,D.cy+D.ch*.05,D.cz+D.cd/2+.01*s);
+  // cabeza: casquete y frontal
+  abr(B,D.hw+.05*s,.07*s,D.hd*.8,k.c,0,htop+.02*s,D.hz-.02*s,.02*s);
+  abx(B,.07*s,D.hh*.5,.035*s,k.c,0,D.hy+D.hh*.12,hf+.015*s);
+  if(key==='cuero'){
+    for(const z of [-.18,.12]) abx(B,W+.02,.045*s,.05*s,k.d,0,top-.05*s,coatZ+z*D.bd);                  // correas
+    for(const sd of ASD) abx(B,.045*s,.045*s,.03*s,k.l,sd*(W/2+.012*s),top-D.bh*.25,coatZ-.18*D.bd);   // hebillas
+  }
+  if(key==='cobre'||key==='hierro'||key==='oro'||key==='cristal'||key==='sombria'){
+    for(let i=0;i<3;i++) abx(B,W*.95,.025*s,.03*s,k.d,0,top+.065*s,coatZ-coatD/2+coatD*(i+.5)/3);       // placas
+  }
+  if(key==='cobre') for(const sd of ASD) for(let i=0;i<3;i++) abx(B,.02*s,.03*s,.03*s,k.d,sd*(W/2+.01*s),top-D.bh*.15,coatZ-coatD/3+i*coatD/3);
+  if(key==='hierro'){
+    abx(B,.06*s,.05*s,coatD*.9,k.d,0,top+.085*s,coatZ);                                                 // cresta del lomo
+    for(const sd of ASD) abx(B,.03*s,D.hh*.45,D.hd*.55,k.c,sd*(D.hw/2+.02*s),D.hy,D.hz);               // carrilleras
+    abx(B,.12*s,.03*s,.02*s,0x1c1f22,0,D.hy+D.hh*.25,hf+.035*s);
+  }
+  if(key==='oro'){
+    abx(B,.09*s,.09*s,.02*s,k.d,0,top+.02*s,coatZ+coatD*.1,0,0,.785);
+    abx(B,.11*s,.11*s,.02*s,k.g,0,D.cy+D.ch*.08,D.cz+D.cd/2+.035*s,0,0,.785);
+    abx(B,.03*s,.03*s,.012*s,k.w,.015*s,D.cy+D.ch*.12,D.cz+D.cd/2+.05*s);
+    abx(B,W*.9,.02*s,.02*s,k.l,0,top+.07*s,coatZ+coatD/2-.01*s); abx(B,.025*s,.07*s,.02*s,k.w,-.08*s,D.cy+D.ch*.05,D.cz+D.cd/2+.035*s,0,0,.5);
+    for(let i=0;i<3;i++) abx(B,.04*s,.07*s,.04*s,k.c,(i-1)*.07*s,htop+.08*s,D.hz-.02*s);                 // coronita
+    for(let i=0;i<3;i++) abx(B,.045*s,.02*s,.045*s,k.l,(i-1)*.07*s,htop+.12*s,D.hz-.02*s);
+  }
+  if(key==='cristal'){
+    for(let i=0;i<4;i++){ const z=coatZ-coatD*.35+i*coatD*.23, hgt=(.12+(i%2)*.05)*s; abx(B,.05*s,hgt,.05*s,i%2?k.l:k.c,0,top+.06*s+hgt/2,z,-.35); abx(B,.03*s,.04*s,.03*s,k.w,0,top+.06*s+hgt-.01,z+.02*s,-.35); }
+    abx(B,.05*s,.12*s,.05*s,k.l,0,htop+.1*s,D.hz-.04*s,-.3); abx(B,.03*s,.12*s,.02*s,k.w,-.1*s,D.cy,D.cz+D.cd/2+.035*s,0,0,.5);
+  }
+  if(key==='sombria'){
+    for(let i=0;i<4;i++){ const z=coatZ-coatD*.35+i*coatD*.23; abx(B,.05*s,.12*s,.05*s,k.d,0,top+.12*s,z,-.5); }
+    abx(B,.03*s,.03*s,coatD*.85,k.w,0,top+.07*s,coatZ);                                                  // veta lila del lomo
+    for(const sd of ASD){ abx(B,.02*s,.03*s,coatD*.8,k.l,sd*(W/2+.012*s),top-D.bh*.2,coatZ);
+      abx(B,.05*s,.15*s,.05*s,k.d,sd*.1*s,htop+.07*s,D.hz-.05*s,-.3,0,-sd*.5); abx(B,.03*s,.04*s,.03*s,k.l,sd*.135*s,htop+.15*s,D.hz-.09*s); }
+    abx(B,.14*s,.03*s,.02*s,k.w,0,D.hy+D.hh*.25,hf+.035*s);
+  }
+}
+function setPetArmor(a){
+  if(a.armMesh){ a.g.remove(a.armMesh); a.armMesh=null; }
+  if(!a.arm||!PETDIM[a.kind]) return;
+  const B=AB(); petArmorBuild(B,ARMOR_KEY[BLOCKS[a.arm[0]].metal],a.kind); a.armMesh=abMesh(B); a.g.add(a.armMesh);
+}
+// devuelve una pieza con su desgaste al inventario
+function giveWorn(id,d){ const i=inv.findIndex((x,k)=>k<INV_N&&!x); if(i<0){ toast('Inventario lleno: la armadura se ha perdido.'); return; } inv[i]=d?{id,n:1,d}:{id,n:1}; invChanged(); }
 const SPECIES={
   deer:{r:.32,h:1.3,speed:1.5,flee:5.4,hp:8,meat:2,torp:16,feed:[BERRY,APPLE],feedN:3,build:ABUILD.deer},
   boar:{r:.32,h:.8,speed:1.2,flee:4.3,hp:10,meat:3,torp:20,build:ABUILD.boar},
@@ -2304,7 +2383,7 @@ function makeAnimal(kind,x,y,z,extra){
   if(a.baby){ a.sc=.55; if(a.grow===undefined) a.grow=GROW_TIME; }
   if(sp.active&&!a.tame){ if(!a.wl) a.wl=1+Math.floor(Math.pow(Math.random(),1.6)*12); a.hp=sp.hp+a.wl*2; }
   if(a.tame){ a.noTurn=true; if(!a.lvl) a.lvl=1; a.xp=a.xp||0; a.maxhp=petMaxHp(a); if(!extra||extra.hp===undefined) a.hp=a.maxhp; }
-  sp.build(g,a); g.position.set(a.x,a.y,a.z); g.scale.setScalar(a.sc); scene.add(g); animals.push(a); return a;
+  sp.build(g,a); if(a.arm) setPetArmor(a); g.position.set(a.x,a.y,a.z); g.scale.setScalar(a.sc); scene.add(g); animals.push(a); return a;
 }
 let spawnT=2;
 function updateAnimals(dt){
@@ -2416,8 +2495,12 @@ function dogXp(a,n){
   if(a.lvl>=mx) a.xp=0;
 }
 function hurtDog(a,n){
+  if(a.arm){
+    const d=BLOCKS[a.arm[0]]; n*=1-d.pet.pts*.04; a.arm[1]=(a.arm[1]||0)+1;
+    if(a.arm[1]>=maxDur(d)){ toast('Se ha roto la armadura de tu '+petName(a)+'.'); sfx('break'); a.arm=null; setPetArmor(a); }
+  }
   a.hp-=n; a.hurtT=.2; sfx('hurt');
-  if(a.hp<=0){ removeEntity(a); toast('Tu '+petName(a)+' ha muerto.'); burst(Math.floor(a.x),Math.floor(a.y+.5),Math.floor(a.z),98); }
+  if(a.hp<=0){ const had=!!a.arm; if(had){ giveWorn(a.arm[0],a.arm[1]); a.arm=null; } removeEntity(a); toast('Tu '+petName(a)+' ha muerto.'+(had?' Recuperas su armadura.':'')); burst(Math.floor(a.x),Math.floor(a.y+.5),Math.floor(a.z),98); }
 }
 function holding(id){ return inv[selected]&&inv[selected].id===id; }
 function cowAI(a,dt){
@@ -2515,6 +2598,8 @@ function animalAction(a){
     return null;
   }
   if(a.tame){
+    const hp_=inv[selected]&&BLOCKS[inv[selected].id].pet;
+    if(hp_) return a.arm&&a.arm[0]===inv[selected].id?'Quitar armadura':'Poner armadura';
     if((holding(RAW_MEAT)||holding(COOKED_MEAT))&&a.hp<a.maxhp) return 'Alimentar';
     return a.sit?'Sígueme':'Quieto';
   }
@@ -2537,6 +2622,13 @@ function useAnimal(a){
     if(a.tameP>=tameNeed(a)) finishTame(a);
     return;
   }
+  if(act==='Poner armadura'){
+    const s=inv[selected], old=a.arm; a.arm=[s.id,s.d||0]; inv[selected]=null; invChanged();
+    if(old) giveWorn(old[0],old[1]);
+    setPetArmor(a); sfx('place'); burst(cx,cy,cz,97);
+    toast('Tu '+petName(a)+' lleva '+BLOCKS[a.arm[0]].name.toLowerCase().replace(' canina','')+'. Recibe un '+BLOCKS[a.arm[0]].pet.pts*4+' % menos de daño.'); saveGame(); return;
+  }
+  if(act==='Quitar armadura'){ giveWorn(a.arm[0],a.arm[1]); a.arm=null; setPetArmor(a); sfx('place'); toast('Le quitas la armadura a tu '+petName(a)+'.'); saveGame(); return; }
   if(act==='Dormir más'){ useOneHeld(); a.torp=Math.min(torpMax(a),a.torp+15); sfx('eat'); burst(cx,cy,cz,96); return; }
   if(act==='Dar de comer'){
     if(a.feedCd>0){ toast('Todavía está masticando.'); return; }
@@ -2571,7 +2663,7 @@ function petStatus(){
   const dogs=animals.filter(a=>a.tame), el=$('pets');
   if(!dogs.length){ el.style.display='none'; return; }
   el.style.display='block';
-  el.textContent=dogs.slice(0,3).map(a=>(a.kind==='wolf'?'Lobo':'Perro')+', nivel '+a.lvl+': '+Math.ceil(a.hp)+'/'+a.maxhp+' de vida'+(a.sit?' (quieto)':'')).join('\n');
+  el.textContent=dogs.slice(0,3).map(a=>(a.kind==='wolf'?'Lobo':'Perro')+(a.arm?' con armadura':'')+', nivel '+a.lvl+': '+Math.ceil(a.hp)+'/'+a.maxhp+' de vida'+(a.sit?' (quieto)':'')).join('\n');
 }
 
 /* ---------- ENEMIES: el umbrío, criatura nocturna que persigue y golpea ---------- */
@@ -2694,18 +2786,18 @@ const UNLOCKS=[
   {id:'comer',   lvl:3, t:'Buen comer',                 d:'La comida te quita un 30 % más de hambre.'},
   {id:'espcu',   lvl:4, t:'Receta: espada de cobre',    d:'3 lingotes de cobre y 1 palo. Pega casi como la de hierro.', ic:SWORD_CU},
   {id:'arcofe',  lvl:5, t:'Receta: arco de hierro',     d:'Dispara más fuerte y más lejos. Sus dardos duermen un 35 % más.', ic:BOW_FE},
-  {id:'armfe',   lvl:4, t:'Receta: armadura de hierro', d:'Yelmo cerrado, peto por capas y grebas. Protege un 32 %.', ic:CHEST_FE},
+  {id:'armfe',   lvl:4, t:'Receta: armadura de hierro', d:'Yelmo cerrado, peto por capas y grebas. Protege un 32 %. También para tu perro o lobo.', ic:CHEST_FE},
   {id:'minero',  lvl:5, t:'Ojo de minero',              d:'Una de cada cuatro veces, los minerales sueltan el doble.'},
   {id:'picoau',  lvl:6, t:'Receta: pico de oro',        d:'El pico más rápido del juego, aunque se gasta pronto.', ic:PICK_AU},
-  {id:'armau',   lvl:6, t:'Receta: armadura de oro',    d:'Casco con corona y peto con gema. Protege un 36 %.', ic:CHEST_AU},
+  {id:'armau',   lvl:6, t:'Receta: armadura de oro',    d:'Casco con corona y peto con gema. Protege un 36 %. También para tu perro o lobo.', ic:CHEST_AU},
   {id:'animales',lvl:6, t:'Amigo de los animales',      d:'Domesticas perros con más facilidad y los animales dormidos necesitan un 25 % menos de comida.'},
-  {id:'armcr',   lvl:8, t:'Receta: armadura de cristal',d:'Casco con cresta de cristales y hombreras de cristal. Protege un 48 %.', ic:CHEST_CR},
+  {id:'armcr',   lvl:8, t:'Receta: armadura de cristal',d:'Casco con cresta de cristales y hombreras de cristal. Protege un 48 %. También para tu perro o lobo.', ic:CHEST_CR},
   {id:'arcocr',  lvl:9, t:'Receta: arco de cristal',    d:'Rápido y potente. Sus dardos duermen un 70 % más.', ic:BOW_CR},
   {id:'zancada', lvl:9, t:'Zancada',                    d:'Andas y corres un 12 % más rápido.'},
   {id:'fuerza',  lvl:10,t:'Brazo fuerte',               d:'Todos tus golpes hacen un 15 % más de daño.'},
   {id:'espsh',   lvl:12,t:'Receta: espada sombría',     d:'Cristal y esquirlas sombrías. El arma más fuerte del juego.', ic:SWORD_SH},
   {id:'arcosh',  lvl:13,t:'Receta: arco sombrío',       d:'El mejor arco: dispara rapidísimo y sus dardos duermen el doble.', ic:BOW_SH},
-  {id:'armsh',   lvl:14,t:'Receta: armadura sombría',   d:'Yelmo con cuernos y ojos que brillan. La mejor protección: 60 %.', ic:CHEST_SH}
+  {id:'armsh',   lvl:14,t:'Receta: armadura sombría',   d:'Yelmo con cuernos y ojos que brillan. La mejor protección: 60 %. También para tu perro o lobo.', ic:CHEST_SH}
 ];
 const points=()=>Math.max(0,plvl-1-unlocked.size);
 function renderSkills(){
@@ -2733,7 +2825,7 @@ const mineMul=()=>1+.02*(plvl-1);                    // pica un 2 % más rápido
 const dmgMul=()=>1+.03*(plvl-1);                     // pega un 3 % más fuerte por nivel
 // experiencia por romper bloques (solo si sueltan algo)
 const XP_BLOCK={108:.5,1:.5,2:.5,3:1,4:.5,5:.5,6:.5,11:1,13:3,14:5,15:5,16:8,17:12,31:1,39:1};
-function craftXp(id){ const d=BLOCKS[id]; if(d.tool||d.armor) return 3+(d.tier||({le:1,cu:2,fe:2,au:3,cr:3,sh:4})[d.metal]||2)*2; if(id===CAKE||id===GOLD_APPLE) return 4; return 1; }
+function craftXp(id){ const d=BLOCKS[id]; if(d.tool||d.armor||d.pet) return 3+(d.tier||({le:1,cu:2,fe:2,au:3,cr:3,sh:4})[d.metal]||2)*2; if(id===CAKE||id===GOLD_APPLE) return 4; return 1; }
 function gainXp(n){
   if(!n||plvl>=MAX_LVL) return;
   pxp+=n; let up=false;
@@ -3087,7 +3179,7 @@ function saveGame(){
     localStorage.setItem('tesela-last',String(curSlot));
     localStorage.setItem(slotKey(curSlot),JSON.stringify({v:1,seed:curSeed,at:Date.now(),goal:goalIdx,fl:{c:[...flags.crafted],n:flags.night,l:flags.loot,p:flags.plant,t:flags.tamed},
       p:[+player.x.toFixed(3),+(player.y+.01).toFixed(3),+player.z.toFixed(3),+player.yaw.toFixed(3),+player.pitch.toFixed(3)],
-      inv:inv.map(s=>s?(s.d?[s.id,s.n,s.d]:[s.id,s.n]):0),sel:selected,dayT:+dayT.toFixed(4),hp,fd:hunger,pl:plvl,px:+pxp.toFixed(1),un:[...unlocked],sp:spawnPt,base,pets:animals.filter(a=>a.tame||a.owned).map(a=>({k:a.kind,x:+a.x.toFixed(2),y:+a.y.toFixed(2),z:+a.z.toFixed(2),hp:+a.hp.toFixed(1),sex:a.sex,baby:!!a.baby,grow:a.baby?Math.round(a.grow):0,tame:!!a.tame,owned:!!a.owned,lvl:a.lvl||0,xp:a.xp||0,sit:!!a.sit,bc:Math.round(a.breedCd||0)})),looted:[...looted],gt:+gameT.toFixed(1),crops:[...crops].map(c=>[c[0],+c[1].toFixed(1)]),arm:armor.map(s=>s?[s.id,s.d||0]:0),chests:ch,edits:ed}));
+      inv:inv.map(s=>s?(s.d?[s.id,s.n,s.d]:[s.id,s.n]):0),sel:selected,dayT:+dayT.toFixed(4),hp,fd:hunger,pl:plvl,px:+pxp.toFixed(1),un:[...unlocked],sp:spawnPt,base,pets:animals.filter(a=>a.tame||a.owned).map(a=>({k:a.kind,x:+a.x.toFixed(2),y:+a.y.toFixed(2),z:+a.z.toFixed(2),hp:+a.hp.toFixed(1),sex:a.sex,baby:!!a.baby,grow:a.baby?Math.round(a.grow):0,tame:!!a.tame,owned:!!a.owned,lvl:a.lvl||0,xp:a.xp||0,sit:!!a.sit,bc:Math.round(a.breedCd||0),arm:a.arm||0})),looted:[...looted],gt:+gameT.toFixed(1),crops:[...crops].map(c=>[c[0],+c[1].toFixed(1)]),arm:armor.map(s=>s?[s.id,s.d||0]:0),chests:ch,edits:ed}));
     return true;
   }catch(_){ return false; }
 }
@@ -3141,6 +3233,7 @@ function startGame(seed,save,slot){
     if(!SPECIES[q.k]) continue;
     const ex=q.tame?{tame:true,lvl:q.lvl||1,xp:q.xp||0,sit:!!q.sit,hp:q.hp}:{owned:true,hp:q.hp};
     Object.assign(ex,{sex:q.sex||'f',baby:!!q.baby,grow:q.grow,breedCd:q.bc||0,owned:!!q.owned||!!q.tame});
+    if(q.arm&&BLOCKS[q.arm[0]]&&BLOCKS[q.arm[0]].pet) ex.arm=[q.arm[0],q.arm[1]||0];
     makeAnimal(q.k,q.x,q.y,q.z,ex);
   }
   peakY=player.y; renderStats(); renderXp();
