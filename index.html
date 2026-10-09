@@ -96,6 +96,15 @@ body.padmode .touch{display:none!important}
 .padfocus{outline:3px solid var(--moss)!important;outline-offset:2px;box-shadow:0 0 0 5px rgba(185,224,122,.25)}
 #stats #goal,#stats #info{position:static;left:auto;top:auto;margin-top:4px}
 #pets{display:none;background:var(--panel);padding:5px 9px;border-radius:6px;font-size:12px;line-height:1.4;white-space:pre-line;border-left:3px solid #e7a3a8;max-width:min(250px,34vw);margin-top:2px}
+#skills{z-index:20}
+.skrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid rgba(236,244,230,.12)}
+.skrow.done{opacity:.6}
+.skic{flex:none;width:34px;height:34px;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.35);border-radius:6px;color:#d6f07a;font-size:16px}
+.skic img{width:24px;height:24px;image-rendering:pixelated}
+.sktx{flex:1;min-width:0;display:flex;flex-direction:column;font-size:13px;line-height:1.35}
+.sktx span{opacity:.8;font-size:12px}
+.skrow .mini{flex:none;min-width:104px}
+.skrow .mini:disabled{opacity:.7}
 #armorPct{font-size:12px;opacity:.85;margin-top:6px}
 #hpBar i.f{background:#e5484d}
 #hpBar i.h{background:linear-gradient(90deg,#e5484d 50%,rgba(0,0,0,.4) 50%)}
@@ -155,7 +164,11 @@ body.padmode .touch{display:none!important}
 .rec.no{opacity:.42}
 #invClose{position:absolute;right:-8px;top:-8px;width:36px;height:36px;border-radius:50%;border:2px solid var(--line);background:var(--slate);color:var(--bone);font-size:16px;font-family:inherit}
 .slot.sel{border-color:var(--bone);box-shadow:0 0 0 2px var(--bone);background:rgba(242,240,228,.22)}
-#bname{position:absolute;left:50%;bottom:calc(70px + var(--sb));transform:translateX(-50%);font-size:13px;
+#xpBar{position:absolute;left:50%;bottom:calc(64px + var(--sb));transform:translateX(-50%);width:min(440px,56vw);height:7px;
+  background:rgba(0,0,0,.5);border:1.5px solid rgba(0,0,0,.65);border-radius:4px}
+#xpFill{display:block;height:100%;width:0;background:#c8e85a;border-radius:3px;transition:width .3s}
+#xpLvl{position:absolute;left:50%;bottom:9px;transform:translateX(-50%);font-size:12px;font-weight:700;color:#d6f07a;text-shadow:0 1px 2px #000,0 0 3px #000;white-space:nowrap}
+#bname{position:absolute;left:50%;bottom:calc(94px + var(--sb));transform:translateX(-50%);font-size:13px;
   text-shadow:0 1px 2px rgba(0,0,0,.7)}
 
 /* táctil */
@@ -232,6 +245,7 @@ body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width
   <div id="compass" aria-hidden="true"><div id="cmpIn"></div><i id="cmpMid"></i></div>
   <div id="hint"></div>
   <div id="bname"></div>
+  <div id="xpBar" aria-label="Experiencia"><span id="xpLvl">Nivel 1</span><i id="xpFill"></i></div>
   <div id="hotbar"></div>
   <button class="btn" id="bFull" aria-label="Pantalla completa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
   <button class="btn" id="bMap" aria-label="Mapa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2zM9 4v14M15 6v14"/></svg></button>
@@ -248,7 +262,7 @@ body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width
 
 <div id="inv"><div id="invPanel">
   <div id="charCol"><div class="ptitle">Tu personaje</div><canvas id="charCv" aria-label="Vista de tu personaje con la armadura y el objeto en la mano"></canvas><div id="armorRow"></div><span id="armorPct"></span></div>
-  <div id="invLeft"><div class="ptitle prow">Mochila <button id="sortBtn" class="mini">Ordenar</button></div><div id="grid"></div><div id="invTip">Arrastra un objeto con el dedo para moverlo; tócalo para ver qué es. La fila de abajo es la barra rápida. Suelta armadura sobre tu personaje para ponértela.</div></div>
+  <div id="invLeft"><div class="ptitle prow">Mochila <span><button id="skBtn" class="mini">Desbloqueos</button> <button id="sortBtn" class="mini">Ordenar</button></span></div><div id="grid"></div><div id="invTip">Arrastra un objeto con el dedo para moverlo; tócalo para ver qué es. La fila de abajo es la barra rápida. Suelta armadura sobre tu personaje para ponértela.</div></div>
   <div id="invRight"><div class="ptitle" id="recTitle">Fabricar</div><div id="recipes"></div><div id="chestGrid"></div></div>
   <button id="invClose" aria-label="Cerrar mochila">✕</button>
 </div></div>
@@ -287,6 +301,7 @@ body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width
 <div id="pause" class="ov"><div class="panel">
   <h2>Pausa</h2>
   <button id="pResume" class="mbtn pri">Seguir jugando</button>
+  <button id="pSk" class="mbtn">Desbloqueos</button>
   <button id="pSet" class="mbtn">Ajustes</button>
   <button id="pCtl" class="mbtn">Controles</button>
   <button id="pExit" class="mbtn">Guardar y salir al menú</button>
@@ -299,6 +314,13 @@ body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width
   <p id="slotMsg" class="note" role="status"></p>
   <input type="file" id="impFile" accept=".json,application/json" hidden>
   <button id="slotsDone" class="mbtn">Volver</button>
+</div></div>
+
+<div id="skills" class="ov"><div class="panel wide">
+  <h2>Desbloqueos</h2>
+  <p id="skHead" class="note"></p>
+  <div id="skList"></div>
+  <button id="skDone" class="mbtn pri">Volver</button>
 </div></div>
 
 <div id="ctl" class="ov"><div class="panel wide">
@@ -326,6 +348,7 @@ body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width
     <tr><th>Elegir objeto</th><td><kbd>1</kbd> a <kbd>9</kbd> o rueda del ratón</td></tr>
     <tr><th>Mochila</th><td><kbd>E</kbd></td></tr>
     <tr><th>Mapa</th><td><kbd>M</kbd></td></tr>
+    <tr><th>Desbloqueos</th><td><kbd>U</kbd></td></tr>
     <tr><th>Controles</th><td><kbd>H</kbd></td></tr>
     <tr><th>Animales</th><td>Con carne cruda en la mano, clic derecho sobre un perro salvaje para domesticarlo (puede costar varios intentos). clic derecho sobre tu perro: quieto o sígueme. Con trigo, las vacas te siguen; dale trigo a una vaca y a un toro para que críen. Con un cubo, clic derecho sobre una vaca para ordeñarla.</td></tr>
     <tr><th>Pausa y cerrar ventanas</th><td><kbd>Esc</kbd>. Si el ratón está capturado, la primera pulsación solo lo suelta.</td></tr>
@@ -419,7 +442,8 @@ const AIR=0, GRASS=1, DIRT=2, STONE=3, SAND=4, GRAVEL=5, SNOW=6, PLANKS=7, BRICK
   COPPER_INGOT=45, GOLD_INGOT=46, HELM_CU=47, CHEST_CU=48, BOOTS_CU=49, HELM_AU=50, CHEST_AU=51, BOOTS_AU=52,
   GOLD_APPLE=53, PICK_CRYSTAL=54, AXE_CRYSTAL=55, SWORD_CRYSTAL=56, LAMP=57,
   SLAB_W=58, SLAB_S=59, STAIR_W=60, STAIR_S=64, FENCE=68, DOOR=69, DOOR_X=70, DOOR_Z=71, DOOR_XO=72, DOOR_ZO=73,
-  BED=74, LEATHER=75, SEEDS=76, HOE=77, FARMLAND=78, WHEAT0=79, WHEAT_ITEM=83, BREAD=84, WATER_F1=85, WATER_F2=86, WATER_F3=87, BUCKET=88, MILK=89, CAKE=90;
+  BED=74, LEATHER=75, SEEDS=76, HOE=77, FARMLAND=78, WHEAT0=79, WHEAT_ITEM=83, BREAD=84, WATER_F1=85, WATER_F2=86, WATER_F3=87, BUCKET=88, MILK=89, CAKE=90,
+  BANDAGE=91, STEW=92, SWORD_CU=93, PICK_AU=94, HELM_CR=95, CHEST_CR=96, BOOTS_CR=97, SWORD_SH=98;
 // tex: [arriba, lados, abajo] · hard: segundos a mano · mat: qué herramienta lo acelera
 // need: nivel mínimo de pico para que suelte algo · drop: qué suelta (por defecto, él mismo)
 const BLOCKS=[null,
@@ -490,7 +514,12 @@ const BLOCKS=[null,
   {name:'Trigo'},
   {name:'Pan', food:6},
   {name:'Agua', tex:[9,9,9], hard:0},{name:'Agua', tex:[9,9,9], hard:0},{name:'Agua', tex:[9,9,9], hard:0},
-  {name:'Cubo'},{name:'Cubo de leche', food:5, heal:2, one:true},{name:'Pastel', food:10, heal:4}
+  {name:'Cubo'},{name:'Cubo de leche', food:5, heal:2, one:true},{name:'Pastel', food:10, heal:4},
+  {name:'Vendas', heal:6},{name:'Estofado', food:14, heal:4},
+  {name:'Espada de cobre', tool:'sword', tier:2, dmg:7, dur:180, col:'#e08a52', hc:0xe08a52, rep:[45,2]},
+  {name:'Pico de oro', tool:'pick', tier:3, spd:12, dur:90, col:'#f2c54a', hc:0xf2c54a, rep:[46,2]},
+  {name:'Casco de cristal', armor:{slot:0,pts:3}, metal:'cr'},{name:'Peto de cristal', armor:{slot:1,pts:6}, metal:'cr'},{name:'Botas de cristal', armor:{slot:2,pts:3}, metal:'cr'},
+  {name:'Espada sombría', tool:'sword', tier:4, dmg:15, dur:800, col:'#8d5bd6', hc:0x8d5bd6, rep:[38,2]}
 ];
 // agua: la quieta (fuente) y tres niveles de agua que corre
 const WATERISH=new Uint8Array(256); for(const i of [9,85,86,87]) WATERISH[i]=1;
@@ -1023,7 +1052,7 @@ class Player{
     let f=inp.kf-inp.jy-inp.py, s=inp.ks+inp.jx+inp.px;
     const len=Math.hypot(f,s); if(len>1){ f/=len; s/=len; }
     const run=inp.run||inp.prun||Math.hypot(inp.jx,inp.jy)>.92;
-    const speed=inWater?2.6:(run?6.6:4.3);
+    const speed=(inWater?2.6:(run?6.6:4.3))*(perk('zancada')?1.12:1);
     const sy=Math.sin(this.yaw), cy=Math.cos(this.yaw);
     const dx=-sy*f+cy*s, dz=-cy*f-sy*s, k=Math.min(1,dt*12);
     this.vx+=(dx*speed-this.vx)*k; this.vz+=(dz*speed-this.vz)*k;
@@ -1087,11 +1116,12 @@ let jumpHeld=false, selected=0, started=false;
 addEventListener('keydown',e=>{
   if(!started&&e.code==='Escape'){ closeCtl(); $('set').classList.remove('on'); $('slots').classList.remove('on'); return; }
   if(!started||e.target.id==='seed') return;
-  if(e.code==='Escape'){ if($('ctl').classList.contains('on')) closeCtl(); else if($('set').classList.contains('on')) $('set').classList.remove('on'); else if(mapOpen) closeMap(); else if(invOpen) closeInv(); else togglePause(); return; }
+  if(e.code==='Escape'){ if($('skills').classList.contains('on')) closeSkills(); else if($('ctl').classList.contains('on')) closeCtl(); else if($('set').classList.contains('on')) $('set').classList.remove('on'); else if(mapOpen) closeMap(); else if(invOpen) closeInv(); else togglePause(); return; }
   keys[e.code]=true; refreshKeys();
   if(e.code.startsWith('Digit')){ const n=+e.code.slice(5)-1; if(n>=0&&n<9) selectSlot(n); }
   if(e.code==='KeyE') toggleInv();
   if(e.code==='KeyM'){ if(mapOpen) closeMap(); else openMap(); }
+  if(e.code==='KeyU'){ if($('skills').classList.contains('on')) closeSkills(); else openSkills(); }
   if(e.code==='KeyH'){ if($('ctl').classList.contains('on')) closeCtl(); else { if(!paused) openPause(); openCtl(); } }
   if(e.code==='Space') e.preventDefault();
 });
@@ -1190,7 +1220,7 @@ function icon(id){
   else if(d.tex){ const t=d.tex[1]; x.drawImage(atlasCanvas,(t%AT)*TS,Math.floor(t/AT)*TS,TS,TS,0,0,TS,TS); }
   else if(d.tool){
     x.fillStyle='#8a5a34'; for(let j=0;j<9;j++) x.fillRect(2+j,13-j,2,2);
-    x.fillStyle=['#b98d54','#9aa0a6','#e3e8ee','#6fe6f0'][d.tier-1];
+    x.fillStyle=(d.col||['#b98d54','#9aa0a6','#e3e8ee','#6fe6f0'][d.tier-1]);
     if(d.tool==='pick') [[3,3],[4,2],[6,1],[8,1],[10,2],[11,3],[12,4],[13,6],[13,8],[12,10]].forEach(q=>x.fillRect(q[0],q[1],2,2));
     else if(d.tool==='hoe'){ x.fillRect(8,1,6,3); x.fillRect(12,3,2,2); }
     else if(d.tool==='axe'){ x.fillRect(7,1,6,3); x.fillRect(9,3,5,5); x.fillRect(11,7,3,2); }
@@ -1198,7 +1228,7 @@ function icon(id){
       x.clearRect(0,0,TS,TS);
       x.fillStyle='#8a5a34'; x.fillRect(2,12,2,2); x.fillRect(3,11,2,2);
       x.fillStyle='#4a3b2c'; x.fillRect(3,8,2,2); x.fillRect(6,11,2,2); x.fillRect(4,10,2,2);
-      x.fillStyle=['#b98d54','#9aa0a6','#e3e8ee','#6fe6f0'][d.tier-1]; for(let j=0;j<8;j++) x.fillRect(5+j,8-j,2,2);
+      x.fillStyle=(d.col||['#b98d54','#9aa0a6','#e3e8ee','#6fe6f0'][d.tier-1]); for(let j=0;j<8;j++) x.fillRect(5+j,8-j,2,2);
     }
   }
   else if(id===STICK){ x.fillStyle='#8a5a34'; for(let j=0;j<10;j++) x.fillRect(3+j,12-j,2,2); }
@@ -1213,7 +1243,7 @@ function icon(id){
   else if(id===SHARD){ x.fillStyle='#5b3a8c'; for(let j=0;j<6;j++) x.fillRect(7-Math.floor(j/2),3+j*2,2+j,2); x.fillStyle='#b79cf0'; x.fillRect(7,5,1,6); }
   else if(id===COPPER_INGOT||id===GOLD_INGOT){ const au=id===GOLD_INGOT; x.fillStyle=au?'#f2c54a':'#d9824a'; x.fillRect(2,6,12,5); x.fillStyle=au?'#fde79a':'#f2b088'; x.fillRect(3,6,10,1); x.fillStyle=au?'#b88a1e':'#9c5228'; x.fillRect(2,10,12,1); }
   else if(d.armor){
-    const au=d.metal==='au', c1=au?'#f2c54a':'#d9824a', c2=au?'#b88a1e':'#9c5228'; x.fillStyle=c1;
+    const au=d.metal==='au', cr=d.metal==='cr', c1=cr?'#6fe6f0':au?'#f2c54a':'#d9824a', c2=cr?'#3fb8c8':au?'#b88a1e':'#9c5228'; x.fillStyle=c1;
     if(d.armor.slot===0){ x.fillRect(3,4,10,3); x.fillRect(2,6,3,6); x.fillRect(11,6,3,6); x.fillStyle=c2; x.fillRect(3,7,10,1); }
     else if(d.armor.slot===1){ x.fillRect(2,3,4,3); x.fillRect(10,3,4,3); x.fillRect(4,5,8,9); x.fillStyle=c2; x.fillRect(7,6,2,7); }
     else { x.fillRect(3,6,3,6); x.fillRect(10,6,3,6); x.fillRect(2,11,5,3); x.fillRect(9,11,5,3); x.fillStyle=c2; x.fillRect(2,13,5,1); x.fillRect(9,13,5,1); }
@@ -1224,6 +1254,8 @@ function icon(id){
   else if(id===BREAD){ x.fillStyle='#c58a3e'; x.fillRect(2,6,12,6); x.fillRect(3,5,10,8); x.fillStyle='#e3b066'; x.fillRect(4,6,2,1); x.fillRect(8,6,2,1); x.fillRect(12,7,1,1); }
   else if(id===BUCKET||id===MILK){ x.fillStyle='#8f979f'; x.fillRect(3,5,10,9); x.fillRect(4,14,8,1); x.fillStyle='#c3cad2'; x.fillRect(3,5,10,2); x.fillStyle='#5b6168'; x.fillRect(2,2,1,4); x.fillRect(13,2,1,4); x.fillRect(3,1,10,1);
     if(id===MILK){ x.fillStyle='#f6f4ee'; x.fillRect(4,6,8,2); } else { x.fillStyle='#4a5056'; x.fillRect(4,6,8,1); } }
+  else if(id===BANDAGE){ x.fillStyle='#f3efe6'; x.fillRect(3,5,10,7); x.fillStyle='#d9d2c2'; x.fillRect(3,7,10,1); x.fillRect(3,10,10,1); x.fillStyle='#d8362f'; x.fillRect(7,6,2,5); x.fillRect(5,8,6,1); }
+  else if(id===STEW){ x.fillStyle='#8a5a34'; x.fillRect(2,8,12,5); x.fillRect(4,13,8,1); x.fillStyle='#b4703a'; x.fillRect(3,7,10,2); x.fillStyle='#e3b066'; x.fillRect(5,7,2,1); x.fillStyle='#6eb052'; x.fillRect(9,7,2,1); }
   else if(id===CAKE){ x.fillStyle='#e9d9b8'; x.fillRect(2,7,12,7); x.fillStyle='#fbf7ef'; x.fillRect(2,5,12,3); x.fillStyle='#d8362f'; x.fillRect(4,4,2,2); x.fillRect(9,4,2,2); x.fillStyle='#b98d54'; x.fillRect(2,13,12,1); }
   else if(id===GOLD_APPLE){ x.fillStyle='#f2c54a'; x.fillRect(4,6,8,7); x.fillRect(5,5,6,9); x.fillStyle='#fff2b0'; x.fillRect(5,7,2,2); x.fillStyle='#5a3a1e'; x.fillRect(8,3,1,3); x.fillStyle='#4f9a45'; x.fillRect(9,3,3,2); }
   return icons[id]={canvas:c,url:c.toDataURL()};
@@ -1274,6 +1306,14 @@ const RECIPES=[
   {out:HOE,n:1,inp:[[PLANKS,2],[STICK,2]],st:WORKBENCH},
   {out:BREAD,n:1,inp:[[WHEAT_ITEM,3]],st:WORKBENCH},
   {out:BUCKET,n:1,inp:[[IRON_INGOT,3]],st:WORKBENCH},
+  {out:BANDAGE,n:2,inp:[[LEATHER,2]],lock:'vendas'},
+  {out:STEW,n:1,inp:[[COOKED_MEAT,1],[BREAD,1],[APPLE,1]],lock:'estofado'},
+  {out:SWORD_CU,n:1,inp:[[COPPER_INGOT,3],[STICK,1]],st:WORKBENCH,lock:'espcu'},
+  {out:PICK_AU,n:1,inp:[[GOLD_INGOT,3],[STICK,2]],st:WORKBENCH,lock:'picoau'},
+  {out:HELM_CR,n:1,inp:[[CRYSTAL,5]],st:WORKBENCH,lock:'armcr'},
+  {out:CHEST_CR,n:1,inp:[[CRYSTAL,8]],st:WORKBENCH,lock:'armcr'},
+  {out:BOOTS_CR,n:1,inp:[[CRYSTAL,4]],st:WORKBENCH,lock:'armcr'},
+  {out:SWORD_SH,n:1,inp:[[CRYSTAL,2],[SHARD,4],[STICK,1]],st:WORKBENCH,lock:'espsh'},
   {out:CAKE,n:1,inp:[[MILK,2],[WHEAT_ITEM,3],[APPLE,1]],st:WORKBENCH,ret:[[BUCKET,2]]},
   {out:GLASS,n:4,inp:[[SAND,4],[COAL,1]],st:FURNACE},
   {out:BRICKS,n:4,inp:[[CLAY,4],[COAL,1]],st:FURNACE},
@@ -1306,7 +1346,7 @@ function scanStations(){
   const px=Math.floor(player.x), py=Math.floor(player.y), pz=Math.floor(player.z);
   for(let dy=-2;dy<=3;dy++)for(let dz=-4;dz<=4;dz++)for(let dx=-4;dx<=4;dx++){ const b=world.getBlock(px+dx,py+dy,pz+dz); if(b===WORKBENCH||b===FURNACE) nearSt[b]=true; }
 }
-function canCraft(r){ if(r.st&&!nearSt[r.st]) return false; return r.inp.every(q=>countItem(q[0])>=q[1]); }
+function canCraft(r){ if(r.lock&&!unlocked.has(r.lock)) return false; if(r.st&&!nearSt[r.st]) return false; return r.inp.every(q=>countItem(q[0])>=q[1]); }
 // cabe en la mochila: suma el hueco libre de las casillas vacías y de los montones del mismo objeto
 function canFit(id,n){ let room=0; for(const s of inv){ if(!s) room+=maxStack(id); else if(s.id===id&&!s.d) room+=maxStack(id)-s.n; if(room>=n) return true; } return room>=n; }
 function craftMax(r){
@@ -1328,6 +1368,7 @@ function craft(r,quiet){
   if(!canCraft(r)) return;
   if(!canFit(r.out,r.n)){ toast('No cabe en la mochila.'); return; }
   r.inp.forEach(q=>removeItem(q[0],q[1]));
+  gainXp(craftXp(r.out));
   addItem(r.out,r.n); if(r.ret) r.ret.forEach(q=>addItem(q[0],q[1])); flags.crafted.add(r.out); if(!quiet) sfx('place');
 }
 
@@ -1342,7 +1383,7 @@ function fits(i,v){ return i<200||!v||(BLOCKS[v.id].armor&&BLOCKS[v.id].armor.sl
 function armorPts(){ let p=0; for(const a of armor) if(a) p+=BLOCKS[a.id].armor.pts; return p; }
 const armorEls=[];
 for(let j=0;j<3;j++){ const b=document.createElement('button'); b.className='slot arm'; b.dataset.k=['Cabeza','Cuerpo','Pies'][j]; bindSlot(b,200+j); $('armorRow').appendChild(b); armorEls.push(b); }
-function maxDur(d){ if(!d) return 0; if(d.tool) return d.tool==='hoe'?60:[60,130,250,600][d.tier-1]; if(d.armor) return d.metal==='cu'?120:200; return 0; }
+function maxDur(d){ if(!d) return 0; if(d.dur) return d.dur; if(d.tool) return d.tool==='hoe'?60:[60,130,250,600][d.tier-1]; if(d.armor) return d.metal==='cu'?120:d.metal==='cr'?320:200; return 0; }
 function wearHeld(n){
   const s=inv[selected]; if(!s) return; const d=BLOCKS[s.id], m=maxDur(d); if(!m) return;
   s.d=(s.d||0)+n;
@@ -1356,7 +1397,8 @@ function wearArmor(){
   if(ch) invChanged();
 }
 function repairCost(d){
-  if(d.armor) return [d.metal==='cu'?COPPER_INGOT:GOLD_INGOT,2];
+  if(d.rep) return d.rep;
+  if(d.armor) return d.metal==='cr'?[CRYSTAL,1]:[d.metal==='cu'?COPPER_INGOT:GOLD_INGOT,2];
   if(d.tool==='hoe') return [PLANKS,2];
   return [[PLANKS,2],[STONE,2],[IRON_INGOT,2],[CRYSTAL,1]][d.tier-1];
 }
@@ -1460,7 +1502,7 @@ function renderInv(){
       box.appendChild(b);
     }
   }
-  RECIPES.filter(r=>!invStation||r.st===invStation).forEach(r=>{
+  RECIPES.filter(r=>(!invStation||r.st===invStation)&&(!r.lock||unlocked.has(r.lock))).forEach(r=>{
     const ok=canCraft(r), w=document.createElement('div'); w.className='recw';
     const b=document.createElement('button'); b.className='rec'+(ok?'':' no');
     b.innerHTML='<img alt="" src="'+icon(r.out).url+'"><span class="rn">'+BLOCKS[r.out].name+(r.n>1?' ×'+r.n:'')+'</span><span class="ri">'+
@@ -1479,6 +1521,7 @@ function toggleInv(){ if(invOpen) closeInv(); else openInv(); }
 $('bInv').addEventListener('pointerdown',e=>{ e.preventDefault(); toggleInv(); });
 $('invClose').addEventListener('click',closeInv);
 $('sortBtn').addEventListener('click',sortInv);
+$('skBtn').addEventListener('click',()=>openSkills());
 selectSlot(0);
 
 /* ============================================================
@@ -1517,7 +1560,7 @@ function makeHandItem(id){
   if(!def){
     const arm=new THREE.Mesh(new THREE.BoxGeometry(.11,.11,.5),flat(0xdcae88)); arm.rotation.set(.35,.25,0); arm.position.set(.02,-.06,.05); g.add(arm);
   }else if(def.tool){
-    const hc=[0xb98d54,0xa3a9af,0xe3e8ee,0x6fe6f0][def.tier-1], hd=[0x8f6a3c,0x777c82,0xaab2ba,0x3fb8c8][def.tier-1];
+    const hc=def.hc||[0xb98d54,0xa3a9af,0xe3e8ee,0x6fe6f0][def.tier-1], hd=[0x8f6a3c,0x777c82,0xaab2ba,0x3fb8c8][def.tier-1];
     if(def.tool==='sword'){
       const gr=new THREE.Mesh(new THREE.BoxGeometry(.05,.16,.05),flat(0x8a5a34)); gr.position.y=-.2; g.add(gr);
       const gd=new THREE.Mesh(new THREE.BoxGeometry(.2,.04,.07),flat(0x4a3b2c)); gd.position.y=-.11; g.add(gd);
@@ -1560,7 +1603,7 @@ let swingPh=0, placeSwing=0, bob=0;
 // usa un renderizador propio y pequeño, que solo trabaja mientras la mochila está abierta
 let charR=null, charScene=null, charCam=null, charRig=null, charHold=null, charHeld=-1, charYaw=.5, charDrag=null;
 const charArmor=[];
-const ARMOR_COL={cu:[0xd9824a,0x9c5228],au:[0xf2c54a,0xb88a1e]};
+const ARMOR_COL={cu:[0xd9824a,0x9c5228],au:[0xf2c54a,0xb88a1e],cr:[0x6fe6f0,0x3fb8c8]};
 function initChar(){
   if(charR) return true;
   try{ charR=new THREE.WebGLRenderer({canvas:$('charCv'),antialias:true,alpha:true}); }catch(_){ charR=null; $('charCv').style.display='none'; return false; }
@@ -1623,7 +1666,7 @@ for(let i=0;i<PN;i++) pPos[i*3+1]=-999;
 const pGeo=new THREE.BufferGeometry();
 pGeo.setAttribute('position',new THREE.BufferAttribute(pPos,3)); pGeo.setAttribute('color',new THREE.BufferAttribute(pCol,3));
 const pts=new THREE.Points(pGeo,new THREE.PointsMaterial({size:.13,vertexColors:true})); pts.frustumCulled=false; scene.add(pts);
-const BCOL={1:[.41,.67,.33],2:[.53,.38,.27],3:[.5,.52,.55],4:[.89,.82,.6],5:[.52,.5,.49],6:[.94,.96,.98],7:[.75,.56,.35],8:[.67,.33,.25],11:[.42,.31,.2],12:[.23,.5,.24],18:[.75,.56,.35],29:[.9,.7,.3],30:[.26,.54,.27],31:[.66,.83,.93],39:[.61,.64,.7],40:[.82,.92,.96],41:[.59,.61,.64],42:[.62,.44,.25],43:[.33,.63,.29],44:[.88,.28,.36],57:[.6,.9,.95],97:[.96,.4,.55],98:[.85,.16,.16],99:[.42,.22,.62]};
+const BCOL={1:[.41,.67,.33],2:[.53,.38,.27],3:[.5,.52,.55],4:[.89,.82,.6],5:[.52,.5,.49],6:[.94,.96,.98],7:[.75,.56,.35],8:[.67,.33,.25],11:[.42,.31,.2],12:[.23,.5,.24],18:[.75,.56,.35],29:[.9,.7,.3],30:[.26,.54,.27],31:[.66,.83,.93],39:[.61,.64,.7],40:[.82,.92,.96],41:[.59,.61,.64],42:[.62,.44,.25],43:[.33,.63,.29],44:[.88,.28,.36],57:[.6,.9,.95],96:[.84,.94,.4],97:[.96,.4,.55],98:[.85,.16,.16],99:[.42,.22,.62]};
 let pNext=0;
 function burst(x,y,z,id){
   const c=BCOL[id]||BCOL[3];
@@ -1688,7 +1731,7 @@ const LOOT=[[APPLE,1,3,8],[BREAD,1,3,8],[COOKED_MEAT,1,3,6],[COAL,2,6,9],[TORCH,
 function lootChest(x,y,z){
   const k=x+','+y+','+z; if(looted.has(k)||chests.has(k)) return;
   const st=world.gen.structAt(x>>4,z>>4); if(!st||st.chest[0]!==x||st.chest[1]!==y||st.chest[2]!==z) return;
-  looted.add(k); flags.loot=true;
+  looted.add(k); flags.loot=true; gainXp(10);
   const R=rng(Math.imul(x,92837111)^Math.imul(z,689287499)^world.gen.seed), c=chestAt(k), tot=LOOT.reduce((a,l)=>a+l[3],0);
   const n=4+Math.floor(R()*4);
   for(let i=0;i<n;i++){
@@ -1769,8 +1812,10 @@ function breakBlock(hit,held){
     let drop=def.drop!==undefined?def.drop:hit.id, n=1;
     if(hit.id===LEAVES){ const r=Math.random(); if(r<.07) drop=APPLE; else if(r<.25) drop=STICK; }
     if(hit.id===TALLGRASS&&Math.random()<.22) drop=SEEDS;
+    if(hit.id>=13&&hit.id<=17&&perk('minero')&&Math.random()<.25) n=2;
     if(hit.id>=WHEAT0&&hit.id<=WHEAT0+3){ drop=SEEDS; n=hit.id===WHEAT0+3?1+(Math.random()<.5?1:0):1; if(hit.id===WHEAT0+3) addItem(WHEAT_ITEM,1+(Math.random()<.35?1:0)); }
     if(drop&&addItem(drop,n)>0) toast('Inventario lleno');
+    gainXp(XP_BLOCK[hit.id]||0);
   }
   // la otra mitad de una puerta cae a la vez
   if(BLOCKS[hit.id].shape==='door'){ for(const dy of [1,-1]){ const o=world.getBlock(hit.x,hit.y+dy,hit.z); if(BLOCKS[o]&&BLOCKS[o].shape==='door') world.setBlock(hit.x,hit.y+dy,hit.z,AIR); } }
@@ -2026,7 +2071,7 @@ function dogBite(a,e){
   e.hp-=dogDmg(a.lvl); e.hurtT=.2; const l=Math.hypot(e.x-a.x,e.z-a.z)||1; e.kx=(e.x-a.x)/l*5; e.kz=(e.z-a.z)/l*5; e.vy=3.5; e.ground=false;
   sfx('hit'); burst(Math.floor(e.x),Math.floor(e.y+.7),Math.floor(e.z),99);
   dogXp(a,1);
-  if(e.hp<=0){ removeEntity(e); if(Math.random()<.5) addItem(SHARD,1); dogXp(a,4); }
+  if(e.hp<=0){ removeEntity(e); if(Math.random()<.5) addItem(SHARD,1); dogXp(a,4); gainXp(5); }
 }
 function dogXp(a,n){
   if(a.lvl>=DOG_MAXLVL) return;
@@ -2063,7 +2108,7 @@ function breedCows(){
     if(b&&Math.hypot(b.x-a.x,b.z-a.z)<1.6){
       makeAnimal('cow',(a.x+b.x)/2,Math.max(a.y,b.y)+.2,(a.z+b.z)/2,{sex:Math.random()<.5?'m':'f',baby:true,owned:true});
       a.love=b.love=0; a.breedCd=b.breedCd=90; a.mate=b.mate=null;
-      toast('¡Ha nacido un ternero!'); sfx('eat'); burst(Math.floor(a.x),Math.floor(a.y+1),Math.floor(a.z),97);
+      gainXp(8); toast('¡Ha nacido un ternero!'); sfx('eat'); burst(Math.floor(a.x),Math.floor(a.y+1),Math.floor(a.z),97);
       return;
     }
   }
@@ -2100,9 +2145,9 @@ function useAnimal(a){
   placeSwing=.2;
   if(act==='Domesticar'){
     useOneHeld();
-    if(Math.random()<1/3){
+    if(Math.random()<(perk('animales')?.75:1/3)){
       a.tame=true; a.noTurn=true; a.lvl=1; a.xp=0; a.maxhp=dogMaxHp(1); a.hp=a.maxhp; a.state='idle'; a.collar.visible=true;
-      flags.tamed=true; toast('¡Has domesticado un perro! Te seguirá y te ayudará a pelear.'); sfx('eat'); burst(cx,cy,cz,97); saveGame();
+      flags.tamed=true; gainXp(15); toast('¡Has domesticado un perro! Te seguirá y te ayudará a pelear.'); sfx('eat'); burst(cx,cy,cz,97); saveGame();
     }else{ toast('El perro desconfía todavía. Prueba con más carne.'); burst(cx,cy,cz,6); }
   }else if(act==='Alimentar'&&a.sp===SPECIES.dog){
     useOneHeld(); a.hp=Math.min(a.maxhp,a.hp+6); sfx('eat'); burst(cx,cy,cz,97);
@@ -2233,16 +2278,83 @@ function updateEnemies(dt){
 }
 
 /* ---------- COMBATE Y SUPERVIVENCIA: vida, hambre, caídas, muerte y reaparición ---------- */
+/* ---------- LEVELS: experiencia del personaje; cada nivel da mejoras, nunca bloquea recetas ---------- */
+let plvl=1, pxp=0;
+const unlocked=new Set();
+const perk=id=>unlocked.has(id);
+// lo que se puede desbloquear: recetas nuevas y habilidades. Un punto por nivel, desde el nivel que pide cada una
+const UNLOCKS=[
+  {id:'vendas',  lvl:2, t:'Receta: vendas',             d:'2 de cuero dan 2 vendas. Cada una cura 6 de vida.', ic:BANDAGE},
+  {id:'piel',    lvl:2, t:'Piel dura',                  d:'Los golpes te hacen un 10 % menos de daño.'},
+  {id:'estofado',lvl:3, t:'Receta: estofado',           d:'Carne asada, pan y manzana. Quita mucha hambre y cura.', ic:STEW},
+  {id:'comer',   lvl:3, t:'Buen comer',                 d:'La comida te quita un 30 % más de hambre.'},
+  {id:'espcu',   lvl:4, t:'Receta: espada de cobre',    d:'3 lingotes de cobre y 1 palo. Pega casi como la de hierro.', ic:SWORD_CU},
+  {id:'minero',  lvl:5, t:'Ojo de minero',              d:'Una de cada cuatro veces, los minerales sueltan el doble.'},
+  {id:'picoau',  lvl:6, t:'Receta: pico de oro',        d:'El pico más rápido del juego, aunque se gasta pronto.', ic:PICK_AU},
+  {id:'animales',lvl:6, t:'Amigo de los animales',      d:'Domesticas perros con mucha más facilidad.'},
+  {id:'armcr',   lvl:8, t:'Receta: armadura de cristal',d:'Casco, peto y botas de cristal: la mejor protección (48 %).', ic:CHEST_CR},
+  {id:'zancada', lvl:9, t:'Zancada',                    d:'Andas y corres un 12 % más rápido.'},
+  {id:'fuerza',  lvl:10,t:'Brazo fuerte',               d:'Todos tus golpes hacen un 15 % más de daño.'},
+  {id:'espsh',   lvl:12,t:'Receta: espada sombría',     d:'Cristal y esquirlas sombrías. El arma más fuerte del juego.', ic:SWORD_SH}
+];
+const points=()=>Math.max(0,plvl-1-unlocked.size);
+function renderSkills(){
+  $('skHead').textContent='Nivel '+plvl+'. Puntos para gastar: '+points()+'. Ganas un punto cada vez que subes de nivel.';
+  const L=$('skList'); L.innerHTML='';
+  for(const u of UNLOCKS){
+    const row=document.createElement('div'); row.className='skrow'+(perk(u.id)?' done':'');
+    const ic=document.createElement('div'); ic.className='skic';
+    if(u.ic!==undefined) ic.innerHTML='<img alt="" src="'+icon(u.ic).url+'">'; else ic.textContent='★';
+    const tx=document.createElement('div'); tx.className='sktx'; tx.innerHTML='<b></b><span></span>'; tx.firstChild.textContent=u.t; tx.lastChild.textContent=u.d;
+    const b=document.createElement('button'); b.className='mini';
+    if(perk(u.id)){ b.textContent='Desbloqueado'; b.disabled=true; }
+    else if(plvl<u.lvl){ b.textContent='Nivel '+u.lvl; b.disabled=true; }
+    else{ b.textContent='Desbloquear'; b.className='mini pri'; b.disabled=points()<1;
+      b.addEventListener('click',()=>{ if(points()<1||perk(u.id)) return; unlocked.add(u.id); sfx('eat'); toast('Desbloqueado: '+u.t.replace('Receta: ','')+'.'); renderSkills(); renderXp(); saveGame(); }); }
+    row.appendChild(ic); row.appendChild(tx); row.appendChild(b); L.appendChild(row);
+  }
+}
+function openSkills(){ if(!started) return; closeInv(); renderSkills(); $('skills').classList.add('on'); try{ if(document.exitPointerLock) document.exitPointerLock(); }catch(_){} }
+function closeSkills(){ $('skills').classList.remove('on'); }
+const MAX_LVL=30;
+const xpNeed=l=>20+(l-1)*15;                         // experiencia para pasar del nivel l al siguiente
+const maxHp=()=>20+Math.min(10,Math.floor(plvl/3)*2); // +1 corazón cada 3 niveles, hasta 15 corazones
+const mineMul=()=>1+.02*(plvl-1);                    // pica un 2 % más rápido por nivel
+const dmgMul=()=>1+.03*(plvl-1);                     // pega un 3 % más fuerte por nivel
+// experiencia por romper bloques (solo si sueltan algo)
+const XP_BLOCK={1:.5,2:.5,3:1,4:.5,5:.5,6:.5,11:1,13:3,14:5,15:5,16:8,17:12,31:1,39:1};
+function craftXp(id){ const d=BLOCKS[id]; if(d.tool||d.armor) return 3+(d.tier||(d.metal==='au'?3:2))*2; if(id===CAKE||id===GOLD_APPLE) return 4; return 1; }
+function gainXp(n){
+  if(!n||plvl>=MAX_LVL) return;
+  pxp+=n; let up=false;
+  while(plvl<MAX_LVL&&pxp>=xpNeed(plvl)){
+    pxp-=xpNeed(plvl); const before=maxHp(); plvl++; up=true;
+    const more=maxHp()>before;
+    toast('¡Nivel '+plvl+'! Ganas un punto para Desbloqueos'+(more?' y un corazón más.':'.'));
+    if(more) hp=Math.min(maxHp(),hp+2);
+  }
+  if(plvl>=MAX_LVL) pxp=0;
+  if(up){ sfx('eat'); rumble(.4,120); if(player) burst(Math.floor(player.x),Math.floor(player.y+1),Math.floor(player.z),96); renderStats(); }
+  renderXp();
+}
+function renderXp(){
+  const pt=points(); $('xpLvl').textContent='Nivel '+plvl+(pt?' ('+pt+(pt>1?' puntos)':' punto)'):'');
+  $('skBtn').textContent='Desbloqueos'+(pt?' ('+pt+')':''); $('skBtn').classList.toggle('pri',pt>0);
+  $('xpFill').style.width=(plvl>=MAX_LVL?100:Math.min(100,pxp/xpNeed(plvl)*100)).toFixed(1)+'%';
+}
+
 let hp=20, hunger=20, dead=false, invuln=0, hungerAcc=0, regenAcc=0, peakY=0, atkCd=0, spawnPt=[0,0,0], wasNight=false;
 const hpPips=[], fdPips=[], arPips=[];
 for(let i=0;i<10;i++){ const a=document.createElement('i'); $('arBar').appendChild(a); arPips.push(a); }
 statsReady=true;
-for(let i=0;i<10;i++){ const a=document.createElement('i'); $('hpBar').appendChild(a); hpPips.push(a); const b=document.createElement('i'); $('fdBar').appendChild(b); fdPips.push(b); }
+for(let i=0;i<15;i++){ const a=document.createElement('i'); $('hpBar').appendChild(a); hpPips.push(a); }
+for(let i=0;i<10;i++){ const b=document.createElement('i'); $('fdBar').appendChild(b); fdPips.push(b); }
 function renderStats(){
   const ap=armorPts(); $('arBar').style.display=ap?'flex':'none';
   for(let i=0;i<10;i++) arPips[i].className=ap>=i+1?'f':'';
+  const hc=maxHp()/2;
+  for(let i=0;i<15;i++){ hpPips[i].style.display=i<hc?'block':'none'; hpPips[i].className=hp>=i*2+2?'f':hp>=i*2+1?'h':''; }
   for(let i=0;i<10;i++){
-    hpPips[i].className=hp>=i*2+2?'f':hp>=i*2+1?'h':'';
     fdPips[i].className=hunger>=i*2+2?'f':hunger>=i*2+1?'h':'';
   }
 }
@@ -2258,27 +2370,27 @@ function findTarget(ex,ey,ez,maxD){
   return best;
 }
 function attackEntity(a,held){
-  const dmg=held&&held.tool?(held.tool==='sword'?[4,6,8,11]:[2,3,4,5])[held.tier-1]:1;
+  const dmg=(held&&held.tool?(held.dmg||(held.tool==='sword'?[4,6,8,11]:[2,3,4,5])[held.tier-1]):1)*dmgMul()*(perk('fuerza')?1.15:1);
   if(held&&held.tool&&inv[selected]&&BLOCKS[inv[selected].id]===held) wearHeld(held.tool==='sword'?1:2);
   a.hp-=dmg; a.hurtT=.2; a.kx=dir.x*7; a.kz=dir.z*7; a.vy=4.5; a.ground=false;
   sfx('hit'); burst(Math.floor(a.x),Math.floor(a.y+a.sp.h*.4),Math.floor(a.z),a.hostile?99:98);
   if(!a.hostile){ a.state='flee'; a.t=4; a.yaw=Math.atan2(a.x-player.x,a.z-player.z); }
   if(a.hp<=0){
     removeEntity(a);
-    if(a.hostile){ if(Math.random()<.6) addItem(SHARD,1); }
-    else{ if(a.sp.meat&&addItem(RAW_MEAT,a.sc<1?1:a.sp.meat)>0) toast('Inventario lleno'); if(a.sp!==SPECIES.bird&&a.sp!==SPECIES.dog&&Math.random()<.7) addItem(LEATHER,1); }
+    if(a.hostile){ if(Math.random()<.6) addItem(SHARD,1); gainXp(a.kind==='thrower'?12:10); }
+    else{ gainXp(3); if(a.sp.meat&&addItem(RAW_MEAT,a.sc<1?1:a.sp.meat)>0) toast('Inventario lleno'); if(a.sp!==SPECIES.bird&&a.sp!==SPECIES.dog&&Math.random()<.7) addItem(LEATHER,1); }
   }
 }
 function hurtPlayer(n,dx,dz){
   if(dead||invuln>0) return;
-  if(dx||dz){ n*=1-armorPts()*.04; wearArmor(); }
+  if(dx||dz){ n*=1-armorPts()*.04; if(perk('piel')) n*=.9; wearArmor(); }
   hp=Math.max(0,hp-n); renderStats(); sfx('hurt'); rumble(Math.min(1,.35+n*.08),140);
   const fx=$('dmg'); fx.style.transition='none'; fx.style.opacity='.55'; setTimeout(()=>{ fx.style.transition='opacity .5s'; fx.style.opacity='0'; },60);
   if(dx||dz){ const l=Math.hypot(dx,dz)||1; player.vx+=dx/l*8; player.vz+=dz/l*8; player.vy=5; player.onGround=false; }
   if(hp<=0){ dead=true; closeInv(); closeMap(); $('dead').classList.add('on'); try{ if(document.exitPointerLock) document.exitPointerLock(); }catch(_){} }
 }
 function respawn(){
-  dead=false; hp=20; hunger=20; invuln=3; hungerAcc=0; regenAcc=0;
+  dead=false; hp=maxHp(); hunger=20; invuln=3; hungerAcc=0; regenAcc=0;
   player.x=spawnPt[0]; player.y=spawnPt[1]; player.z=spawnPt[2]; player.vx=player.vy=player.vz=0;
   while(player.collides(player.x,player.y,player.z)&&player.y<WH) player.y+=1;
   peakY=player.y;
@@ -2288,11 +2400,12 @@ function respawn(){
 }
 $('respawn').addEventListener('click',respawn);
 function eatHeld(){
-  const s=inv[selected]; if(!s||!BLOCKS[s.id].food) return;
+  const s=inv[selected]; if(!s||!(BLOCKS[s.id].food||BLOCKS[s.id].heal)) return;
   const d=BLOCKS[s.id];
-  if(hunger>=20&&!(d.heal&&hp<20)){ toast('No tienes hambre.'); return; }
+  if(!d.food&&hp>=maxHp()){ toast('Ya tienes la vida llena.'); return; }
+  if(hunger>=20&&!(d.heal&&hp<maxHp())){ toast('No tienes hambre.'); return; }
   const eid=s.id;
-  hunger=Math.min(20,hunger+d.food); if(d.heal) hp=Math.min(20,hp+d.heal); s.n--; if(!s.n) inv[selected]=null;
+  hunger=Math.min(20,hunger+(d.food||0)*(perk('comer')?1.3:1)); if(d.heal) hp=Math.min(maxHp(),hp+d.heal); s.n--; if(!s.n) inv[selected]=null;
   if(eid===MILK) addItem(BUCKET,1);   // la leche deja el cubo vacío
   invChanged(); renderStats(); sfx('eat'); placeSwing=.2;
 }
@@ -2304,7 +2417,7 @@ function updateSurvival(dt){
   regenAcc+=dt;
   if(regenAcc>=4){
     regenAcc=0;
-    if(hunger>=14&&hp<20){ hp=Math.min(20,hp+1); hungerAcc+=6; renderStats(); }
+    if(hunger>=14&&hp<maxHp()){ hp=Math.min(maxHp(),hp+1); hungerAcc+=6; renderStats(); }
     else if(hunger<=0) hurtPlayer(1,0,0);
   }
   // daño de caída: se mide desde el punto más alto del salto o la caída
@@ -2313,7 +2426,7 @@ function updateSurvival(dt){
   else{ const fall=peakY-player.y; peakY=player.y; if(fall>3.6) hurtPlayer(Math.floor(fall-3),0,0); }
   const night=dayLight<.4;
   if(night&&!wasNight) toast('Cae la noche. Algo se mueve en la oscuridad.');
-  if(!night&&wasNight&&!dead) flags.night=true;
+  if(!night&&wasNight&&!dead){ flags.night=true; gainXp(20); toast('Has sobrevivido a la noche.'); }
   wasNight=night;
 }
 const dir=new THREE.Vector3();
@@ -2463,7 +2576,7 @@ function saveGame(){
     localStorage.setItem('tesela-last',String(curSlot));
     localStorage.setItem(slotKey(curSlot),JSON.stringify({v:1,seed:curSeed,at:Date.now(),goal:goalIdx,fl:{c:[...flags.crafted],n:flags.night,l:flags.loot,p:flags.plant,t:flags.tamed},
       p:[+player.x.toFixed(3),+(player.y+.01).toFixed(3),+player.z.toFixed(3),+player.yaw.toFixed(3),+player.pitch.toFixed(3)],
-      inv:inv.map(s=>s?(s.d?[s.id,s.n,s.d]:[s.id,s.n]):0),sel:selected,dayT:+dayT.toFixed(4),hp,fd:hunger,sp:spawnPt,base,pets:animals.filter(a=>a.tame||a.owned).map(a=>({k:a.kind,x:+a.x.toFixed(2),y:+a.y.toFixed(2),z:+a.z.toFixed(2),hp:+a.hp.toFixed(1),sex:a.sex,baby:!!a.baby,grow:a.baby?Math.round(a.grow):0,tame:!!a.tame,owned:!!a.owned,lvl:a.lvl||0,xp:a.xp||0,sit:!!a.sit,bc:Math.round(a.breedCd||0)})),looted:[...looted],gt:+gameT.toFixed(1),crops:[...crops].map(c=>[c[0],+c[1].toFixed(1)]),arm:armor.map(s=>s?[s.id,s.d||0]:0),chests:ch,edits:ed}));
+      inv:inv.map(s=>s?(s.d?[s.id,s.n,s.d]:[s.id,s.n]):0),sel:selected,dayT:+dayT.toFixed(4),hp,fd:hunger,pl:plvl,px:+pxp.toFixed(1),un:[...unlocked],sp:spawnPt,base,pets:animals.filter(a=>a.tame||a.owned).map(a=>({k:a.kind,x:+a.x.toFixed(2),y:+a.y.toFixed(2),z:+a.z.toFixed(2),hp:+a.hp.toFixed(1),sex:a.sex,baby:!!a.baby,grow:a.baby?Math.round(a.grow):0,tame:!!a.tame,owned:!!a.owned,lvl:a.lvl||0,xp:a.xp||0,sit:!!a.sit,bc:Math.round(a.breedCd||0)})),looted:[...looted],gt:+gameT.toFixed(1),crops:[...crops].map(c=>[c[0],+c[1].toFixed(1)]),arm:armor.map(s=>s?[s.id,s.d||0]:0),chests:ch,edits:ed}));
     return true;
   }catch(_){ return false; }
 }
@@ -2495,7 +2608,7 @@ function startGame(seed,save,slot){
   world.update(player.x,player.z,13);
   while(player.collides(player.x,player.y,player.z)&&player.y<WH) player.y+=1;
   inv.fill(null); armor.fill(null);
-  spawnPt=[player.x,player.y,player.z]; base=null; mapOpen=false; $('map').classList.remove('on'); hp=20; hunger=20; dead=false; invuln=2;
+  spawnPt=[player.x,player.y,player.z]; base=null; mapOpen=false; $('map').classList.remove('on'); plvl=1; pxp=0; unlocked.clear(); hp=20; hunger=20; dead=false; invuln=2;
   if(save){
     if(save.sp&&save.sp.length===3) spawnPt=save.sp;
     if(save.base&&save.base.length===3) base=save.base;
@@ -2503,6 +2616,8 @@ function startGame(seed,save,slot){
     if(save.fl){ for(const c of save.fl.c||[]) flags.crafted.add(c); flags.night=!!save.fl.n; flags.loot=!!save.fl.l; flags.plant=!!save.fl.p; flags.tamed=!!save.fl.t; }
     goalIdx=save.goal||0;
     if(save.gt) gameT=save.gt; if(save.crops) for(const c of save.crops) crops.set(c[0],c[1]);
+    if(save.pl>0){ plvl=Math.min(MAX_LVL,save.pl); pxp=save.px||0; }
+    if(save.un) for(const u of save.un) if(UNLOCKS.some(x=>x.id===u)) unlocked.add(u);
     if(save.hp>0) hp=save.hp; if(save.fd>=0) hunger=save.fd;
     player.x=save.p[0]; player.y=save.p[1]; player.z=save.p[2]; player.yaw=save.p[3]; player.pitch=save.p[4];
     for(let i=0;i<INV_N;i++){ const s=save.inv[i]; inv[i]=(s&&BLOCKS[s[0]])?{id:s[0],n:s[1],d:s[2]||0}:null; }
@@ -2517,7 +2632,7 @@ function startGame(seed,save,slot){
     Object.assign(ex,{sex:q.sex||'f',baby:!!q.baby,grow:q.grow,breedCd:q.bc||0,owned:!!q.owned||!!q.tame});
     makeAnimal(q.k,q.x,q.y,q.z,ex);
   }
-  peakY=player.y; renderStats();
+  peakY=player.y; renderStats(); renderXp();
   if(save&&save.goal===undefined) updateGoals(0,true);   // partidas antiguas: salta en silencio lo que ya has hecho
   selectSlot(selected);   // la zona inmediata se genera antes de aparecer
   $('menu').style.display='none'; $('hud').classList.add('on');
@@ -2696,6 +2811,8 @@ $('tabK').addEventListener('click',()=>ctlTab('k'));
 $('tabP').addEventListener('click',()=>ctlTab('p'));
 $('ctlBtn').addEventListener('click',openCtl);
 $('pCtl').addEventListener('click',openCtl);
+$('pSk').addEventListener('click',()=>{ renderSkills(); $('skills').classList.add('on'); });
+$('skDone').addEventListener('click',closeSkills);
 $('ctlDone').addEventListener('click',closeCtl);
 /* ---------- GAMEPAD: mando de Xbox (o cualquiera con distribución estándar) ---------- */
 // botones estándar: 0 A, 1 B, 2 X, 3 Y, 4 LB, 5 RB, 6 LT, 7 RT, 8 Vista, 9 Menú, 10 stick izq., 11 stick der., 12-15 cruceta
@@ -2717,7 +2834,7 @@ addEventListener('gamepadconnected',()=>{ toast('Mando conectado. Tienes sus con
 addEventListener('gamepaddisconnected',()=>{ padActive=false; padIdx=-1; document.body.classList.remove('padmode'); inp.px=inp.py=0; inp.prun=false; });
 // qué ventana está delante (para moverse por ella con la cruceta)
 function activeUI(){
-  for(const id of ['ctl','set','slots']) if($(id).classList.contains('on')) return $(id);
+  for(const id of ['skills','ctl','set','slots']) if($(id).classList.contains('on')) return $(id);
   if($('editBar').classList.contains('on')) return null;
   if(mapOpen) return $('map'); if(invOpen) return $('inv');
   if($('dead').classList.contains('on')) return $('dead');
@@ -2752,7 +2869,8 @@ function padAdjust(e,step){
   return false;
 }
 function padBack(){
-  if($('ctl').classList.contains('on')) closeCtl();
+  if($('skills').classList.contains('on')) closeSkills();
+  else if($('ctl').classList.contains('on')) closeCtl();
   else if($('set').classList.contains('on')) $('set').classList.remove('on');
   else if($('slots').classList.contains('on')) $('slots').classList.remove('on');
   else if(mapOpen) closeMap();
@@ -2866,8 +2984,8 @@ function loop(now){
       if(def.need&&!(held&&held.tool==='pick'&&held.tier>=def.need)) toast(def.need===1?'Sin pico no sacarás nada de aquí.':def.need===2?'Necesitas un pico de piedra o mejor.':'Necesitas un pico de hierro.');
     }
     let mult=1;
-    if(held&&held.tool&&((held.tool==='pick'&&def.mat==='stone')||(held.tool==='axe'&&def.mat==='wood'))) mult=[2.5,4.5,7,10][held.tier-1];
-    mineP+=dt/def.hard*mult;
+    if(held&&held.tool&&((held.tool==='pick'&&def.mat==='stone')||(held.tool==='axe'&&def.mat==='wood'))) mult=held.spd||[2.5,4.5,7,10][held.tier-1];
+    mineP+=dt/def.hard*mult*mineMul();
     if(mineP>=1){ if(hit.y>0) breakBlock(hit,held); mineP=0; mineKey=''; }
   }else{ mineP=0; mineKey=''; }
   crack.visible=mineP>0&&!!hit;
@@ -2879,7 +2997,7 @@ function loop(now){
   const tillT=!!hit&&held&&held.tool==='hoe'&&(hit.id===GRASS||hit.id===DIRT);
   const plantT=!!hit&&inv[selected]&&inv[selected].id===SEEDS&&hit.id===FARMLAND;
   const anim=targetAnimal(ex,ey,ez,Math.min(3.6,hit?hit.t+.3:9)), animAct=animalAction(anim);
-  const mode=animAct?animAct:useT?'Usar':tillT?'Arar':plantT?'Plantar':(held&&held.food)?'Comer':(held&&held.armor)?'Equipar':'Colocar';
+  const mode=animAct?animAct:useT?'Usar':tillT?'Arar':plantT?'Plantar':(held&&(held.food||held.heal))?(held.food?'Comer':'Curarse'):(held&&held.armor)?'Equipar':'Colocar';
   if(mode!==lastUse){ lastUse=mode; $('placeLbl').textContent=mode; $('bPlace').classList.toggle('use',mode!=='Colocar'); }
 
   // colocar
@@ -2892,8 +3010,8 @@ function loop(now){
     else if(hit&&BLOCKS[hit.id].shape==='door'){ toggleDoor(hit.x,hit.y,hit.z); }
     else if(hit&&hit.id===BED){ useBed(hit); }
     else if(tillT){ if(isFree(hit.x,hit.y+1,hit.z)){ world.setBlock(hit.x,hit.y,hit.z,FARMLAND); placeSwing=.2; sfx('place'); if(typeof wearHeld==='function') wearHeld(1); } }
-    else if(plantT){ if(hit.ny===1&&isFree(hit.x,hit.y+1,hit.z)){ world.setBlock(hit.x,hit.y+1,hit.z,WHEAT0); crops.set(hit.x+','+(hit.y+1)+','+hit.z,gameT); const s=inv[selected]; s.n--; if(!s.n) inv[selected]=null; invChanged(); placeSwing=.2; sfx('place'); flags.plant=true; } }
-    else if(held&&held.food){ eatHeld(); }
+    else if(plantT){ if(hit.ny===1&&isFree(hit.x,hit.y+1,hit.z)){ world.setBlock(hit.x,hit.y+1,hit.z,WHEAT0); crops.set(hit.x+','+(hit.y+1)+','+hit.z,gameT); const s=inv[selected]; s.n--; if(!s.n) inv[selected]=null; invChanged(); placeSwing=.2; sfx('place'); flags.plant=true; gainXp(1); } }
+    else if(held&&(held.food||held.heal)){ eatHeld(); }
     else if(held&&held.armor){ equipHeld(); }
     else if(hit&&placeCd<=0){
       const px=hit.x+hit.nx, py=hit.y+hit.ny, pz=hit.z+hit.nz, cur=world.getBlock(px,py,pz);
