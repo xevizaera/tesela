@@ -978,7 +978,7 @@ function buildChunkGeometry(world,cx,cz){
         if(!s2){ sk+=j===-1?0:j===-2?15:lsky[j]; tl+=j<0?0:ltor[j]; cnt++; }
         if(!cr&&!(s1&&s2)){ sk+=jc===-1?0:jc===-2?15:lsky[jc]; tl+=jc<0?0:ltor[jc]; cnt++; }
         ao[k]=(s1&&s2)?0:3-(s1+s2+cr);
-        out.s.push(F.sh*AO_MUL[ao[k]]+(id===LEAVES?2:0));
+        out.s.push(F.sh*AO_MUL[ao[k]]+(id===LEAVES?2:0)+(isW&&dy>0&&shoreAt(x+C[0],y,z+C[2])?6:0));
         out.l.push(LUT[Math.round(sk/cnt*4)], LUT[Math.round(tl/cnt*4)]);
         out.u.push((tc+(C[3]?1-e:e))/AT, 1-(tr+(C[4]?e:1-e))/AT);
       }
@@ -987,6 +987,11 @@ function buildChunkGeometry(world,cx,cz){
     }
   }
   return {sol,wat};
+}
+// ¿toca tierra alguna de las cuatro columnas que rodean esta esquina? (para la espuma del agua)
+function shoreAt(cx,y,cz){
+  for(const q of [[-1,-1],[0,-1],[-1,0],[0,0]]){ const k=LI(cx+q[0],y,cz+q[1]); const n=k===-1?STONE:k===-2?AIR:lblk[k]; if(OPAQUE[n]) return true; }
+  return false;
 }
 // antorcha: poste fino dentro de la misma malla del chunk, siempre iluminado
 function addTorch(out,x,y,z){
@@ -1051,26 +1056,43 @@ function toMesh(a,mat){
    WORLD: carga/descarga dinámica de chunks y edición de bloques
    ============================================================ */
 const VSH=`attribute float aShade; attribute vec2 aLight; uniform float uDay; uniform float uWave; uniform float uTime; uniform float uWind;
-varying vec2 vUv; varying float vL; varying float vD;
-void main(){ vUv=uv; float sh=aShade, w=0.0;
-  if(sh>3.5){ w=1.0; sh-=4.0; } else if(sh>1.5){ w=0.35; sh-=2.0; }
-  float l=max(aLight.x*uDay,aLight.y); vL=sh*(0.055+0.945*l);
+varying vec2 vUv; varying vec3 vL; varying float vD; varying vec3 vW; varying float vFoam;
+void main(){ vUv=uv; float sh=aShade, w=0.0, foam=0.0;
+  if(sh>5.5){ foam=1.0; sh-=6.0; } else if(sh>3.5){ w=1.0; sh-=4.0; } else if(sh>1.5){ w=0.35; sh-=2.0; }
   vec3 p=position; vec4 wp=modelMatrix*vec4(p,1.0);
+  float sk=aLight.x*uDay;
+  float fl=0.93+0.07*sin(uTime*10.0+wp.x*1.7+wp.z*2.3)*sin(uTime*6.3+wp.y*1.3+wp.x);
+  float tl=aLight.y*fl, l=max(sk,tl), warm=clamp((tl-sk)*2.5,0.0,1.0);
+  vec3 skyTint=mix(vec3(0.74,0.82,1.06),vec3(1.0),smoothstep(0.25,0.8,uDay));
+  vL=mix(skyTint,vec3(1.14,0.86,0.56),warm)*sh*(0.055+0.945*l);
   if(uWave>0.5) p.y+=sin(uTime*1.6+wp.x*0.9+wp.z*0.7)*0.035-0.03;
   if(w>0.0){ float t=uTime*1.7+wp.x*0.55+wp.z*0.35; p.x+=(sin(t)*0.06+sin(t*2.3+wp.z)*0.02)*w*uWind; p.z+=cos(t*0.8+wp.x*0.4)*0.045*w*uWind; }
+  vFoam=foam; vW=(modelMatrix*vec4(p,1.0)).xyz;
   vec4 mv=modelViewMatrix*vec4(p,1.0); vD=-mv.z; gl_Position=projectionMatrix*mv; }`;
-const FSH=`uniform sampler2D map; uniform vec3 uFog; uniform float uNear; uniform float uFar; uniform float uAlpha;
-varying vec2 vUv; varying float vL; varying float vD;
-void main(){ vec4 t=texture2D(map,vUv); if(t.a<0.5) discard; float f=smoothstep(uNear,uFar,vD);
-  gl_FragColor=vec4(mix(t.rgb*vL,uFog,f),uAlpha); }`;
+const FSH=`uniform sampler2D map; uniform vec3 uFog; uniform float uNear; uniform float uFar; uniform float uAlpha; uniform float uWave; uniform float uTime; uniform float uDay; uniform vec3 uSun;
+varying vec2 vUv; varying vec3 vL; varying float vD; varying vec3 vW; varying float vFoam;
+void main(){ vec4 t=texture2D(map,vUv); if(t.a<0.5) discard;
+  vec3 c=t.rgb*vL; float a=uAlpha;
+  if(uWave>0.5){
+    vec3 V=normalize(cameraPosition-vW);
+    float t1=uTime*1.6+vW.x*0.9+vW.z*0.7;
+    vec3 N=normalize(vec3(-cos(t1)*0.03+sin(uTime*1.3+vW.z*2.1)*0.05, 1.0, -cos(t1)*0.025+cos(uTime*1.1+vW.x*1.7)*0.05));
+    float fres=pow(1.0-clamp(V.y,0.0,1.0),3.0);
+    c=mix(c,uFog*(0.5+0.4*uDay),fres*0.38); a=mix(uAlpha,0.88,fres);
+    float sp=pow(max(dot(reflect(-V,N),uSun),0.0),140.0)*smoothstep(0.3,0.9,uDay);
+    c+=vec3(1.0,0.94,0.78)*sp*1.3; a=max(a,sp);
+    float fo=vFoam*(0.6+0.4*sin(uTime*2.2+vW.x*3.1+vW.z*2.7)); c=mix(c,vec3(0.93,0.97,1.0)*(0.25+0.75*uDay),fo*0.55); a=max(a,fo*0.85);
+  }
+  float f=smoothstep(uNear,uFar,vD);
+  gl_FragColor=vec4(mix(c,uFog,f),a); }`;
 class World{
   constructor(scene,seed,atlasTex,radius,budget){
     this.scene=scene; this.gen=new WorldGenerator(seed); this.R=radius; this.budget=budget;
     this.chunks=new Map(); this.edits=new Map(); this.queue=[]; this.dirty=new Set(); this.later=new Set();
     this.lcx=1e9; this.lcz=1e9; this.meshed=0;
-    const U=this.U={uDay:{value:1},uFog:{value:new THREE.Color(0x9fd3f0)},uNear:{value:50},uFar:{value:90},uTime:{value:0},uWind:{value:1}};
+    const U=this.U={uDay:{value:1},uFog:{value:new THREE.Color(0x9fd3f0)},uNear:{value:50},uFar:{value:90},uTime:{value:0},uWind:{value:1},uSun:{value:new THREE.Vector3(0,1,0)}};
     const mk=(alpha,wave,extra)=>new THREE.ShaderMaterial(Object.assign({vertexShader:VSH,fragmentShader:FSH,
-      uniforms:{map:{value:atlasTex},uDay:U.uDay,uFog:U.uFog,uNear:U.uNear,uFar:U.uFar,uTime:U.uTime,uWind:U.uWind,uAlpha:{value:alpha},uWave:{value:wave}}},extra));
+      uniforms:{map:{value:atlasTex},uDay:U.uDay,uFog:U.uFog,uNear:U.uNear,uFar:U.uFar,uTime:U.uTime,uWind:U.uWind,uSun:U.uSun,uAlpha:{value:alpha},uWave:{value:wave}}},extra));
     this.mat=mk(1,0,{}); this.wmat=mk(.72,1,{transparent:true,depthWrite:false});
   }
   getChunk(cx,cz){
@@ -2085,6 +2107,37 @@ const moon=new THREE.Mesh(new THREE.PlaneGeometry(24,24),new THREE.MeshBasicMate
 scene.add(sun); scene.add(moon);
 const starGeo=new THREE.BufferGeometry();
 (function(){ const a=new Float32Array(240*3), r=rng(77); for(let i=0;i<240;i++){ const th=r()*Math.PI*2, ph=Math.acos(r()*1.1-.1>1?1:r()*1.1-.1); a[i*3]=Math.sin(ph)*Math.cos(th)*330; a[i*3+1]=Math.cos(ph)*330; a[i*3+2]=Math.sin(ph)*Math.sin(th)*330; } starGeo.setAttribute('position',new THREE.BufferAttribute(a,3)); })();
+const CLOUD_N=40, CLOUD_C=7, CLOUD_P=CLOUD_N*CLOUD_C, CLOUD_Y=124;
+const cloudU={uCol:{value:new THREE.Color(1,1,1)},uFog:{value:new THREE.Color(0x9fd3f0)}};
+const cloudMat=new THREE.ShaderMaterial({uniforms:cloudU,
+  vertexShader:`attribute float aS; varying float vS; varying float vH; void main(){ vS=aS; vec4 w=modelMatrix*vec4(position,1.0); vH=length(w.xz-cameraPosition.xz); gl_Position=projectionMatrix*viewMatrix*w; }`,
+  fragmentShader:`uniform vec3 uCol; uniform vec3 uFog; varying float vS; varying float vH; void main(){ gl_FragColor=vec4(mix(uCol*vS,uFog,smoothstep(140.0,330.0,vH)),1.0); }`});
+const cloudGeo=(()=>{
+  // celdas de nube en una rejilla que se repite (cada 32 celdas vuelve a empezar, así encaja con la de al lado)
+  const N=CLOUD_N, raw=[], on=[];
+  for(let j=0;j<N;j++)for(let i=0;i<N;i++) raw.push(hash2(i,j,4711));
+  const at=(a,i,j)=>a[((i%N+N)%N)+((j%N+N)%N)*N];
+  for(let j=0;j<N;j++)for(let i=0;i<N;i++){ let v=0; for(let dj=-1;dj<=1;dj++)for(let di=-1;di<=1;di++) v+=at(raw,i+di,j+dj)*(di||dj?1:2); on.push(v/10>.585?1:0); }
+  const p=[],sh=[],ix=[], C=CLOUD_C, H=2.5;
+  const quad=(v,k)=>{ const b=p.length/3; for(const q of v){ p.push(...q); sh.push(k); } ix.push(b,b+1,b+2,b,b+2,b+3); };
+  for(let j=0;j<N;j++)for(let i=0;i<N;i++){
+    if(!at(on,i,j)) continue; const x0=i*C, x1=x0+C, z0=j*C, z1=z0+C;
+    quad([[x0,H,z1],[x1,H,z1],[x1,H,z0],[x0,H,z0]],1); quad([[x0,0,z0],[x1,0,z0],[x1,0,z1],[x0,0,z1]],.72);
+    if(!at(on,i+1,j)) quad([[x1,0,z1],[x1,0,z0],[x1,H,z0],[x1,H,z1]],.84);
+    if(!at(on,i-1,j)) quad([[x0,0,z0],[x0,0,z1],[x0,H,z1],[x0,H,z0]],.84);
+    if(!at(on,i,j+1)) quad([[x0,0,z1],[x1,0,z1],[x1,H,z1],[x0,H,z1]],.92);
+    if(!at(on,i,j-1)) quad([[x1,0,z0],[x0,0,z0],[x0,H,z0],[x1,H,z0]],.92);
+  }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(new Float32Array(p),3)); g.setAttribute('aS',new THREE.BufferAttribute(new Float32Array(sh),1));
+  g.setIndex(ix); g.computeBoundingSphere(); return g;
+})();
+const clouds=[]; for(let k=0;k<9;k++){ const m=new THREE.Mesh(cloudGeo,cloudMat); m.frustumCulled=false; scene.add(m); clouds.push(m); }
+let cloudDrift=0;
+function updateClouds(dt,ex,ez){
+  cloudDrift+=dt*(1.1+wx.w*2);
+  const bx=Math.floor((ex-cloudDrift)/CLOUD_P)*CLOUD_P+cloudDrift, bz=Math.floor(ez/CLOUD_P)*CLOUD_P;
+  let k=0; for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++) clouds[k++].position.set(bx+i*CLOUD_P,CLOUD_Y,bz+j*CLOUD_P);
+}
 const stars=new THREE.Points(starGeo,new THREE.PointsMaterial({color:0xffffff,size:1.8,sizeAttenuation:false,transparent:true,fog:false,depthWrite:false}));
 stars.frustumCulled=false; scene.add(stars);
 function updateSky(dt,ex,ey,ez){
@@ -2100,6 +2153,13 @@ function updateSky(dt,ex,ey,ez){
   sun.position.set(ex+cs*290,ey+sn*290,ez+70); sun.lookAt(ex,ey,ez); sun.visible=sn>-.14;
   moon.position.set(ex-cs*290,ey-sn*290,ez-70); moon.lookAt(ex,ey,ez); moon.visible=sn<.14;
   stars.position.set(ex,ey,ez); stars.material.opacity=1-f; stars.visible=f<.97;
+  // nubes: blancas de día, naranjas al atardecer, gris azulado de noche y grises con lluvia
+  const dk=dusk*.78, cr=.2+.8*f, cg=.23+.77*f, cb=.32+.68*f;
+  cloudU.uCol.value.setRGB(cr+(1-cr)*dk, cg+(.64-cg)*dk, cb+(.52-cb)*dk);
+  if(wx.w>0){ const c=cloudU.uCol.value, gr=(c.r+c.g+c.b)/3*.8; c.setRGB(c.r+(gr-c.r)*wx.w*.8, c.g+(gr-c.g)*wx.w*.8, c.b+(gr-c.b)*wx.w*.8); }
+  cloudU.uFog.value.copy(skyCol);
+  if(world){ const l=Math.hypot(cs,sn,.24); world.U.uSun.value.set(cs/l,sn/l,.24/l); }
+  updateClouds(dt,ex,ez);
 }
 
 /* ---------- WEATHER: lluvia o nieve a ratos; en el desierto no llueve ---------- */
