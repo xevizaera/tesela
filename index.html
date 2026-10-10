@@ -370,6 +370,7 @@ body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width
 <div id="slots" class="ov"><div class="panel wide">
   <h2>Partidas</h2>
   <label class="row">Semilla para un mundo nuevo <input id="seed" inputmode="numeric" autocomplete="off" placeholder="al azar"></label>
+  <label class="row">Dificultad del mundo nuevo <select id="newDiff"><option value="0">Fácil: para explorar sin peligro</option><option value="1">Normal</option><option value="2">Difícil: siempre alerta</option></select></label>
   <div id="slotList"></div>
   <p id="slotMsg" class="note" role="status"></p>
   <input type="file" id="impFile" accept=".json,application/json" hidden>
@@ -453,6 +454,7 @@ body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width
   <label class="row">Efectos <input id="s_sfx" type="range" min="0" max="1" step="0.05"></label>
   <label class="row">Distancia de visión <input id="s_dist" type="range" min="3" max="9" step="1"></label>
   <label class="row">Calidad gráfica <select id="s_q"><option value="0">Baja</option><option value="1">Media</option><option value="2">Alta</option></select></label>
+  <label class="row">Dificultad <select id="s_diff"><option value="0">Fácil: para explorar sin peligro</option><option value="1">Normal</option><option value="2">Difícil: siempre alerta</option></select></label>
   <label class="row">Límite de FPS <select id="s_fps"><option value="30">30</option><option value="60">60</option></select></label>
   <label class="row">Mostrar FPS y coordenadas <input id="s_show" type="checkbox"></label>
   <label class="row">Mostrar brújula <input id="s_cmp" type="checkbox"></label>
@@ -1504,7 +1506,7 @@ const isTouch=matchMedia('(pointer: coarse)').matches||'ontouchstart' in window;
 if(isTouch) document.body.classList.add('touchmode');
 /* ---------- AJUSTES: se guardan aparte de la partida ---------- */
 const SET_KEY='tesela-settings-v1';
-const settings={padSens:1,compass:true,goals:true,btnScale:1,btn:{},sens:1,invertY:false,vol:.8,music:.5,sfx:.8,dist:isTouch?6:7,quality:1,fps:60,showFps:true};
+const settings={padSens:1,compass:true,goals:true,btnScale:1,btn:{},sens:1,invertY:false,vol:.8,music:.5,sfx:.8,dist:isTouch?6:7,quality:1,fps:60,showFps:true,diff:1};
 try{ const st=JSON.parse(localStorage.getItem(SET_KEY)); if(st) for(const k in settings) if(typeof st[k]===typeof settings[k]) settings[k]=st[k]; }catch(_){}
 const keys={};
 function refreshKeys(){
@@ -4132,6 +4134,7 @@ function makeEnemy(kind,x,y,z){
   const a={kind,sp,hostile:true,boss:!!BOSSNAME[kind],bname:BOSSNAME[kind],g,x,y,z,vy:0,yaw:0,t:1,legs:[],arms:[],ph:0,ground:false,hp:sp.hp,kx:0,kz:0,hurtT:0,cd:kind==='thrower'?1.5:.6,aggro:false,skT:0,sky:true};
   a.zone=world.gen.zoneAt(x,z); a.zm=ZDMG[a.zone]; a.hp=sp.hp*(a.boss?1+a.zone*.25:ZHP[a.zone]);
   if(!a.boss&&Math.random()<ZELITE[a.zone]){ a.elite=true; a.hp*=1.6; a.zm*=1.25; }
+  a.hp*=a.boss?DIFF[diff].bhp:DIFF[diff].ehp;
   a.maxhp=a.hp;
   if(a.boss){ a.atk=1.5; a.orbT=3; a.sumT=8; a.slam=0; a.st='walk'; a.chT=2.5; a.stompT=5; }
   if(kind==='boarling') a.sc0=1.25;
@@ -4418,7 +4421,7 @@ function bossReward(a){
 }
 function updateEnemies(dt){
   enemyT-=dt;
-  if(enemyT<=0){ enemyT=4; const emax=ENEMY_MAX+world.gen.zoneAt(player.x,player.z); if(enemies.length<emax&&!dead&&arenaIdx<0){ if(dayLight<.4) spawnEnemy(); if(enemies.length<emax&&Math.random()<.6) spawnCaveEnemy(); } }
+  if(enemyT<=0){ const D=DIFF[diff]; enemyT=4/(D.spawn||1); const emax=ENEMY_MAX+D.emax+world.gen.zoneAt(player.x,player.z); if(D.spawn>0&&enemies.length<emax&&!dead&&arenaIdx<0){ if(dayLight<.4) spawnEnemy(); if(enemies.length<emax&&Math.random()<.6) spawnCaveEnemy(); } }
   updateShots(dt); updatePShots(dt); checkGuards(dt); updateRootFx(dt);
   for(let i=enemies.length-1;i>=0;i--){
     const a=enemies[i], dx=player.x-a.x, dz=player.z-a.z, dy=player.y-a.y, d2=dx*dx+dz*dz;
@@ -4429,7 +4432,7 @@ function updateEnemies(dt){
       if(a.hp<=0){ removeEntity(a); continue; }
     }
     let speed=0;
-    if(d2<22*22&&!dead){
+    if(d2<DIFF[diff].sight*DIFF[diff].sight&&!dead){
       if(!a.aggro){ a.aggro=true; sfx('growl'); }
       a.yaw=Math.atan2(dx,dz);
       if(a.boss){ speed=(BAI[a.kind]||bossAI)(a,dt,dx,dy,dz,d2); }
@@ -4888,7 +4891,7 @@ function tameHud(ex,ey,ez,hitT){
 }
 function hurtPlayer(n,dx,dz){
   if(dead||invuln>0) return;
-  if(dx||dz){ n*=1-armorPts()*.04; n*=[1,.9,.82,.75,.7][rk('piel')]*(effects.iron>0?.7:1); wearArmor(); }
+  if(dx||dz){ n*=DIFF[diff].dmg; n*=1-armorPts()*.04; n*=[1,.9,.82,.75,.7][rk('piel')]*(effects.iron>0?.7:1); wearArmor(); }
   hp=Math.max(0,hp-n); if(dx||dz) lastHurt=gameT; renderStats(); sfx('hurt'); rumble(Math.min(1,.35+n*.08),140);
   const fx=$('dmg'); fx.style.transition='none'; fx.style.opacity='.55'; setTimeout(()=>{ fx.style.transition='opacity .5s'; fx.style.opacity='0'; },60);
   if(dx||dz){ const l=Math.hypot(dx,dz)||1; player.vx+=dx/l*8; player.vz+=dz/l*8; player.vy=5; player.onGround=false; }
@@ -4907,6 +4910,9 @@ $('respawn').addEventListener('click',respawn);
 // efectos de las pociones: segundos que quedan de cada uno
 const effects={regen:0,str:0,speed:0,night:0,iron:0,poison:0,slow:0}, FXNAME={regen:'Regeneración',str:'Fuerza',speed:'Velocidad',night:'Visión nocturna',iron:'Piel de hierro',poison:'Veneno',slow:'Lentitud'};
 let poisonAcc=0, lastHurt=-9, exitBlock=false;
+// DIFICULTAD: fácil (sin enemigos de noche ni en cuevas, todo pega poco), normal y difícil (más enemigos, más fuertes y te ven antes)
+let diff=1; const DNAME=['fácil','normal','difícil'];
+const DIFF=[{dmg:.45,ehp:.6,bhp:.5,hunger:.4,fall:0,spawn:0,emax:0,sight:22},{dmg:1,ehp:1,bhp:1,hunger:1,fall:1,spawn:1,emax:0,sight:22},{dmg:1.5,ehp:1.3,bhp:1.4,hunger:1.4,fall:1,spawn:1.6,emax:3,sight:30}];
 let fxRegenT=0;
 function drinkHeld(){
   const s=inv[selected]; if(!s) return; const d=BLOCKS[s.id]; if(!d.potion) return;
@@ -4935,7 +4941,7 @@ function eatHeld(){
 function updateSurvival(dt){
   if(dead) return;
   invuln-=dt;
-  hungerAcc+=dt*(Math.hypot(player.vx,player.vz)>5?2.2:1);
+  hungerAcc+=dt*(Math.hypot(player.vx,player.vz)>5?2.2:1)*DIFF[diff].hunger;
   if(hungerAcc>=30){ hungerAcc=0; if(hunger>0){ hunger--; renderStats(); } }
   regenAcc+=dt;
   if(regenAcc>=[4,3,2.2,1.6][rk('regen')]*(rested>0?.5:1)){
@@ -4946,7 +4952,7 @@ function updateSurvival(dt){
   // daño de caída: se mide desde el punto más alto del salto o la caída
   if(player.wasWater) peakY=player.y;
   if(!player.onGround){ if(player.y>peakY) peakY=player.y; }
-  else{ const fall=peakY-player.y, safe=riding?5.6:3.6; peakY=player.y; if(fall>safe) hurtPlayer(Math.floor(fall-safe+.6),0,0); }
+  else{ const fall=peakY-player.y, safe=riding?5.6:3.6; peakY=player.y; if(fall>safe&&DIFF[diff].fall) hurtPlayer(Math.floor(fall-safe+.6),0,0); }
   const night=dayLight<.4;
   if(night&&!wasNight) toast('Cae la noche. Algo se mueve en la oscuridad.');
   if(!night&&wasNight&&!dead){ flags.night=true; gainXp(20); toast('Has sobrevivido a la noche.'); }
@@ -5177,7 +5183,7 @@ function saveGame(){
     try{ localStorage.setItem('tesela-last',String(curSlot)); }catch(_){}
     if(!storeSet(slotKey(curSlot),JSON.stringify({v:1,seed:curSeed,at:Date.now(),goal:goalIdx,fl:{c:[...flags.crafted],n:flags.night,l:flags.loot,p:flags.plant,t:flags.tamed,d:flags.dloot,b:flags.boss,po:flags.portal,fi:flags.final},
       p:[+player.x.toFixed(3),+(player.y+.01).toFixed(3),+player.z.toFixed(3),+player.yaw.toFixed(3),+player.pitch.toFixed(3)],
-      inv:inv.map(s=>s?(s.d?[s.id,s.n,s.d]:[s.id,s.n]):0),sel:selected,dayT:+dayT.toFixed(4),hp,fd:hunger,pl:plvl,px:+pxp.toFixed(1),un:[...unlocked],sp:spawnPt,base,pets:animals.filter(a=>a.tame||a.owned).map(a=>({k:a.kind,x:+a.x.toFixed(2),y:+a.y.toFixed(2),z:+a.z.toFixed(2),hp:+a.hp.toFixed(1),sex:a.sex,baby:!!a.baby,grow:a.baby?Math.round(a.grow):0,tame:!!a.tame,owned:!!a.owned,lvl:a.lvl||0,xp:a.xp||0,sit:!!a.sit,bc:Math.round(a.breedCd||0),arm:a.arm||0,sd:!!a.saddle,co:a.coat||0})),looted:[...looted],rs:Math.round(rested),efx:effects,wk:[...woken],sl:[...slain],cp:cryptPt,se:[...seals],lp:lairPt,dn:dayNum,st:stats,pl2:[...places].map(q=>[q[0],q[1].k,q[1].x,q[1].z,q[1].a]),ar:arenaRet,ex:exPack(),bk:{i:[...bookItems],a:[...bookAnimals],b:[...bookBosses]},gt:+gameT.toFixed(1),crops:[...crops].map(c=>[c[0],+c[1].toFixed(1)]),arm:armor.map(s=>s?[s.id,s.d||0]:0),chests:ch,edits:ed}))) return false;
+      inv:inv.map(s=>s?(s.d?[s.id,s.n,s.d]:[s.id,s.n]):0),sel:selected,dayT:+dayT.toFixed(4),hp,fd:hunger,pl:plvl,px:+pxp.toFixed(1),un:[...unlocked],sp:spawnPt,base,pets:animals.filter(a=>a.tame||a.owned).map(a=>({k:a.kind,x:+a.x.toFixed(2),y:+a.y.toFixed(2),z:+a.z.toFixed(2),hp:+a.hp.toFixed(1),sex:a.sex,baby:!!a.baby,grow:a.baby?Math.round(a.grow):0,tame:!!a.tame,owned:!!a.owned,lvl:a.lvl||0,xp:a.xp||0,sit:!!a.sit,bc:Math.round(a.breedCd||0),arm:a.arm||0,sd:!!a.saddle,co:a.coat||0})),looted:[...looted],rs:Math.round(rested),efx:effects,wk:[...woken],sl:[...slain],cp:cryptPt,se:[...seals],lp:lairPt,df:diff,dn:dayNum,st:stats,pl2:[...places].map(q=>[q[0],q[1].k,q[1].x,q[1].z,q[1].a]),ar:arenaRet,ex:exPack(),bk:{i:[...bookItems],a:[...bookAnimals],b:[...bookBosses]},gt:+gameT.toFixed(1),crops:[...crops].map(c=>[c[0],+c[1].toFixed(1)]),arm:armor.map(s=>s?[s.id,s.d||0]:0),chests:ch,edits:ed}))) return false;
     lastSaveAt=Date.now(); if(!paused){ $('saveIc').classList.add('on'); saveIcT=1.4; } return true;
   }catch(_){ return false; }
 }
@@ -5192,7 +5198,7 @@ function startGame(seed,save,slot){
   if(world) world.chunks.forEach(ch=>world.disposeMesh(ch));
   while(animals.length) removeEntity(animals[0]); while(enemies.length) removeEntity(enemies[0]);
   while(shots.length){ scene.remove(shots[0].m); shots.shift(); }
-  decayQ.length=0; chests.clear(); paused=false; crops.clear(); looted.clear(); woken.clear(); slain.clear(); seals.clear(); lairPt=null; lairTry=0; arenaRet=null; exUnpack(null); dayNum=1; for(const k in stats) stats[k]=0; places.clear(); lpX=null; bookItems.clear(); bookAnimals.clear(); bookBosses.clear(); bookNew=false; rested=0; restT=0; curZone=-1; for(const k in effects) effects[k]=0; cryptPt=null;
+  decayQ.length=0; chests.clear(); paused=false; crops.clear(); looted.clear(); woken.clear(); slain.clear(); seals.clear(); lairPt=null; lairTry=0; arenaRet=null; exUnpack(null); diff=settings.diff; dayNum=1; for(const k in stats) stats[k]=0; places.clear(); lpX=null; bookItems.clear(); bookAnimals.clear(); bookBosses.clear(); bookNew=false; rested=0; restT=0; curZone=-1; for(const k in effects) effects[k]=0; cryptPt=null;
   goalIdx=0; goalTxt=''; flags.crafted.clear(); flags.night=flags.loot=flags.plant=flags.tamed=flags.dloot=flags.boss=flags.portal=flags.final=false; flowQ.length=0; gameT=0;
   if(save&&save.chests) for(const k in save.chests) chests.set(k,save.chests[k].map(s=>(s&&BLOCKS[s[0]])?{id:s[0],n:s[1],d:s[2]||0}:null));
   const R=settings.dist;
@@ -5220,7 +5226,7 @@ function startGame(seed,save,slot){
     if(save.wk) for(const k of save.wk) woken.add(k);
     if(save.sl) for(const k of save.sl) slain.add(k);
     if(save.se) for(const k of save.se) seals.add(k);
-    lairPt=save.lp&&save.lp.length===4?save.lp:null; arenaRet=save.ar||null; exUnpack(save.ex); dayNum=save.dn||1; if(save.st) Object.assign(stats,save.st); if(save.pl2) for(const q of save.pl2) places.set(q[0],{k:q[1],x:q[2],z:q[3],a:q[4]}); if(save.bk){ for(const k of save.bk.i||[]) bookItems.add(k); for(const k of save.bk.a||[]) bookAnimals.add(k); for(const k of save.bk.b||[]) bookBosses.add(k); }
+    lairPt=save.lp&&save.lp.length===4?save.lp:null; arenaRet=save.ar||null; exUnpack(save.ex); diff=save.df===undefined?1:save.df; dayNum=save.dn||1; if(save.st) Object.assign(stats,save.st); if(save.pl2) for(const q of save.pl2) places.set(q[0],{k:q[1],x:q[2],z:q[3],a:q[4]}); if(save.bk){ for(const k of save.bk.i||[]) bookItems.add(k); for(const k of save.bk.a||[]) bookAnimals.add(k); for(const k of save.bk.b||[]) bookBosses.add(k); }
     for(const q of ['llanura','bosque','desierto','tundra','final']) if(seals.has(q)) bookBosses.add(ARENAS.find(a=>a.seal===q).boss); if(flags.boss) bookBosses.add('boss');
     rested=save.rs||0;
     if(save.efx) for(const k in effects) effects[k]=+save.efx[k]||0;
@@ -5291,7 +5297,7 @@ function renderSlots(){
       twoTap(bt('Importar'),'¿Sustituir?',()=>{ impSlot=n; $('impFile').value=''; $('impFile').click(); });
       twoTap(bt('Borrar'),'¿Borrar?',()=>{ storeDel(slotKey(n)); renderSlots(); refreshMenu(); slotMsg('Ranura '+n+' borrada.'); });
     }else{
-      bt('Nuevo mundo','pri').addEventListener('click',()=>{ initAudio(); $('slots').classList.remove('on'); startGame(seedFromInput(),null,n); });
+      bt('Nuevo mundo','pri').addEventListener('click',()=>{ initAudio(); settings.diff=+$('newDiff').value; $('s_diff').value=settings.diff; try{ localStorage.setItem(SET_KEY,JSON.stringify(settings)); }catch(_){} $('slots').classList.remove('on'); startGame(seedFromInput(),null,n); });
       bt('Importar').addEventListener('click',()=>{ impSlot=n; $('impFile').value=''; $('impFile').click(); });
     }
     L.appendChild(row);
@@ -5336,7 +5342,7 @@ $('cont').addEventListener('click',()=>{ const n=lastSlot(), s=loadSave(n); if(!
 $('setBtn').addEventListener('click',()=>{ $('btnEditRow').style.display='none'; $('set').classList.add('on'); });
 $('setDone').addEventListener('click',()=>$('set').classList.remove('on'));
 function savedText(ok){ $('pSaved').textContent=ok===false?'No se ha podido guardar: el navegador no deja espacio. Libera espacio o exporta la partida desde Partidas.':'Partida guardada a las '+new Date(lastSaveAt).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})+'. También se guarda sola cada 15 segundos.'; }
-function openPause(){ if(!started||dead) return; closeInv(); closeMap(); muteWeather(); paused=true; $('pause').classList.add('on'); savedText(saveGame()); $('pDay').textContent='Día '+dayNum+' · '+playTime()+' jugados · nivel '+plvl; try{ if(document.exitPointerLock) document.exitPointerLock(); }catch(_){} }
+function openPause(){ if(!started||dead) return; closeInv(); closeMap(); muteWeather(); paused=true; $('pause').classList.add('on'); savedText(saveGame()); $('pDay').textContent='Día '+dayNum+' · '+playTime()+' jugados · nivel '+plvl+' · dificultad '+DNAME[diff]; try{ if(document.exitPointerLock) document.exitPointerLock(); }catch(_){} }
 function closePause(){ paused=false; $('pause').classList.remove('on'); last=performance.now(); }
 function togglePause(){ if(paused) closePause(); else openPause(); }
 $('bPause').addEventListener('pointerdown',e=>{ e.preventDefault(); openPause(); });
@@ -5384,6 +5390,7 @@ addEventListener('pointermove',e=>{
 },true);
 addEventListener('pointerup',e=>{ if(editing&&e.pointerId===editing.pid){ editing.id=null; } },true);
 function applySettings(){
+  if(started&&diff!==settings.diff){ diff=settings.diff; toast('Dificultad: '+DNAME[diff]+'.'); }
   applyBtnLayout();
   renderer.setPixelRatio(Math.min(devicePixelRatio||1,[1,1.5,2][settings.quality]||1.5)); resize();
   applyVolumes();
@@ -5394,7 +5401,7 @@ function applySettings(){
   }
   try{ localStorage.setItem(SET_KEY,JSON.stringify(settings)); }catch(_){}
 }
-[['s_sens','sens','n'],['s_pad','padSens','n'],['s_vol','vol','n'],['s_mus','music','n'],['s_sfx','sfx','n'],['s_dist','dist','n'],['s_q','quality','n'],['s_fps','fps','n'],['s_inv','invertY','b'],['s_show','showFps','b'],['s_cmp','compass','b'],['s_goal','goals','b'],['s_bsc','btnScale','n']].forEach(q=>{
+[['s_sens','sens','n'],['s_pad','padSens','n'],['s_vol','vol','n'],['s_mus','music','n'],['s_sfx','sfx','n'],['s_dist','dist','n'],['s_q','quality','n'],['s_fps','fps','n'],['s_diff','diff','n'],['s_inv','invertY','b'],['s_show','showFps','b'],['s_cmp','compass','b'],['s_goal','goals','b'],['s_bsc','btnScale','n']].forEach(q=>{
   const el=$(q[0]);
   if(q[2]==='b') el.checked=settings[q[1]]; else el.value=settings[q[1]];
   el.addEventListener(q[2]==='b'||el.tagName==='SELECT'?'change':'input',()=>{ settings[q[1]]=q[2]==='b'?!!el.checked:parseFloat(el.value); applySettings(); });
