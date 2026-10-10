@@ -233,6 +233,18 @@ body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width
 .ov.on{display:flex}
 .skTop{position:sticky;top:-14px;margin:-14px -18px 0;padding:12px 18px 6px;display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(22,36,40,.99);z-index:2}
 .skTop h2{margin:0}
+#bkX{flex:none;width:40px;height:40px;border-radius:8px;border:2px solid var(--line);background:rgba(255,255,255,.08);color:inherit;font-size:20px;line-height:1;cursor:pointer}
+.bkrow{display:flex;gap:10px;padding:9px 0;border-top:1px solid rgba(236,244,230,.12);align-items:flex-start}
+.bkrow.unk{opacity:.5}
+.bkic{flex:none;width:34px;height:34px;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.35);border-radius:6px;font-size:18px}
+.bkic img{width:24px;height:24px;image-rendering:pixelated}
+.bktx{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;font-size:13px;line-height:1.4}
+.bktx b{font-size:14px}
+.bktx span{opacity:.85;font-size:12.5px}
+.bkin{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12px;opacity:.9}
+.bkin i{font-style:normal;display:inline-flex;align-items:center;gap:3px}
+.bkin img{width:16px;height:16px;image-rendering:pixelated}
+.bkdone{color:var(--moss);font-weight:700;font-size:12px}
 #skX{flex:none;width:40px;height:40px;border-radius:8px;border:2px solid var(--line);background:rgba(255,255,255,.08);color:inherit;font-size:20px;line-height:1;cursor:pointer}
 .panel{background:rgba(22,36,40,.97);border:2px solid var(--line);border-radius:10px;padding:14px 18px;width:min(430px,100%);max-height:100%;overflow-y:auto;touch-action:pan-y}
 .panel h2{margin:0 0 6px;font-size:20px}
@@ -284,7 +296,7 @@ body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width
 
 <div id="inv"><div id="invPanel">
   <div id="charCol"><div class="ptitle">Tu personaje</div><canvas id="charCv" aria-label="Vista de tu personaje con la armadura y el objeto en la mano"></canvas><div id="armorRow"></div><span id="armorPct"></span></div>
-  <div id="invLeft"><div class="ptitle prow">Mochila <span><button id="skBtn" class="mini">Desbloqueos</button> <button id="sortBtn" class="mini">Ordenar</button></span></div><div id="grid"></div><div id="invTip">Arrastra un objeto con el dedo para moverlo; tócalo para ver qué es. La fila de abajo es la barra rápida. Suelta armadura sobre tu personaje para ponértela.</div></div>
+  <div id="invLeft"><div class="ptitle prow">Mochila <span><button id="bkBtn" class="mini">Libro</button> <button id="skBtn" class="mini">Desbloqueos</button> <button id="sortBtn" class="mini">Ordenar</button></span></div><div id="grid"></div><div id="invTip">Arrastra un objeto con el dedo para moverlo; tócalo para ver qué es. La fila de abajo es la barra rápida. Suelta armadura sobre tu personaje para ponértela.</div></div>
   <div id="invRight"><div class="ptitle" id="recTitle">Fabricar</div><div id="recipes"></div><div id="chestGrid"></div></div>
   <button id="invClose" aria-label="Cerrar mochila">✕</button>
 </div></div>
@@ -324,6 +336,7 @@ body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width
   <h2>Pausa</h2>
   <button id="pResume" class="mbtn pri">Seguir jugando</button>
   <button id="pSk" class="mbtn">Desbloqueos</button>
+  <button id="pBook" class="mbtn">Libro de Tesela</button>
   <button id="pSet" class="mbtn">Ajustes</button>
   <button id="pCtl" class="mbtn">Controles</button>
   <button id="pSave" class="mbtn">Guardar partida</button>
@@ -346,6 +359,13 @@ body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width
   <button id="slotsDone" class="mbtn">Volver</button>
 </div></div>
 
+<div id="book" class="ov"><div class="panel wide">
+  <div class="skTop"><h2>Libro de Tesela</h2><button id="bkX" aria-label="Cerrar">✕</button></div>
+  <div class="tabs" role="tablist"><button id="bkT0" class="tab" role="tab">Recetas</button><button id="bkT1" class="tab" role="tab">Animales</button><button id="bkT2" class="tab" role="tab">Jefes</button></div>
+  <p id="bkHead" class="note"></p>
+  <div id="bkList"></div>
+  <button id="bkDone" class="mbtn pri">Volver</button>
+</div></div>
 <div id="skills" class="ov"><div class="panel wide">
   <div class="skTop"><h2>Desbloqueos</h2><button id="skX" aria-label="Cerrar">✕</button></div>
   <p id="skHead" class="note"></p>
@@ -381,6 +401,7 @@ body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width
     <tr><th>Mochila</th><td><kbd>E</kbd></td></tr>
     <tr><th>Mapa</th><td><kbd>M</kbd></td></tr>
     <tr><th>Desbloqueos</th><td><kbd>U</kbd></td></tr>
+    <tr><th>Libro de Tesela</th><td><kbd>L</kbd></td></tr>
     <tr><th>Descanso</th><td>Quédate quieto unos segundos junto a una hoguera, o a cubierto cerca de una cama o una luz, y quedarás Descansado: recuperas vida el doble de rápido y ganas un 50 % más de experiencia. Cuantos más muebles distintos tengas cerca, más dura.</td></tr>
     <tr><th>Arcos y doma</th><td>Con un arco o una honda en la mano, el clic derecho dispara. <kbd>R</kbd> cambia entre flechas normales y tranquilizantes. Duerme a un lobo con tranquilizantes y dale carne hasta llenar la barra de doma; si se despierta, pierdes la doma. Los ciervos se domestican dándoles bayas o manzanas: si huyen, atúrdelos antes con la honda.</td></tr>
     <tr><th>Controles</th><td><kbd>H</kbd></td></tr>
@@ -1446,12 +1467,13 @@ let jumpHeld=false, selected=0, started=false;
 addEventListener('keydown',e=>{
   if(!started&&e.code==='Escape'){ closeCtl(); $('set').classList.remove('on'); $('slots').classList.remove('on'); return; }
   if(!started||e.target.id==='seed') return;
-  if(e.code==='Escape'){ if($('skills').classList.contains('on')) closeSkills(); else if($('ctl').classList.contains('on')) closeCtl(); else if($('set').classList.contains('on')) $('set').classList.remove('on'); else if(mapOpen) closeMap(); else if(invOpen) closeInv(); else togglePause(); return; }
+  if(e.code==='Escape'){ if($('book').classList.contains('on')) closeBook(); else if($('skills').classList.contains('on')) closeSkills(); else if($('ctl').classList.contains('on')) closeCtl(); else if($('set').classList.contains('on')) $('set').classList.remove('on'); else if(mapOpen) closeMap(); else if(invOpen) closeInv(); else togglePause(); return; }
   keys[e.code]=true; refreshKeys();
   if(e.code.startsWith('Digit')){ const n=+e.code.slice(5)-1; if(n>=0&&n<9) selectSlot(n); }
   if(e.code==='KeyE') toggleInv();
   if(e.code==='KeyR') cycleAmmo();
   if(e.code==='KeyM'){ if(mapOpen) closeMap(); else openMap(); }
+  if(e.code==='KeyL'&&started&&!paused){ if($('book').classList.contains('on')) closeBook(); else openBook(); }
   if(e.code==='KeyU'){ if($('skills').classList.contains('on')) closeSkills(); else openSkills(); }
   if(e.code==='KeyH'){ if($('ctl').classList.contains('on')) closeCtl(); else { if(!paused) openPause(); openCtl(); } }
   if(e.code==='Space') e.preventDefault();
@@ -1963,7 +1985,7 @@ function renderInv(){
     box.appendChild(w);
   });
 }
-function invChanged(){ renderHotbar(); if(invOpen) renderInv(); if(statsReady) renderStats(); }
+function invChanged(){ try{ for(const q of inv) if(q) bookItems.add(q.id); for(const q of armor) if(q) bookItems.add(q.id); }catch(_){} renderHotbar(); if(invOpen) renderInv(); if(statsReady) renderStats(); }
 var statsReady=false;
 let invStation=0;
 function openInv(station){ if(!started) return; invStation=station||0; invOpen=true; invPick=null; scanStations(); if(invStation&&invStation!==CAULDRON) nearSt[invStation]=true; $('inv').classList.add('on'); renderInv(); sfx('tick'); try{ if(document.exitPointerLock) document.exitPointerLock(); }catch(_){} }
@@ -1973,6 +1995,61 @@ $('bInv').addEventListener('pointerdown',e=>{ e.preventDefault(); toggleInv(); }
 $('invClose').addEventListener('click',closeInv);
 $('sortBtn').addEventListener('click',sortInv);
 $('skBtn').addEventListener('click',()=>openSkills());
+/* ---------- LIBRO: recetas, animales y jefes que se van apuntando según los descubres ---------- */
+var bookItems=new Set(), bookAnimals=new Set(), bookBosses=new Set(), bookTab=0, bookNew=false;
+function bookBoss(k){ if(!bookBosses.has(k)){ bookBosses.add(k); bookNew=true; toast('Nueva entrada en el libro: '+(BOSSNAME[k]||k)+'.'); } }
+function bookAnimal(k){ if(!bookAnimals.has(k)){ bookAnimals.add(k); bookNew=true; } }
+const STNAME={[WORKBENCH]:'Mesa de trabajo',[FURNACE]:'Horno',[CAULDRON]:'Caldero, con una hoguera al lado'};
+const ANBOOK=[
+  ['deer','Ciervo','Bosque, llanura y tundra. Huye en cuanto te acercas.','Doma tranquila: dale bayas o manzanas hasta que se fíe. Si huye, atúrdelo antes con la honda.','Carne cruda y cuero.'],
+  ['boar','Jabalí','Llanura y bosque. Huye si le golpeas.','No se puede domesticar.','Carne cruda y cuero.'],
+  ['cow','Vaca y toro','Bosque y llanura. Las vacas tienen ubre rosa; los toros son oscuros y con cuernos.','Con trigo en la mano te siguen. Dale trigo a una vaca y a un toro para que tengan un ternero. Ordeña a la vaca con un cubo.','Carne cruda, cuero y leche.'],
+  ['dog','Perro','Bosque y tundra.','Usa carne cruda sobre él; puede costar varios intentos. Te sigue, pelea contigo, sube de nivel y puede llevar armadura canina.','Nada: es tu compañero.'],
+  ['wolf','Lobo','Bosque y tundra. Tranquilo hasta que le atacas; entonces muerde.','Duérmelo con flechas tranquilizantes y dale carne hasta llenar la barra de doma. Si se despierta antes, pierdes la doma. Puede llevar armadura canina.','Carne cruda y cuero.'],
+  ['bird','Pájaro','Vuela sobre todos los biomas.','No se puede domesticar.','Carne cruda.']];
+const BOSSBOOK=[
+  {k:'boss',where:'Al fondo de una cripta. Encontrarás el mapa en el cofre de una mazmorra; la brújula la marca con ☠.',how:'Golpea el suelo a su alrededor, lanza orbes y con media vida invoca sombras.',weak:'Aléjate cuando levante los brazos.',drop:'Núcleo sombrío: Espada y Arco del Guardián.'},
+  {k:'boarKing',where:'Portal dimensional de la llanura (🐗).',how:'Escarba y embiste en línea recta; cornea de cerca. Con media vida llama a su manada y da pisotones.',weak:'Esquiva la embestida para que se estrelle contra una columna: aturdido recibe más daño.',drop:'Colmillos: Lanza del Rey jabalí.'},
+  {k:'ent',where:'Portal dimensional del bosque (🌳).',how:'Barre con sus brazos y hace salir raíces bajo tus pies. Con media vida llama a dos retoños que le curan.',weak:'El hacha le hace un 50 % más de daño. Mata primero a los retoños.',drop:'Corazón de savia: Arco de madera viva.'},
+  {k:'scorp',where:'Portal dimensional del desierto (🦂).',how:'Pinzas y aguijón venenoso. Se entierra y sale debajo de ti. Con media vida escupe veneno.',weak:'Cuando se entierre, muévete. La leche cura el veneno.',drop:'Glándula de veneno: Dagas del escorpión.'},
+  {k:'golem',where:'Portal dimensional de la tundra (❄️).',how:'Golpea el suelo y te ralentiza; lanza bloques de hielo. Con media vida se cubre de una coraza.',weak:'El pico le hace un 50 % más de daño y rompe antes la coraza. Al romperla queda aturdido.',drop:'Núcleo helado: Martillo del Gólem.'},
+  {k:'final',where:'El portal oscuro junto al punto de inicio. Se enciende con los cuatro sellos.',how:'Flota y pelea en tres fases con los ataques de los cuatro jefes. En la última lanza sus teselas contra ti.',weak:'Haz que se estrelle contra las columnas. En la última fase su núcleo recibe más daño.',drop:'Espada de teselas.'}];
+function bkIcon(id){ return '<img alt="" src="'+icon(id).url+'">'; }
+function renderBook(){
+  for(let i=0;i<3;i++) $('bkT'+i).classList.toggle('on',bookTab===i);
+  const L=$('bkList'); L.innerHTML=''; const row=(cls,ic,html)=>{ const r=document.createElement('div'); r.className='bkrow'+(cls?' '+cls:''); r.innerHTML='<div class="bkic">'+ic+'</div><div class="bktx">'+html+'</div>'; L.appendChild(r); };
+  const esc=t=>String(t).replace(/</g,'&lt;');
+  if(bookTab===0){
+    const seen=new Map(); for(const r of RECIPES){ if(seen.has(r.out)) continue; if(bookItems.has(r.out)||r.inp.some(q=>bookItems.has(q[0]))) seen.set(r.out,r); }
+    const total=new Set(RECIPES.map(r=>r.out)).size;
+    $('bkHead').textContent='Has descubierto '+seen.size+' de '+total+' recetas. Aparece una nueva cada vez que consigues algo que sirve para fabricarla.';
+    for(const r of seen.values()){ const d=BLOCKS[r.out], lk=r.lock&&!unlocked.has(r.lock), u=lk?UNLOCKS.find(q=>q.id===r.lock):null;
+      row('',bkIcon(r.out),'<b>'+esc(d.name)+(r.n>1?' ×'+r.n:'')+'</b><div class="bkin">'+r.inp.map(q=>'<i>'+(bookItems.has(q[0])?bkIcon(q[0])+esc(BLOCKS[q[0]].name):'???')+' ×'+q[1]+'</i>').join('')+'</div><span>'+(r.st?STNAME[r.st]:'A mano, en la mochila')+(lk?' · Necesitas desbloquear «'+esc(u?u.t.replace('Receta: ',''):r.lock)+'»':'')+'</span>'); }
+  }else if(bookTab===1){
+    $('bkHead').textContent='Has visto '+ANBOOK.filter(a=>bookAnimals.has(a[0])).length+' de '+ANBOOK.length+' animales. Se apuntan al verlos de cerca.';
+    for(const a of ANBOOK){ if(!bookAnimals.has(a[0])){ row('unk','?','<b>???</b><span>Aún no lo has visto.</span>'); continue; }
+      row('',{deer:'🦌',boar:'🐗',cow:'🐄',dog:'🐕',wolf:'🐺',bird:'🐦'}[a[0]],'<b>'+a[1]+'</b><span>'+a[2]+'</span><span><b>Doma:</b> '+a[3]+'</span><span><b>Suelta:</b> '+a[4]+'</span>'); }
+  }else{
+    const beaten=k=>k==='boss'?flags.boss:seals.has((ARENAS.find(q=>q.boss===k)||{}).seal);
+    $('bkHead').textContent='Has encontrado '+BOSSBOOK.filter(b=>bookBosses.has(b.k)).length+' de '+BOSSBOOK.length+' jefes. Se apuntan al ver su portal o su cripta, y al vencerlos aprendes su punto débil.';
+    for(const b of BOSSBOOK){ const em=b.k==='boss'?'☠':(ARENAS.find(q=>q.boss===b.k)||{}).em;
+      if(!bookBosses.has(b.k)){ row('unk','?','<b>???</b><span>'+(b.k==='final'?'Dicen que espera tras un portal oscuro, junto al punto de inicio.':'Aún no lo has encontrado.')+'</span>'); continue; }
+      const w=beaten(b.k);
+      row('',em,'<b>'+BOSSNAME[b.k]+'</b>'+(w?'<span class="bkdone">✓ Derrotado</span>':'')+'<span><b>Dónde:</b> '+b.where+'</span><span><b>Ataques:</b> '+b.how+'</span><span><b>Punto débil:</b> '+(w?b.weak:'Lo descubrirás al vencerle.')+'</span><span><b>Premio:</b> '+(w?b.drop:'???')+'</span>'); }
+  }
+}
+function openBook(){ if(!started) return; bookNew=false; $('bkBtn').classList.remove('pri'); renderBook(); $('book').classList.add('on'); $('book').querySelector('.panel').scrollTop=0; sfx('tick'); try{ if(document.exitPointerLock) document.exitPointerLock(); }catch(_){} }
+function closeBook(){ $('book').classList.remove('on'); }
+$('bkBtn').addEventListener('click',openBook); $('pBook').addEventListener('click',openBook);
+$('bkX').addEventListener('click',closeBook); $('bkDone').addEventListener('click',closeBook);
+$('book').addEventListener('pointerdown',e=>{ if(e.target===$('book')) closeBook(); });
+for(let i=0;i<3;i++) $('bkT'+i).addEventListener('click',()=>{ bookTab=i; renderBook(); $('book').querySelector('.panel').scrollTop=0; });
+let bookT=0;
+function updateBook(dt){ bookT-=dt; if(bookT>0||!player) return; bookT=1;
+  for(const a of animals) if(Math.hypot(a.x-player.x,a.z-player.z)<14) bookAnimal(a.kind);
+  for(const e of enemies) if(e.boss&&Math.hypot(e.x-player.x,e.z-player.z)<30) bookBoss(e.kind);
+  if(cryptPt) bookBoss('boss');
+  if(bookNew&&$('bkBtn')) $('bkBtn').classList.add('pri'); }
 selectSlot(0);
 
 /* ============================================================
@@ -2678,7 +2755,7 @@ function useBed(hit){
 
 /* ---------- FARMING: el trigo crece por etapas mientras juegas ---------- */
 const crops=new Map(); let gameT=0, cropT=0;
-const flags={crafted:new Set(),night:false,base:false,loot:false,plant:false,tamed:false,dloot:false,boss:false};
+const flags={crafted:new Set(),night:false,base:false,loot:false,plant:false,tamed:false,dloot:false,boss:false,portal:false,final:false};
 const CROP_STAGE=70;   // segundos por etapa
 function updateCrops(dt){
   cropT+=dt; if(cropT<1) return; cropT=0;
@@ -4247,6 +4324,7 @@ function updatePortals(dt){
       const st=world.gen.structAt(pcx+dx,pcz+dz); if(!st||st.type!=='portal'||portalFx.has(st.key)) continue;
       const p=makePortalFx(ARENAS[st.arena],3,5,st.arena!==4||sealCount()>=4); p.g.position.set(st.px,st.h+3.5,st.pz); p.st=st; portalFx.set(st.key,p);
     }
+    portalFx.forEach(q=>{ if(Math.hypot(q.st.px-player.x,q.st.pz-player.z)<20&&q.st.arena<4){ flags.portal=true; bookBoss(ARENAS[q.st.arena].boss); } });
     const fp=portalFx.get('pf'); if(fp) fp.U.uOn.value=sealCount()>=4?1:0;
   }
   if(dead||portalCd>0) return;
@@ -4257,7 +4335,7 @@ function updateArena(dt){
   if(i!==arenaIdx){
     if(arenaIdx>=0){ if(arenaExit){ scene.remove(arenaExit.g); arenaExit=null; } for(const e of [...enemies]) if(e.arenaMob) removeEntity(e); arenaBoss=null; for(const r of rootFx) if(r.m) scene.remove(r.m); rootFx.length=0; for(const c of clouds) c.visible=true; }
     arenaIdx=i;
-    if(i>=0){ arenaWon=false; arenaSpawnT=2.2; arenaBoss=null; const ax=AR_X+i*256;
+    if(i>=0){ if(i===4) flags.final=true; arenaWon=false; arenaSpawnT=2.2; arenaBoss=null; const ax=AR_X+i*256;
       arenaExit=makePortalFx({a:[.85,.85,.95],b:[1,1,1]},3,4,true); arenaExit.g.position.set(ax+.5,AR_FY+3,AR_Z-12.5);
       for(const e of [...enemies]) if(!e.arenaMob) removeEntity(e); muteWeather(); }
   }
@@ -4777,7 +4855,20 @@ const GOALS=[
   {t:'Fabrica una herramienta de cristal', ok:()=>[PICK_CRYSTAL,AXE_CRYSTAL,SWORD_CRYSTAL].some(hasIt)},
   {t:'Domestica un perro con carne cruda', ok:()=>flags.tamed||animals.some(a=>a.tame)},
   {t:'Abre un cofre de una mazmorra', ok:()=>flags.dloot},
-  {t:'Derrota al Guardián sombrío de una cripta', ok:()=>flags.boss}
+  {t:'Derrota al Guardián sombrío de una cripta', ok:()=>flags.boss},
+  // segunda parte: preparar el viaje y vencer a los jefes
+  {t:'Fabrica un arco de madera', ok:()=>[BOW_W,BOW_FE,BOW_CR,BOW_SH].some(hasIt)},
+  {t:'Construye una hoguera y descansa junto a ella', ok:()=>rested>0},
+  {t:'Prepara una poción en el caldero', ok:()=>[P_HEAL,P_REGEN,P_STR,P_SPEED,P_NIGHT,P_IRON].some(hasIt)},
+  {t:'Lleva casco, peto y botas a la vez', ok:()=>armor.every(Boolean)},
+  {t:'Llega al nivel 5: la brújula te marcará un portal', ok:()=>plvl>=5},
+  {t:'Encuentra un portal dimensional', ok:()=>flags.portal},
+  {t:'Derrota a tu primer jefe de bioma', ok:()=>sealCount()>=1},
+  {t:'Fabrica el arma de un jefe en la mesa de trabajo', ok:()=>[SPEAR_TUSK,BOW_LIVE,DAG_VEN,HAMMER_ICE].some(hasIt)},
+  {t:'Consigue dos sellos de jefe', p:()=>sealCount(), n:2},
+  {t:'Consigue los cuatro sellos de jefe', p:()=>sealCount(), n:4},
+  {t:'Entra en el portal oscuro junto al punto de inicio', ok:()=>flags.final},
+  {t:'Derrota al Mosaico Roto', ok:()=>seals.has('final')}
 ];
 function goalDone(g){ return g.ok?g.ok():(g.p()>=g.n||(g.alt&&g.alt())); }
 function updateGoals(dt,silent){
@@ -4785,7 +4876,7 @@ function updateGoals(dt,silent){
   if(settings.goals===false||goalIdx>=GOALS.length){ el.style.display='none'; return; }
   goalT-=dt; if(goalT>0&&!silent) return; goalT=.5;
   while(goalIdx<GOALS.length&&goalDone(GOALS[goalIdx])){
-    if(!silent){ toast('Objetivo cumplido: '+GOALS[goalIdx].t+'.'); sfx('eat'); }
+    if(!silent){ toast('Objetivo cumplido: '+GOALS[goalIdx].t+'.'); sfx('tame'); }
     goalIdx++;
   }
   if(goalIdx>=GOALS.length){ el.style.display='none'; if(!silent) toast('Has completado todos los objetivos. El mundo es tuyo.'); return; }
@@ -4805,9 +4896,9 @@ function saveGame(){
     const ch={}; chests.forEach((c,k)=>{ if(c.some(Boolean)) ch[k]=c.map(s=>s?(s.d?[s.id,s.n,s.d]:[s.id,s.n]):0); });
     const ed={}; world.edits.forEach((m,k)=>{ const a=[]; m.forEach((id,idx)=>{ a.push(idx,id); }); ed[k]=a; });
     localStorage.setItem('tesela-last',String(curSlot));
-    localStorage.setItem(slotKey(curSlot),JSON.stringify({v:1,seed:curSeed,at:Date.now(),goal:goalIdx,fl:{c:[...flags.crafted],n:flags.night,l:flags.loot,p:flags.plant,t:flags.tamed,d:flags.dloot,b:flags.boss},
+    localStorage.setItem(slotKey(curSlot),JSON.stringify({v:1,seed:curSeed,at:Date.now(),goal:goalIdx,fl:{c:[...flags.crafted],n:flags.night,l:flags.loot,p:flags.plant,t:flags.tamed,d:flags.dloot,b:flags.boss,po:flags.portal,fi:flags.final},
       p:[+player.x.toFixed(3),+(player.y+.01).toFixed(3),+player.z.toFixed(3),+player.yaw.toFixed(3),+player.pitch.toFixed(3)],
-      inv:inv.map(s=>s?(s.d?[s.id,s.n,s.d]:[s.id,s.n]):0),sel:selected,dayT:+dayT.toFixed(4),hp,fd:hunger,pl:plvl,px:+pxp.toFixed(1),un:[...unlocked],sp:spawnPt,base,pets:animals.filter(a=>a.tame||a.owned).map(a=>({k:a.kind,x:+a.x.toFixed(2),y:+a.y.toFixed(2),z:+a.z.toFixed(2),hp:+a.hp.toFixed(1),sex:a.sex,baby:!!a.baby,grow:a.baby?Math.round(a.grow):0,tame:!!a.tame,owned:!!a.owned,lvl:a.lvl||0,xp:a.xp||0,sit:!!a.sit,bc:Math.round(a.breedCd||0),arm:a.arm||0})),looted:[...looted],rs:Math.round(rested),efx:effects,wk:[...woken],sl:[...slain],cp:cryptPt,se:[...seals],lp:lairPt,ar:arenaRet,ex:exPack(),gt:+gameT.toFixed(1),crops:[...crops].map(c=>[c[0],+c[1].toFixed(1)]),arm:armor.map(s=>s?[s.id,s.d||0]:0),chests:ch,edits:ed}));
+      inv:inv.map(s=>s?(s.d?[s.id,s.n,s.d]:[s.id,s.n]):0),sel:selected,dayT:+dayT.toFixed(4),hp,fd:hunger,pl:plvl,px:+pxp.toFixed(1),un:[...unlocked],sp:spawnPt,base,pets:animals.filter(a=>a.tame||a.owned).map(a=>({k:a.kind,x:+a.x.toFixed(2),y:+a.y.toFixed(2),z:+a.z.toFixed(2),hp:+a.hp.toFixed(1),sex:a.sex,baby:!!a.baby,grow:a.baby?Math.round(a.grow):0,tame:!!a.tame,owned:!!a.owned,lvl:a.lvl||0,xp:a.xp||0,sit:!!a.sit,bc:Math.round(a.breedCd||0),arm:a.arm||0})),looted:[...looted],rs:Math.round(rested),efx:effects,wk:[...woken],sl:[...slain],cp:cryptPt,se:[...seals],lp:lairPt,ar:arenaRet,ex:exPack(),bk:{i:[...bookItems],a:[...bookAnimals],b:[...bookBosses]},gt:+gameT.toFixed(1),crops:[...crops].map(c=>[c[0],+c[1].toFixed(1)]),arm:armor.map(s=>s?[s.id,s.d||0]:0),chests:ch,edits:ed}));
     lastSaveAt=Date.now(); return true;
   }catch(_){ return false; }
 }
@@ -4821,8 +4912,8 @@ function startGame(seed,save,slot){
   if(world) world.chunks.forEach(ch=>world.disposeMesh(ch));
   while(animals.length) removeEntity(animals[0]); while(enemies.length) removeEntity(enemies[0]);
   while(shots.length){ scene.remove(shots[0].m); shots.shift(); }
-  decayQ.length=0; chests.clear(); paused=false; crops.clear(); looted.clear(); woken.clear(); slain.clear(); seals.clear(); lairPt=null; lairTry=0; arenaRet=null; exUnpack(null); rested=0; restT=0; curZone=-1; for(const k in effects) effects[k]=0; cryptPt=null;
-  goalIdx=0; goalTxt=''; flags.crafted.clear(); flags.night=flags.loot=flags.plant=flags.tamed=flags.dloot=flags.boss=false; flowQ.length=0; gameT=0;
+  decayQ.length=0; chests.clear(); paused=false; crops.clear(); looted.clear(); woken.clear(); slain.clear(); seals.clear(); lairPt=null; lairTry=0; arenaRet=null; exUnpack(null); bookItems.clear(); bookAnimals.clear(); bookBosses.clear(); bookNew=false; rested=0; restT=0; curZone=-1; for(const k in effects) effects[k]=0; cryptPt=null;
+  goalIdx=0; goalTxt=''; flags.crafted.clear(); flags.night=flags.loot=flags.plant=flags.tamed=flags.dloot=flags.boss=flags.portal=flags.final=false; flowQ.length=0; gameT=0;
   if(save&&save.chests) for(const k in save.chests) chests.set(k,save.chests[k].map(s=>(s&&BLOCKS[s[0]])?{id:s[0],n:s[1],d:s[2]||0}:null));
   const R=settings.dist;
   world=new World(scene,seed,atlasTex,R,isTouch?1:2);
@@ -4849,11 +4940,12 @@ function startGame(seed,save,slot){
     if(save.wk) for(const k of save.wk) woken.add(k);
     if(save.sl) for(const k of save.sl) slain.add(k);
     if(save.se) for(const k of save.se) seals.add(k);
-    lairPt=save.lp&&save.lp.length===4?save.lp:null; arenaRet=save.ar||null; exUnpack(save.ex);
+    lairPt=save.lp&&save.lp.length===4?save.lp:null; arenaRet=save.ar||null; exUnpack(save.ex); if(save.bk){ for(const k of save.bk.i||[]) bookItems.add(k); for(const k of save.bk.a||[]) bookAnimals.add(k); for(const k of save.bk.b||[]) bookBosses.add(k); }
+    for(const q of ['llanura','bosque','desierto','tundra','final']) if(seals.has(q)) bookBosses.add(ARENAS.find(a=>a.seal===q).boss); if(flags.boss) bookBosses.add('boss');
     rested=save.rs||0;
     if(save.efx) for(const k in effects) effects[k]=+save.efx[k]||0;
     cryptPt=save.cp||null;
-    if(save.fl){ for(const c of save.fl.c||[]) flags.crafted.add(c); flags.night=!!save.fl.n; flags.loot=!!save.fl.l; flags.plant=!!save.fl.p; flags.tamed=!!save.fl.t; flags.dloot=!!save.fl.d; flags.boss=!!save.fl.b; }
+    if(save.fl){ for(const c of save.fl.c||[]) flags.crafted.add(c); flags.night=!!save.fl.n; flags.loot=!!save.fl.l; flags.plant=!!save.fl.p; flags.tamed=!!save.fl.t; flags.dloot=!!save.fl.d; flags.boss=!!save.fl.b; flags.portal=!!save.fl.po; flags.final=!!save.fl.fi; }
     goalIdx=save.goal||0;
     if(save.gt) gameT=save.gt; if(save.crops) for(const c of save.crops) crops.set(c[0],c[1]);
     if(save.pl>0){ plvl=Math.min(MAX_LVL,save.pl); pxp=save.px||0; }
@@ -5083,7 +5175,7 @@ addEventListener('gamepadconnected',()=>{ toast('Mando conectado. Tienes sus con
 addEventListener('gamepaddisconnected',()=>{ padActive=false; padIdx=-1; document.body.classList.remove('padmode'); inp.px=inp.py=0; inp.prun=false; });
 // qué ventana está delante (para moverse por ella con la cruceta)
 function activeUI(){
-  for(const id of ['bye','skills','ctl','set','slots']) if($(id).classList.contains('on')) return $(id);
+  for(const id of ['bye','book','skills','ctl','set','slots']) if($(id).classList.contains('on')) return $(id);
   if($('editBar').classList.contains('on')) return null;
   if(mapOpen) return $('map'); if(invOpen) return $('inv');
   if($('dead').classList.contains('on')) return $('dead');
@@ -5118,7 +5210,8 @@ function padAdjust(e,step){
   return false;
 }
 function padBack(){
-  if($('skills').classList.contains('on')) closeSkills();
+  if($('book').classList.contains('on')) closeBook();
+  else if($('skills').classList.contains('on')) closeSkills();
   else if($('ctl').classList.contains('on')) closeCtl();
   else if($('set').classList.contains('on')) $('set').classList.remove('on');
   else if($('slots').classList.contains('on')) $('slots').classList.remove('on');
@@ -5292,7 +5385,7 @@ function loop(now){
   updateCompass();
   updateAnimals(dt);
   updateEnemies(dt);
-  updatePortals(dt); updateArena(dt); updateExplore(dt);
+  updatePortals(dt); updateArena(dt); updateExplore(dt); updateBook(dt);
   updateShadows();
   updateAmbient(dt);
   updateRest(dt);
