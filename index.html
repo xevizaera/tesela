@@ -4674,17 +4674,43 @@ function mapColumn(x,z){
   if(hh>=40) return [STONE,hh,0];
   return [bio===2?SAND:bio===3?SNOW:GRASS,hh,0];
 }
+// NIEBLA DEL MAPA: el mundo empieza a oscuras y se descubre a tu alrededor al andar
+// celdas de 4x4 bloques; cada chunk guarda sus 16 celdas en un número de 16 bits
+const EXC=4, EXR=48, explored=new Map(); let exLX=1e9, exLZ=1e9, exT=0;
+function exMark(x,z){ const cx=x>>4, cz=z>>4, k=cx+','+cz, bit=1<<(((x&15)>>2)+((z&15)>>2)*4); const m=explored.get(k)||0; if(!(m&bit)) explored.set(k,m|bit); }
+function exHas(x,z){ const m=explored.get((x>>4)+','+(z>>4)); return !!m&&!!(m&(1<<(((x&15)>>2)+((z&15)>>2)*4))); }
+function revealAround(px,pz,r){
+  const r2=r*r; for(let dz=-r;dz<=r;dz+=EXC)for(let dx=-r;dx<=r;dx+=EXC) if(dx*dx+dz*dz<=r2) exMark(Math.floor(px+dx),Math.floor(pz+dz));
+}
+function updateExplore(dt){
+  exT-=dt; if(exT>0||!player||arenaIdx>=0) return; exT=.4;
+  if(Math.abs(player.x-exLX)<3&&Math.abs(player.z-exLZ)<3) return;
+  exLX=player.x; exLZ=player.z; revealAround(player.x,player.z,EXR);
+}
+function exPack(){ const a=[]; explored.forEach((m,k)=>{ const q=k.split(','); a.push(+q[0],+q[1],m); }); return a; }
+function exUnpack(a){ explored.clear(); exLX=exLZ=1e9; if(Array.isArray(a)) for(let i=0;i+2<a.length;i+=3) explored.set(a[i]+','+a[i+1],a[i+2]); }
 function drawMap(){
   const cv=$('mapCv'), g=cv.getContext('2d'), N=256, img=g.createImageData(N,N), d=img.data, st=MAP_STEPS[mapZoom];
   const px=Math.floor(player.x), pz=Math.floor(player.z), hs=new Float32Array(N);
+  // rejilla de celdas descubiertas que se ven en el mapa, para suavizar el borde de la niebla
+  const x0=Math.floor((px-N/2*st)/EXC)-1, z0=Math.floor((pz-N/2*st)/EXC)-1, GW=Math.ceil(N*st/EXC)+4, grid=new Float32Array(GW*GW);
+  for(let j=0;j<GW;j++)for(let i=0;i<GW;i++) grid[j*GW+i]=exHas((x0+i)*EXC,(z0+j)*EXC)?1:0;
+  const seen=(wx,wz)=>{ const fx=wx/EXC-x0-.5, fz=wz/EXC-z0-.5, ix=Math.floor(fx), iz=Math.floor(fz), tx=fx-ix, tz=fz-iz;
+    if(ix<0||iz<0||ix+1>=GW||iz+1>=GW) return 0;
+    const a=grid[iz*GW+ix], b=grid[iz*GW+ix+1], c=grid[(iz+1)*GW+ix], e=grid[(iz+1)*GW+ix+1];
+    return (a*(1-tx)+b*tx)*(1-tz)+(c*(1-tx)+e*tx)*tz; };
   for(let j=0;j<N;j++){
     const wz=Math.floor(pz+(j-N/2)*st);
     for(let i=0;i<N;i++){
-      const wx=Math.floor(px+(i-N/2)*st), c=mapColumn(wx,wz), col=MAP_COL[c[0]]||[128,132,138];
+      const wx=Math.floor(px+(i-N/2)*st), p=(j*N+i)*4;
+      let v=seen(wx+.5,wz+.5); v=v<.15?0:v>.85?1:(v-.15)/.7;
+      const fn=hash2(wx>>2,wz>>2,5)*10;                                 // niebla con un poco de grano
+      if(v<=0){ d[p]=18+fn; d[p+1]=28+fn; d[p+2]=33+fn; d[p+3]=255; hs[i]=0; continue; }
+      const c=mapColumn(wx,wz), col=MAP_COL[c[0]]||[128,132,138];
       // relieve: más claro si sube respecto al vecino de arriba
       let k=1+((c[1]-(j?hs[i]:c[1]))*.07); if(c[0]===WATER) k=1-Math.min(.45,c[2]*.05);
       k=k<.55?.55:k>1.35?1.35:k; hs[i]=c[1];
-      const p=(j*N+i)*4; d[p]=col[0]*k; d[p+1]=col[1]*k; d[p+2]=col[2]*k; d[p+3]=255;
+      d[p]=col[0]*k*v+(18+fn)*(1-v); d[p+1]=col[1]*k*v+(28+fn)*(1-v); d[p+2]=col[2]*k*v+(33+fn)*(1-v); d[p+3]=255;
     }
   }
   g.putImageData(img,0,0);
@@ -4710,7 +4736,7 @@ function dirName(dx,dz){
   return ['norte','noreste','este','sureste','sur','suroeste','oeste','noroeste'][Math.round(a/45)%8];
 }
 function updateMapText(){
-  $('mapPos').textContent='Estás en '+Math.floor(player.x)+', '+Math.floor(player.z)+' (altura '+Math.floor(player.y)+').';
+  $('mapPos').textContent='Estás en '+Math.floor(player.x)+', '+Math.floor(player.z)+' (altura '+Math.floor(player.y)+'). Lo oscuro es lo que aún no has explorado.';
   if(base){
     const dx=base[0]-player.x, dz=base[2]-player.z, dd=Math.round(Math.hypot(dx,dz));
     $('mapBase').textContent=dd<4?'Estás en tu base.':'Tu base está a '+dd+' bloques hacia el '+dirName(dx,dz)+'.';
@@ -4781,7 +4807,7 @@ function saveGame(){
     localStorage.setItem('tesela-last',String(curSlot));
     localStorage.setItem(slotKey(curSlot),JSON.stringify({v:1,seed:curSeed,at:Date.now(),goal:goalIdx,fl:{c:[...flags.crafted],n:flags.night,l:flags.loot,p:flags.plant,t:flags.tamed,d:flags.dloot,b:flags.boss},
       p:[+player.x.toFixed(3),+(player.y+.01).toFixed(3),+player.z.toFixed(3),+player.yaw.toFixed(3),+player.pitch.toFixed(3)],
-      inv:inv.map(s=>s?(s.d?[s.id,s.n,s.d]:[s.id,s.n]):0),sel:selected,dayT:+dayT.toFixed(4),hp,fd:hunger,pl:plvl,px:+pxp.toFixed(1),un:[...unlocked],sp:spawnPt,base,pets:animals.filter(a=>a.tame||a.owned).map(a=>({k:a.kind,x:+a.x.toFixed(2),y:+a.y.toFixed(2),z:+a.z.toFixed(2),hp:+a.hp.toFixed(1),sex:a.sex,baby:!!a.baby,grow:a.baby?Math.round(a.grow):0,tame:!!a.tame,owned:!!a.owned,lvl:a.lvl||0,xp:a.xp||0,sit:!!a.sit,bc:Math.round(a.breedCd||0),arm:a.arm||0})),looted:[...looted],rs:Math.round(rested),efx:effects,wk:[...woken],sl:[...slain],cp:cryptPt,se:[...seals],lp:lairPt,ar:arenaRet,gt:+gameT.toFixed(1),crops:[...crops].map(c=>[c[0],+c[1].toFixed(1)]),arm:armor.map(s=>s?[s.id,s.d||0]:0),chests:ch,edits:ed}));
+      inv:inv.map(s=>s?(s.d?[s.id,s.n,s.d]:[s.id,s.n]):0),sel:selected,dayT:+dayT.toFixed(4),hp,fd:hunger,pl:plvl,px:+pxp.toFixed(1),un:[...unlocked],sp:spawnPt,base,pets:animals.filter(a=>a.tame||a.owned).map(a=>({k:a.kind,x:+a.x.toFixed(2),y:+a.y.toFixed(2),z:+a.z.toFixed(2),hp:+a.hp.toFixed(1),sex:a.sex,baby:!!a.baby,grow:a.baby?Math.round(a.grow):0,tame:!!a.tame,owned:!!a.owned,lvl:a.lvl||0,xp:a.xp||0,sit:!!a.sit,bc:Math.round(a.breedCd||0),arm:a.arm||0})),looted:[...looted],rs:Math.round(rested),efx:effects,wk:[...woken],sl:[...slain],cp:cryptPt,se:[...seals],lp:lairPt,ar:arenaRet,ex:exPack(),gt:+gameT.toFixed(1),crops:[...crops].map(c=>[c[0],+c[1].toFixed(1)]),arm:armor.map(s=>s?[s.id,s.d||0]:0),chests:ch,edits:ed}));
     lastSaveAt=Date.now(); return true;
   }catch(_){ return false; }
 }
@@ -4795,7 +4821,7 @@ function startGame(seed,save,slot){
   if(world) world.chunks.forEach(ch=>world.disposeMesh(ch));
   while(animals.length) removeEntity(animals[0]); while(enemies.length) removeEntity(enemies[0]);
   while(shots.length){ scene.remove(shots[0].m); shots.shift(); }
-  decayQ.length=0; chests.clear(); paused=false; crops.clear(); looted.clear(); woken.clear(); slain.clear(); seals.clear(); lairPt=null; lairTry=0; arenaRet=null; rested=0; restT=0; curZone=-1; for(const k in effects) effects[k]=0; cryptPt=null;
+  decayQ.length=0; chests.clear(); paused=false; crops.clear(); looted.clear(); woken.clear(); slain.clear(); seals.clear(); lairPt=null; lairTry=0; arenaRet=null; exUnpack(null); rested=0; restT=0; curZone=-1; for(const k in effects) effects[k]=0; cryptPt=null;
   goalIdx=0; goalTxt=''; flags.crafted.clear(); flags.night=flags.loot=flags.plant=flags.tamed=flags.dloot=flags.boss=false; flowQ.length=0; gameT=0;
   if(save&&save.chests) for(const k in save.chests) chests.set(k,save.chests[k].map(s=>(s&&BLOCKS[s[0]])?{id:s[0],n:s[1],d:s[2]||0}:null));
   const R=settings.dist;
@@ -4823,7 +4849,7 @@ function startGame(seed,save,slot){
     if(save.wk) for(const k of save.wk) woken.add(k);
     if(save.sl) for(const k of save.sl) slain.add(k);
     if(save.se) for(const k of save.se) seals.add(k);
-    lairPt=save.lp&&save.lp.length===4?save.lp:null; arenaRet=save.ar||null;
+    lairPt=save.lp&&save.lp.length===4?save.lp:null; arenaRet=save.ar||null; exUnpack(save.ex);
     rested=save.rs||0;
     if(save.efx) for(const k in effects) effects[k]=+save.efx[k]||0;
     cryptPt=save.cp||null;
@@ -5266,7 +5292,7 @@ function loop(now){
   updateCompass();
   updateAnimals(dt);
   updateEnemies(dt);
-  updatePortals(dt); updateArena(dt);
+  updatePortals(dt); updateArena(dt); updateExplore(dt);
   updateShadows();
   updateAmbient(dt);
   updateRest(dt);
