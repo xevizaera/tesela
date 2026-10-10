@@ -2380,6 +2380,15 @@ const AU=(()=>{
     fl.type='lowpass'; fl.frequency.value=700; o.connect(fl); s.connect(fl); fl.connect(g); out(g,bus,0,.05); const e=env(g,t,.01,peak,dur); o.start(t); s.start(t); o.stop(e); s.stop(e); }
   function brass(notes,t,dur,peak,bus){ const fl=C.createBiquadFilter(), g=C.createGain(); fl.type='lowpass'; fl.Q.value=3; fl.frequency.setValueAtTime(300,t); fl.frequency.exponentialRampToValueAtTime(1800,t+.12); fl.frequency.exponentialRampToValueAtTime(600,t+dur);
     fl.connect(g); out(g,bus,0,.35); const e=env(g,t,.03,peak,dur); for(const n of notes){ const o=C.createOscillator(); o.type='sawtooth'; o.frequency.value=mtof(n); o.connect(fl); o.start(t); o.stop(e); } }
+  function stac(f,t,peak,bus,pan,cut){ const o=C.createOscillator(), o2=C.createOscillator(), fl=C.createBiquadFilter(), g=C.createGain(); o.type='sawtooth'; o2.type='square'; o.frequency.value=f; o2.frequency.value=f*.5;
+    fl.type='lowpass'; fl.Q.value=5; fl.frequency.setValueAtTime(cut||1400,t); fl.frequency.exponentialRampToValueAtTime(260,t+.11); const g2=C.createGain(); g2.gain.value=.4; o.connect(fl); o2.connect(g2); g2.connect(fl); fl.connect(g); out(g,bus,pan,.12);
+    const e=env(g,t,.003,peak,.13); o.start(t); o2.start(t); o.stop(e); o2.stop(e); }
+  function lead(f,t,dur,peak,bus){ const o=C.createOscillator(), o2=C.createOscillator(), v=C.createOscillator(), vg=C.createGain(), fl=C.createBiquadFilter(), g=C.createGain();
+    o.type='sawtooth'; o2.type='sawtooth'; o.frequency.value=f; o2.frequency.value=f; o2.detune.value=12; v.frequency.value=6; vg.gain.setValueAtTime(0,t); vg.gain.linearRampToValueAtTime(f*.012,t+dur*.6); v.connect(vg); vg.connect(o.frequency); vg.connect(o2.frequency);
+    fl.type='lowpass'; fl.Q.value=2; fl.frequency.setValueAtTime(700,t); fl.frequency.linearRampToValueAtTime(2600,t+dur*.7); o.connect(fl); o2.connect(fl); fl.connect(g); out(g,bus,0,.45);
+    g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(peak,t+.12); g.gain.setValueAtTime(peak,t+dur*.85); g.gain.exponentialRampToValueAtTime(.0001,t+dur+.2); for(const x of [o,o2,v]){ x.start(t); x.stop(t+dur+.25); } }
+  function riser(t,dur,bus){ nz(white,t,dur,'bandpass',300,3,.18,dur*.9,bus,0,.3,5000); tone('sawtooth',110,t,dur*.9,dur*.1,.05,bus,0,.2,880,dur); }
+  function cymbal(t,bus){ nz(white,t,1.6,'highpass',5200,.5,.22,.002,bus,0,.5); }
   function kick(t,peak,bus){ tone('sine',130,t,.002,.32,peak,bus,0,0,42,.14); }
   function snare(t,peak,bus){ nz(white,t,.14,'bandpass',1900,.8,peak,.001,bus,0,.15); tone('triangle',190,t,.001,.08,peak*.6,bus); }
   function hat(t,peak,bus){ nz(white,t,.04,'highpass',7500,.7,peak,.001,bus,(R()-.5)*.3); }
@@ -2394,9 +2403,10 @@ const AU=(()=>{
     tundra:{root:53,sc:[0,2,4,6,7,9,11],prog:[0,1,2,1],bpm:62,arp:'bell',dens:.35,mel:'bell',melP:.5,pad:1200,bars:16,gap:[50,100]},
     night: {root:57,sc:[0,2,3,5,7,8,10],prog:[0,5,2,6],bpm:60,arp:'bell',dens:.25,mel:'flute',melP:.35,pad:550,bars:12,gap:[60,120]},
     cave:  {root:52,sc:[0,1,3,5,6,8,10],prog:[0,0,1,0],bpm:54,arp:'bell',dens:.15,mel:null,melP:0,pad:380,bars:12,gap:[50,110],drone:true},
-    combat:{root:50,sc:[0,2,3,5,7,8,10],prog:[0,5,6,0],bpm:120,arp:'pluck',dens:.8,mel:'brass',melP:.5,pad:900,bars:8,gap:[0,0],drum:'battle'},
-    boss:  {root:48,sc:[0,1,3,5,7,8,10],prog:[0,1,6,4],bpm:128,arp:'pluck',dens:.9,mel:'brass',melP:.7,pad:1100,bars:8,gap:[0,0],drum:'boss'},
-    final: {root:46,sc:[0,2,3,5,7,8,11],prog:[0,5,1,4],bpm:136,arp:'bell',dens:.95,mel:'brass',melP:.8,pad:1400,bars:8,gap:[0,0],drum:'boss',choir:true},
+    // persecución: ostinato de semicorcheas con la segunda menor, bajo pulsante, tambores graves, metales disonantes y subidas de tensión
+    combat:{tense:1,root:45,seq:[0,0,1,1,-4,-4,-2,-1],bpm:140,lead:[12,13,12,10,8,7,8,6],bars:8,gap:[0,0]},
+    boss:  {tense:2,root:43,seq:[0,1,0,-1,-4,-3,-2,-1],bpm:150,lead:[12,13,15,13,12,11,12,6],bars:8,gap:[0,0]},
+    final: {tense:3,root:41,seq:[0,1,3,1,0,-1,-5,-6],bpm:160,lead:[12,13,15,18,17,13,12,6],bars:8,gap:[0,0],choir:true},
     arena: {root:50,sc:[0,1,3,5,7,8,10],prog:[0,0,1,0],bpm:58,arp:'bell',dens:.2,mel:null,melP:0,pad:420,bars:8,gap:[0,0],drone:true}
   };
   let noGap=false, cur=null, want='day', nextBar=0, bar=0, piece=0, gapUntil=0, mg=null, lastNote=0, motif=null, lastWant='';
@@ -2410,6 +2420,7 @@ const AU=(()=>{
   function makeMotif(th){ const m=[]; let p=lastNote; const n=4+Math.floor(R()*3);
     for(let i=0;i<n;i++){ p+=[-2,-1,-1,1,1,2,0,3,-3][Math.floor(R()*9)]; p=Math.max(4,Math.min(13,p)); m.push({d:p,len:[1,1,.5,.5,2,1.5][Math.floor(R()*6)],rest:R()<.15}); } lastNote=p; return m; }
   function scheduleBar(){
+    if(TH[cur].tense) return scheduleTense();
     const th=TH[cur], beat=60/th.bpm, t=nextBar, deg=th.prog[bar%th.prog.length], ch=chordOf(th,deg), B=mg;
     const quiet=th.gap[1]===0?1:Math.min(1,(bar+1)/2)*Math.min(1,(th.bars-bar)/2+.3);
     // fondo: acorde sostenido
@@ -2436,6 +2447,30 @@ const AU=(()=>{
       if(bar%4===3) for(let k=0;k<4;k++) tom(t+beat*3+k*beat/4,180-k*25,.35,B);
       if(th.mel==='brass'&&bar%2===0) brass([ch[0],ch[1]+12],t,beat*.5,.05,B); }
     if(th.drum==='hand'){ for(let b=0;b<4;b++){ tom(t+b*beat,b%2?260:150,.16,B); if(R()<.5) tom(t+b*beat+beat/2,300,.08,B); } }
+    bar++; nextBar=t+beat*4;
+  }
+  function scheduleTense(){
+    const th=TH[cur], beat=60/th.bpm, s16=beat/4, t=nextBar, B=mg, lv=th.tense, r=th.root+th.seq[bar%th.seq.length], phr=bar%4;
+    // ostinato que no para: tónica, octava y la segunda menor que tensa
+    const os=lv===1?[0,0,12,0,0,1,0,12,0,0,12,0,1,0,13,0]:[0,12,0,1,0,12,0,13,0,12,1,0,13,12,1,0];
+    for(let i=0;i<16;i++) stac(mtof(r+12+os[i]),t+i*s16,i%4===0?.16:.1,B,(i%2?.25:-.25),lv>1?1800:1300);
+    // bajo y pedal grave
+    for(let i=0;i<8;i++) bass(mtof(r-12),t+i*beat/2,beat*.42,i%2?.16:.24,B);
+    pad([r-12,r-11,r-5],t,beat*4,lv>1?.05:.035,B,500,.6);
+    if(th.choir) pad([r+12,r+15,r+19,r+20],t,beat*4,.05,B,2200,1);
+    // percusión: bombo seguido, caja a contratiempo, charles en semicorcheas, tambores grandes
+    const kp=lv===1?[0,4,8,10,12]:lv===2?[0,3,6,8,11,14]:[0,2,4,6,8,10,11,12,14];
+    for(const k of kp) kick(t+k*s16,k%8===0?.6:.42,B);
+    for(const k of [4,12]) snare(t+k*s16,.32,B);
+    for(let i=0;i<16;i++) hat(t+i*s16,i%4===2?.1:.05,B);
+    if(lv>1) for(const k of [0,6,10]) tom(t+k*s16,95,.4,B);
+    // metales disonantes a contratiempo
+    if(bar%2===0) for(const k of [0,6,12]) brass([r,r+1,r+7],t+k*s16,s16*1.6,.05,B);
+    // melodía amenazante cada dos compases
+    if(bar%2===1||lv===3){ const n=th.lead[(bar>>1)%th.lead.length]; lead(mtof(r+12+n),t,beat*(lv===3?3.8:3.5),.06,B); }
+    // subida de tensión antes de cada frase y platillo al empezarla
+    if(phr===3){ riser(t+beat*2,beat*2,B); for(let i=0;i<8;i++) snare(t+beat*2+i*s16,.12+i*.03,B); }
+    if(phr===0) cymbal(t,B);
     bar++; nextBar=t+beat*4;
   }
   function music(name){ want=name; }
