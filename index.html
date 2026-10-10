@@ -326,7 +326,15 @@ body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width
   <button id="pSk" class="mbtn">Desbloqueos</button>
   <button id="pSet" class="mbtn">Ajustes</button>
   <button id="pCtl" class="mbtn">Controles</button>
-  <button id="pExit" class="mbtn">Guardar y salir al menú</button>
+  <button id="pSave" class="mbtn">Guardar partida</button>
+  <p id="pSaved" class="note" role="status"></p>
+  <button id="pExit" class="mbtn">Salir al menú principal</button>
+  <button id="pQuit" class="mbtn">Salir del juego</button>
+</div></div>
+<div id="bye" class="ov"><div class="panel" style="text-align:center">
+  <h2>Partida guardada</h2>
+  <p class="note" style="font-size:14px;margin:8px 0 14px">Ya puedes cerrar el juego. Cuando vuelvas, sigues justo donde lo dejaste.</p>
+  <button id="byeBack" class="mbtn pri">Volver al menú principal</button>
 </div></div>
 
 <div id="slots" class="ov"><div class="panel wide">
@@ -4774,9 +4782,10 @@ function saveGame(){
     localStorage.setItem(slotKey(curSlot),JSON.stringify({v:1,seed:curSeed,at:Date.now(),goal:goalIdx,fl:{c:[...flags.crafted],n:flags.night,l:flags.loot,p:flags.plant,t:flags.tamed,d:flags.dloot,b:flags.boss},
       p:[+player.x.toFixed(3),+(player.y+.01).toFixed(3),+player.z.toFixed(3),+player.yaw.toFixed(3),+player.pitch.toFixed(3)],
       inv:inv.map(s=>s?(s.d?[s.id,s.n,s.d]:[s.id,s.n]):0),sel:selected,dayT:+dayT.toFixed(4),hp,fd:hunger,pl:plvl,px:+pxp.toFixed(1),un:[...unlocked],sp:spawnPt,base,pets:animals.filter(a=>a.tame||a.owned).map(a=>({k:a.kind,x:+a.x.toFixed(2),y:+a.y.toFixed(2),z:+a.z.toFixed(2),hp:+a.hp.toFixed(1),sex:a.sex,baby:!!a.baby,grow:a.baby?Math.round(a.grow):0,tame:!!a.tame,owned:!!a.owned,lvl:a.lvl||0,xp:a.xp||0,sit:!!a.sit,bc:Math.round(a.breedCd||0),arm:a.arm||0})),looted:[...looted],rs:Math.round(rested),efx:effects,wk:[...woken],sl:[...slain],cp:cryptPt,se:[...seals],lp:lairPt,ar:arenaRet,gt:+gameT.toFixed(1),crops:[...crops].map(c=>[c[0],+c[1].toFixed(1)]),arm:armor.map(s=>s?[s.id,s.d||0]:0),chests:ch,edits:ed}));
-    return true;
+    lastSaveAt=Date.now(); return true;
   }catch(_){ return false; }
 }
+let lastSaveAt=0;
 function loadSave(n){ try{ return validSave(JSON.parse(localStorage.getItem(slotKey(n||lastSlot())))); }catch(_){ return null; } }
 document.addEventListener('visibilitychange',()=>{ if(document.hidden) saveGame(); });
 addEventListener('pagehide',saveGame);
@@ -4928,12 +4937,17 @@ function refreshMenu(){
 $('cont').addEventListener('click',()=>{ const n=lastSlot(), s=loadSave(n); if(!s) return; initAudio(); startGame(s.seed,s,n); });
 $('setBtn').addEventListener('click',()=>{ $('btnEditRow').style.display='none'; $('set').classList.add('on'); });
 $('setDone').addEventListener('click',()=>$('set').classList.remove('on'));
-function openPause(){ if(!started||dead) return; closeInv(); closeMap(); muteWeather(); paused=true; $('pause').classList.add('on'); saveGame(); try{ if(document.exitPointerLock) document.exitPointerLock(); }catch(_){} }
+function savedText(ok){ $('pSaved').textContent=ok===false?'No se ha podido guardar: el navegador no deja espacio. Libera espacio o exporta la partida desde Partidas.':'Partida guardada a las '+new Date(lastSaveAt).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})+'. También se guarda sola cada 15 segundos.'; }
+function openPause(){ if(!started||dead) return; closeInv(); closeMap(); muteWeather(); paused=true; $('pause').classList.add('on'); savedText(saveGame()); try{ if(document.exitPointerLock) document.exitPointerLock(); }catch(_){} }
 function closePause(){ paused=false; $('pause').classList.remove('on'); last=performance.now(); }
 function togglePause(){ if(paused) closePause(); else openPause(); }
 $('bPause').addEventListener('pointerdown',e=>{ e.preventDefault(); openPause(); });
 $('pResume').addEventListener('click',closePause);
 $('pSet').addEventListener('click',()=>{ $('btnEditRow').style.display=isTouch?'flex':'none'; $('set').classList.add('on'); });
+$('pSave').addEventListener('click',()=>{ const ok=saveGame(); savedText(ok); if(ok){ sfx('craft'); toast('Partida guardada.'); } });
+// salir del juego: guarda, vuelve al menú e intenta cerrar la ventana (solo funciona en la app instalada; en una pestaña del navegador se cierra a mano)
+$('pQuit').addEventListener('click',()=>{ const ok=saveGame(); if(!ok){ savedText(false); return; } $('pExit').click(); $('bye').classList.add('on'); try{ window.close(); }catch(_){} });
+$('byeBack').addEventListener('click',()=>{ $('bye').classList.remove('on'); });
 $('pExit').addEventListener('click',()=>{
   saveGame(); mcx=player.x; mcz=player.z;
   started=false; paused=false; closeInv(); muteWeather(); wx.w=0; wx.on=false; wxPts.visible=false;
@@ -5043,7 +5057,7 @@ addEventListener('gamepadconnected',()=>{ toast('Mando conectado. Tienes sus con
 addEventListener('gamepaddisconnected',()=>{ padActive=false; padIdx=-1; document.body.classList.remove('padmode'); inp.px=inp.py=0; inp.prun=false; });
 // qué ventana está delante (para moverse por ella con la cruceta)
 function activeUI(){
-  for(const id of ['skills','ctl','set','slots']) if($(id).classList.contains('on')) return $(id);
+  for(const id of ['bye','skills','ctl','set','slots']) if($(id).classList.contains('on')) return $(id);
   if($('editBar').classList.contains('on')) return null;
   if(mapOpen) return $('map'); if(invOpen) return $('inv');
   if($('dead').classList.contains('on')) return $('dead');
