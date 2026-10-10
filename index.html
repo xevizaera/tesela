@@ -92,7 +92,7 @@ body.touchmode .tonly{display:flex}
 #editBar{position:fixed;left:50%;top:calc(10px + var(--st));transform:translateX(-50%);z-index:30;display:none;align-items:center;gap:8px;
   background:rgba(22,36,40,.95);border:2px solid var(--moss);border-radius:8px;padding:8px 10px;font-size:13px;max-width:92vw}
 #editBar.on{display:flex}
-body.editing #bJump,body.editing #bPlace,body.editing #bMine{outline:2px dashed var(--moss);outline-offset:3px;opacity:1}
+body.editing #bJump,body.editing #bPlace,body.editing #bMine,body.editing #bSneak{outline:2px dashed var(--moss);outline-offset:3px;opacity:1}
 body.padmode .touch{display:none!important}
 .padfocus{outline:3px solid var(--moss)!important;outline-offset:2px;box-shadow:0 0 0 5px rgba(185,224,122,.25)}
 #stats #goal,#stats #info{position:static;left:auto;top:auto;margin-top:4px}
@@ -167,6 +167,27 @@ body.bossfight #hint{top:calc(66px + var(--st))}
 #hint{position:absolute;left:50%;top:calc(38px + var(--st));transform:translateX(-50%);max-width:70%;text-align:center;
   background:var(--panel);padding:8px 14px;border-radius:8px;font-size:14px;transition:opacity .8s}
 
+/* en pantallas estrechas el aviso se centra en el hueco a la derecha de la columna de vida y objetivo */
+@media (max-width:1100px){
+  #hint{left:calc(min(250px,34vw) + 30px + var(--sl));right:calc(12px + var(--sr));width:fit-content;max-width:none;margin:0 auto;transform:none;top:calc(58px + var(--st));font-size:13px;padding:6px 11px}
+}
+/* móvil en horizontal: todo lo de arriba a la izquierda, más pequeño */
+@media (max-height:460px){
+  #stats{gap:3px}
+  #stats i{width:11px;height:11px;border-width:1px}
+  #hpBar,#fdBar,#arBar{gap:2px}
+  #goal,#pets,#rest,#fx,#info{font-size:11px;padding:3px 7px;max-width:min(230px,32vw)}
+  #info{opacity:.85}
+  #mapPanel{padding:8px 12px;gap:12px;max-height:calc(100vh - 16px)}
+  #mapCv{width:min(calc(100vh - 40px),300px);height:min(calc(100vh - 40px),300px)}
+  #mapSide{max-height:calc(100vh - 36px);overflow-y:auto;touch-action:pan-y;padding-right:4px}
+  #mapSide h2{font-size:16px;margin-bottom:4px}
+  #mapSide p{font-size:12px;line-height:1.35;margin-bottom:6px}
+  #mapSide .mbtn{font-size:14px;padding:7px 8px;margin-top:5px}
+  #mapSide .mrow .mbtn{font-size:18px;padding:2px 6px}
+}
+#goal b{color:var(--moss);margin-right:3px}
+#goal em{font-style:normal;opacity:.75;margin-left:3px;white-space:nowrap}
 #hotbar{position:absolute;left:50%;bottom:calc(8px + var(--sb));transform:translateX(-50%);display:flex;gap:4px;
   padding:4px;background:var(--panel);border-radius:10px;pointer-events:auto}
 .slot{width:min(48px,5.6vw);height:min(48px,5.6vw);min-width:34px;min-height:34px;border-radius:3px;border:2px solid rgba(236,244,230,.3);
@@ -216,7 +237,7 @@ body.touchmode .touch{display:block}
 .btn svg{width:46%;height:46%;display:block;margin-bottom:2px}
 .btn.down,.btn.use{background:rgba(185,224,122,.34);border-color:var(--moss)}
 .btn{opacity:.8}
-#bMine,#bPlace,#bJump{width:56px;height:56px;margin-right:var(--sr);margin-bottom:var(--sb)}
+#bMine,#bPlace,#bJump,#bSneak{width:56px;height:56px;margin-right:var(--sr);margin-bottom:var(--sb)}
 #bFull{right:calc(10px + var(--sr));top:calc(10px + var(--st));width:40px;height:40px}
 #bFull svg{width:54%;height:54%;margin:0}
 
@@ -306,8 +327,10 @@ body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V5M5 12l7-7 7 7"/></svg>Saltar</button>
   <button class="btn touch" id="bPlace" aria-label="Colocar bloque">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9zM4 7.5l8 4.5 8-4.5M12 12v9"/></svg><span id="placeLbl">Colocar</span></button>
+  <button class="btn touch" id="bSneak" aria-label="Agacharse" aria-pressed="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9l7 7 7-7"/><path d="M4 20h16"/></svg>Agachar</button>
   <button class="btn touch" id="bMine" aria-label="Picar bloque">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 9c5-5 11-5 16 0M12 6.5V21"/></svg>Picar</button>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 9c5-5 11-5 16 0M12 6.5V21"/></svg><span id="mineLbl">Picar</span></button>
 </div>
 
 <div id="inv"><div id="invPanel">
@@ -328,7 +351,7 @@ body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width
     <button id="mapClose" class="mbtn">Cerrar</button>
   </div>
 </div></div>
-<div id="editBar" role="dialog" aria-label="Mover botones"><span>Arrastra Saltar, Colocar y Picar donde te vengan mejor.</span><button id="editReset" class="mini">Restablecer</button><button id="editDone" class="mini pri">Hecho</button></div>
+<div id="editBar" role="dialog" aria-label="Mover botones"><span>Arrastra Saltar, Colocar, Picar y Agachar donde te vengan mejor.</span><button id="editReset" class="mini">Restablecer</button><button id="editDone" class="mini pri">Hecho</button></div>
 <div id="ghost"></div><div id="tip" role="status"></div>
 
 <div id="dead"><div><h2>Has caído</h2><p>Conservas la mochila. Vuelves a tu base o, si no tienes, al punto donde empezaste.</p><button id="respawn">Reaparecer</button></div></div>
@@ -399,7 +422,8 @@ body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width
     <tr><th>Mirar</th><td>Desliza el dedo por la mitad derecha.</td></tr>
     <tr><th>Saltar</th><td>Botón Saltar. En el agua, mantenlo para nadar hacia arriba. Los escalones de un bloque se suben solos.</td></tr>
     <tr><th>Picar y atacar</th><td>Mantén Picar sobre un bloque. Un toque corto golpea a un animal o enemigo. Puedes deslizar desde el botón para apuntar.</td></tr>
-    <tr><th>Colocar</th><td>El botón cambia según lo que haya: Colocar, Usar (mesa, horno, cofre), Comer o Equipar.</td></tr>
+    <tr><th>Colocar</th><td>El botón dice lo que va a hacer según lo que mires o lleves: Colocar, Abrir, Dormir, Fabricar, Comer, Montar, Pescar… Picar también cambia a Atacar o Talar.</td></tr>
+    <tr><th>Agacharse</th><td>Botón Agachar (se queda activado hasta que lo vuelvas a tocar). Vas más lento y no te caes por los bordes: útil para construir puentes y torres.</td></tr>
     <tr><th>Elegir objeto</th><td>Toca una casilla de la barra de abajo.</td></tr>
     <tr><th>Mochila</th><td>Botón de la mochila, arriba a la derecha. Arrastra objetos para moverlos y tócalos para ver qué son.</td></tr>
     <tr><th>Mapa</th><td>Botón del mapa, arriba a la derecha. Desde ahí marcas tu base.</td></tr>
@@ -412,6 +436,7 @@ body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width
     <tr><th>Moverse</th><td><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> o flechas</td></tr>
     <tr><th>Correr</th><td><kbd>Mayús</kbd></td></tr>
     <tr><th>Saltar y nadar</th><td><kbd>Espacio</kbd></td></tr>
+    <tr><th>Agacharse (no caer por los bordes)</th><td>Mantén <kbd>C</kbd></td></tr>
     <tr><th>Mirar</th><td>Ratón. Haz clic en el juego para capturarlo.</td></tr>
     <tr><th>Picar y atacar</th><td>Mantén el clic izquierdo</td></tr>
     <tr><th>Colocar, usar, comer, equipar</th><td>Clic derecho</td></tr>
@@ -1453,8 +1478,9 @@ class Player{
     const inWater=WATERISH[this.w.getBlock(fl(this.x),fl(this.y+.1),fl(this.z))]===1||WATERISH[this.w.getBlock(fl(this.x),fl(this.y+.9),fl(this.z))]===1;
     let f=inp.kf-inp.jy-inp.py, s=inp.ks+inp.jx+inp.px;
     const len=Math.hypot(f,s); if(len>1){ f/=len; s/=len; }
-    const run=inp.run||inp.prun||Math.hypot(inp.jx,inp.jy)>.92;
-    const speed=(inWater?2.6:(run?6.6:4.3))*[1,1.12,1.2,1.26][rk('zancada')]*(effects.speed>0?1.25:1)*(effects.slow>0?.55:1)*(riding?1.9:1);
+    const sneaking=inp.sneak&&!riding&&!inWater;
+    const run=!sneaking&&(inp.run||inp.prun||Math.hypot(inp.jx,inp.jy)>.92);
+    const speed=(inWater?2.6:(sneaking?1.9:run?6.6:4.3))*[1,1.12,1.2,1.26][rk('zancada')]*(effects.speed>0?1.25:1)*(effects.slow>0?.55:1)*(riding?1.9:1);
     const sy=Math.sin(this.yaw), cy=Math.cos(this.yaw);
     const dx=-sy*f+cy*s, dz=-cy*f-sy*s, k=Math.min(1,dt*12);
     this.vx+=(dx*speed-this.vx)*k; this.vz+=(dz*speed-this.vz)*k;
@@ -1468,6 +1494,12 @@ class Player{
     }
     if(this.vy<-40) this.vy=-40;
     let blocked=false;
+    // agachado y en el suelo: no das el paso si debajo no queda nada que te sostenga
+    const edge=sneaking&&this.onGround&&this.vy<=0;
+    if(edge){
+      if(!this.collides(this.x+this.vx*dt,this.y,this.z)&&!this.collides(this.x+this.vx*dt,this.y-.12,this.z)) this.vx=0;
+      if(!this.collides(this.x,this.y,this.z+this.vz*dt)&&!this.collides(this.x,this.y-.12,this.z+this.vz*dt)) this.vz=0;
+    }
     const nx=this.x+this.vx*dt; if(!this.collides(nx,this.y,this.z)) this.x=nx; else if(this.onGround&&!this.collides(nx,this.y+.51,this.z)){ this.x=nx; this.y+=.51; } else { this.vx=0; blocked=true; }
     const nz=this.z+this.vz*dt; if(!this.collides(this.x,this.y,nz)) this.z=nz; else if(this.onGround&&!this.collides(this.x,this.y+.51,nz)){ this.z=nz; this.y+=.51; } else { this.vz=0; blocked=true; }
     const ny=this.y+this.vy*dt;
@@ -1477,7 +1509,7 @@ class Player{
     if(inWater&&blocked&&len>.2&&this.vy<6.8) this.vy=6.8;
     this.wasWater=inWater;
     // salto automático al chocar con un escalón de 1 bloque (solo táctil)
-    if(this.autoJump&&blocked&&this.onGround&&len>.2&&!inWater&&!this.collides(this.x+dx*.5,this.y+1.02,this.z+dz*.5)){ this.vy=8.2; this.onGround=false; }
+    if(this.autoJump&&!sneaking&&blocked&&this.onGround&&len>.2&&!inWater&&!this.collides(this.x+dx*.5,this.y+1.02,this.z+dz*.5)){ this.vy=8.2; this.onGround=false; }
   }
 }
 
@@ -1501,7 +1533,7 @@ function raycast(world,ox,oy,oz,dx,dy,dz,max){
    INPUT: táctil (joystick + arrastre + botones) y teclado/ratón
    ============================================================ */
 const canvas=$('c');
-const inp={kf:0,ks:0,jx:0,jy:0,px:0,py:0,prun:false,jump:false,run:false,mining:false,place:false,lookX:0,lookY:0};
+const inp={kf:0,ks:0,jx:0,jy:0,px:0,py:0,prun:false,jump:false,run:false,sneak:false,mining:false,place:false,lookX:0,lookY:0};
 const isTouch=matchMedia('(pointer: coarse)').matches||'ontouchstart' in window;
 if(isTouch) document.body.classList.add('touchmode');
 /* ---------- AJUSTES: se guardan aparte de la partida ---------- */
@@ -1512,9 +1544,9 @@ const keys={};
 function refreshKeys(){
   inp.kf=(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0);
   inp.ks=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0);
-  inp.run=!!(keys.ShiftLeft||keys.ShiftRight); inp.jump=!!keys.Space||jumpHeld;
+  inp.run=!!(keys.ShiftLeft||keys.ShiftRight); inp.jump=!!keys.Space||jumpHeld; inp.sneak=!!keys.KeyC||sneakOn;
 }
-let jumpHeld=false, selected=0, started=false;
+let jumpHeld=false, selected=0, started=false, sneakOn=false;
 addEventListener('keydown',e=>{
   if(!started&&e.code==='Escape'){ closeCtl(); $('set').classList.remove('on'); $('slots').classList.remove('on'); return; }
   if(!started||e.target.id==='seed') return;
@@ -1589,6 +1621,10 @@ $('fsBtn').addEventListener('click',()=>goFull());
 $('bFull').addEventListener('pointerdown',e=>{ e.preventDefault(); goFull(); });
 
 $('bJump').addEventListener('pointerdown',e=>{ e.preventDefault(); jumpPid=e.pointerId; jumpHeld=true; refreshKeys(); e.currentTarget.classList.add('down'); });
+let sneakTold=false;
+function setSneak(on){ sneakOn=on; refreshKeys(); const b=$('bSneak'); b.classList.toggle('use',on); b.setAttribute('aria-pressed',on?'true':'false');
+  if(on&&!sneakTold){ sneakTold=true; toast('Agachado: vas más lento y no te caes por los bordes. Vuelve a tocar para levantarte.'); } }
+$('bSneak').addEventListener('pointerdown',e=>{ e.preventDefault(); if(editing) return; setSneak(!sneakOn); });
 $('bPlace').addEventListener('pointerdown',e=>{ e.preventDefault(); inp.place=true; const b=e.currentTarget; b.classList.add('down'); setTimeout(()=>b.classList.remove('down'),120); });
 $('rot').addEventListener('pointerdown',()=>$('rot').classList.add('off'));
 
@@ -1745,6 +1781,7 @@ function renderHotbar(){
 }
 function selectSlot(i){ selected=i; hbEls.forEach((el,n)=>el.classList.toggle('sel',n===i)); renderHotbar(); }
 let toastT=0;
+function useLabel(id){ return id===WORKBENCH?'Fabricar':id===FURNACE?'Horno':id===CAULDRON?'Cocinar':id===CHEST?'Abrir':id===BED?'Dormir':BLOCKS[id].shape==='door'?'Puerta':'Usar'; }
 function toast(msg){ const h=$('hint'); h.textContent=msg; h.style.opacity='1'; clearTimeout(toastT); toastT=setTimeout(()=>{ h.style.opacity='0'; },2600); }
 
 /* ---------- CRAFTING ---------- */
@@ -5089,6 +5126,18 @@ function openMap(){ if(!started||dead||paused) return; closeInv(); mapOpen=true;
 function closeMap(){ mapOpen=false; $('map').classList.remove('on'); }
 $('bMap').addEventListener('pointerdown',e=>{ e.preventDefault(); if(mapOpen) closeMap(); else openMap(); });
 $('mapClose').addEventListener('click',closeMap);
+// pellizcar para acercar o alejar (y rueda del ratón)
+{ const pts=new Map(); let d0=0; const cv=$('mapCv'); cv.style.touchAction='none';
+  const dist=()=>{ const a=[...pts.values()]; return a.length<2?0:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y); };
+  cv.addEventListener('pointerdown',e=>{ pts.set(e.pointerId,{x:e.clientX,y:e.clientY}); if(pts.size===2) d0=dist(); });
+  cv.addEventListener('pointermove',e=>{ if(!pts.has(e.pointerId)) return; pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pts.size===2&&d0>0){ const d=dist();
+      if(d>d0*1.3&&mapZoom>0){ mapZoom--; d0=d; drawMap(); }
+      else if(d<d0/1.3&&mapZoom<2){ mapZoom++; d0=d; drawMap(); } } });
+  const up=e=>{ pts.delete(e.pointerId); if(pts.size<2) d0=0; };
+  cv.addEventListener('pointerup',up); cv.addEventListener('pointercancel',up); cv.addEventListener('pointerleave',up);
+  cv.addEventListener('wheel',e=>{ e.preventDefault(); if(e.deltaY<0&&mapZoom>0){ mapZoom--; drawMap(); } else if(e.deltaY>0&&mapZoom<2){ mapZoom++; drawMap(); } },{passive:false});
+}
 $('mapIn').addEventListener('click',()=>{ if(mapZoom>0){ mapZoom--; drawMap(); } });
 $('mapOut').addEventListener('click',()=>{ if(mapZoom<2){ mapZoom++; drawMap(); } });
 $('mapSet').addEventListener('click',()=>{
@@ -5141,8 +5190,8 @@ function updateGoals(dt,silent){
     goalIdx++;
   }
   if(goalIdx>=GOALS.length){ el.style.display='none'; if(!silent) toast('Has completado todos los objetivos. El mundo es tuyo.'); return; }
-  const g=GOALS[goalIdx], txt='Objetivo '+(goalIdx+1)+' de '+GOALS.length+': '+g.t+(g.p?' ('+Math.min(g.p(),g.n)+'/'+g.n+')':'');
-  if(txt!==goalTxt){ goalTxt=txt; el.textContent=txt; }
+  const g=GOALS[goalIdx], txt='<b>'+(goalIdx+1)+'/'+GOALS.length+'</b>'+g.t+(g.p?'<em>'+Math.min(g.p(),g.n)+'/'+g.n+'</em>':'');
+  if(txt!==goalTxt){ goalTxt=txt; el.innerHTML=txt; el.setAttribute('aria-label','Objetivo '+(goalIdx+1)+' de '+GOALS.length+': '+g.t); }
   el.style.display='block';
 }
 
@@ -5359,14 +5408,14 @@ $('pExit').addEventListener('click',()=>{
   while(animals.length) removeEntity(animals[0]); while(enemies.length) removeEntity(enemies[0]);
   refreshMenu();
 });
-const EDIT_IDS=['bJump','bPlace','bMine'];
+const EDIT_IDS=['bJump','bPlace','bMine','bSneak'];
 function applyBtnLayout(){
   const sz=Math.round(56*(settings.btnScale||1));
   EDIT_IDS.forEach((id,k)=>{
     const el=$(id), pos=settings.btn&&settings.btn[id];
     el.style.width=el.style.height=sz+'px';
     // sin posición propia: columna a la derecha, de abajo arriba Picar, Colocar, Saltar
-    const def=[10,12+(2-k)*(sz+8)];
+    const def=k<3?[10,12+(2-k)*(sz+8)]:[10+sz+10,12+2*(sz+8)];   // Agachar: a la izquierda de Saltar
     el.style.right=(pos?pos[0]:def[0])+'px'; el.style.bottom=(pos?pos[1]:def[1])+'px';
   });
 }
@@ -5378,7 +5427,7 @@ $('editDone').addEventListener('click',endEdit);
 $('editReset').addEventListener('click',()=>{ settings.btn={}; applyBtnLayout(); });
 addEventListener('pointerdown',e=>{
   if(!editing) return;
-  const el=e.target.closest&&e.target.closest('#bJump,#bPlace,#bMine'); if(!el) return;
+  const el=e.target.closest&&e.target.closest('#bJump,#bPlace,#bMine,#bSneak'); if(!el) return;
   e.stopPropagation(); e.preventDefault(); editing.id=el.id; editing.pid=e.pointerId;
 },true);
 addEventListener('pointermove',e=>{
@@ -5570,6 +5619,7 @@ if(!standalone&&/iphone|ipad|ipod/i.test(navigator.userAgent)&&window.top===wind
 try{ if('serviceWorker' in navigator&&window.top===window&&location.protocol==='https:') navigator.serviceWorker.register('sw.js').catch(()=>{}); }catch(_){}
 applySettings(); refreshMenu(); makeMenuWorld();
 
+let sneakEye=0, lastMine='';
 let lastAim='', last=0, lastUse='', fpsT=0, fpsN=0, fps=0;
 function loop(now){
   requestAnimationFrame(loop);
@@ -5591,7 +5641,8 @@ function loop(now){
   player.update(dt,inp);
   world.update(player.x,player.z,0);
 
-  const ex=player.x, ey=player.y+EYE+(riding?.85:0), ez=player.z;
+  sneakEye+=((inp.sneak&&!riding?-.28:0)-sneakEye)*Math.min(1,dt*12);
+  const ex=player.x, ey=player.y+EYE+(riding?.85:0)+sneakEye, ez=player.z;
   camera.position.set(ex,ey,ez); camera.rotation.set(player.pitch,player.yaw,0);
   camera.getWorldDirection(dir);
   $('uw').style.display=WATERISH[world.getBlock(Math.floor(ex),Math.floor(ey),Math.floor(ez))]?'block':'none';
@@ -5631,10 +5682,12 @@ function loop(now){
   const anim=targetAnimal(ex,ey,ez,Math.min(3.6,hit?hit.t+.3:9)), animAct=animalAction(anim);
   const ranged=!!(held&&held.rng);
   const fishW=held&&held.rod&&!fishing?findWater(ex,ey,ez):null;
-  const mode=held&&held.rod&&(fishing||fishW)?(fishing?'Recoger':'Pescar'):animAct?animAct:(riding&&!useT&&!(held&&(held.food||held.heal||held.potion||held.rng||held.armor)))?'Bajar':ranged&&!useT?'Disparar':useT?'Usar':tillT?'Arar':plantT?'Plantar':(held&&held.potion)?'Beber':(held&&(held.food||held.heal))?(held.food?'Comer':'Curarse'):(held&&held.armor)?'Equipar':'Colocar';
+  const mode=held&&held.rod&&(fishing||fishW)?(fishing?'Recoger':'Pescar'):animAct?animAct:(riding&&!useT&&!(held&&(held.food||held.heal||held.potion||held.rng||held.armor)))?'Bajar':ranged&&!useT?'Disparar':useT?useLabel(hit.id):tillT?'Arar':plantT?'Plantar':(held&&held.potion)?'Beber':(held&&(held.food||held.heal))?(held.food?'Comer':'Curarse'):(held&&held.armor)?'Equipar':'Colocar';
   const aimF=findTarget(ex,ey,ez,Math.min(reach,hit?hit.t:9)), aimC=aimF&&aimF.hostile?'foe':(animAct||useT)?'use':'';
   if(aimC!==lastAim){ lastAim=aimC; $('dot').className=aimC; }
-  if(mode!==lastUse){ lastUse=mode; $('placeLbl').textContent=mode; $('bPlace').classList.toggle('use',mode!=='Colocar'); }
+  if(mode!==lastUse){ lastUse=mode; $('placeLbl').textContent=mode; $('bPlace').classList.toggle('use',mode!=='Colocar'); $('bPlace').setAttribute('aria-label',mode); }
+  const mMode=aimF?'Atacar':(hit&&BLOCKS[hit.id]&&BLOCKS[hit.id].mat==='wood')?'Talar':'Picar';
+  if(mMode!==lastMine){ lastMine=mMode; $('mineLbl').textContent=mMode; $('bMine').setAttribute('aria-label',mMode); }
 
   // colocar
   placeCd-=dt;
