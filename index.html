@@ -99,7 +99,7 @@ body.padmode .touch{display:none!important}
 #fx{display:none;background:var(--panel);padding:4px 9px;border-radius:6px;font-size:12px;border-left:3px solid #e0802e;max-width:min(260px,36vw);margin-top:2px}
 #rest{display:none;background:var(--panel);padding:4px 9px;border-radius:6px;font-size:12px;border-left:3px solid #9a7bf0;max-width:min(250px,34vw);margin-top:2px}
 #pets{display:none;background:var(--panel);padding:5px 9px;border-radius:6px;font-size:12px;line-height:1.4;white-space:pre-line;border-left:3px solid #e7a3a8;max-width:min(250px,34vw);margin-top:2px}
-#skills{z-index:20}
+#skills,#shop{z-index:20}
 .skrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid rgba(236,244,230,.12)}
 .skrow.done{opacity:.6}
 .skic{flex:none;width:34px;height:34px;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.35);border-radius:6px;color:#d6f07a;font-size:16px}
@@ -354,7 +354,7 @@ body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width
 <div id="editBar" role="dialog" aria-label="Mover botones"><span>Arrastra Saltar, Colocar, Picar y Agachar donde te vengan mejor.</span><button id="editReset" class="mini">Restablecer</button><button id="editDone" class="mini pri">Hecho</button></div>
 <div id="ghost"></div><div id="tip" role="status"></div>
 
-<div id="dead"><div><h2>Has caído</h2><p>Conservas la mochila. Vuelves a tu base o, si no tienes, al punto donde empezaste.</p><button id="respawn">Reaparecer</button></div></div>
+<div id="dead"><div><h2>Has caído</h2><p id="deadP">Conservas la mochila. Vuelves a tu base o, si no tienes, al punto donde empezaste.</p><button id="respawn">Reaparecer</button></div></div>
 
 <div id="menu">
   <div id="card">
@@ -414,6 +414,14 @@ body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width
   <button id="skDone" class="mbtn pri">Volver</button>
 </div></div>
 
+<div id="shop" class="ov"><div class="panel wide">
+  <div class="skTop"><h2 id="shTitle">Mercader</h2><button id="shX" aria-label="Cerrar">✕</button></div>
+  <p id="shHead" class="note"></p>
+  <div class="tabs" role="tablist"><button id="shT0" class="tab on" role="tab">Comprar</button><button id="shT1" class="tab" role="tab">Vender</button></div>
+  <div id="shList"></div>
+  <button id="shDone" class="mbtn pri">Volver</button>
+</div></div>
+
 <div id="ctl" class="ov"><div class="panel wide">
   <h2>Controles</h2>
   <div class="tabs" role="tablist"><button id="tabT" class="tab" role="tab">Táctil</button><button id="tabK" class="tab" role="tab">Teclado y ratón</button><button id="tabP" class="tab" role="tab">Mando</button></div>
@@ -423,6 +431,8 @@ body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width
     <tr><th>Saltar</th><td>Botón Saltar. En el agua, mantenlo para nadar hacia arriba. Los escalones de un bloque se suben solos.</td></tr>
     <tr><th>Picar y atacar</th><td>Mantén Picar sobre un bloque. Un toque corto golpea a un animal o enemigo. Puedes deslizar desde el botón para apuntar.</td></tr>
     <tr><th>Colocar</th><td>El botón dice lo que va a hacer según lo que mires o lleves: Colocar, Abrir, Dormir, Fabricar, Comer, Montar, Pescar… Picar también cambia a Atacar o Talar.</td></tr>
+    <tr><th>Mercaderes y monedas</th><td>Las monedas salen de los cofres: en casas, ruinas, mazmorras y cofres perdidos junto a un mojón con antorcha. Los mercaderes tienen un puesto con toldo de rayas (💰 en el mapa): toca Comerciar para comprar o vender.</td></tr>
+    <tr><th>Tumba</th><td>En normal y difícil, al morir tus cosas se quedan en una tumba (✝ en el mapa). Vuelve y tócala para recuperarlas. En fácil conservas la mochila.</td></tr>
     <tr><th>Agacharse</th><td>Botón Agachar (se queda activado hasta que lo vuelvas a tocar). Vas más lento y no te caes por los bordes: útil para construir puentes y torres.</td></tr>
     <tr><th>Elegir objeto</th><td>Toca una casilla de la barra de abajo.</td></tr>
     <tr><th>Mochila</th><td>Botón de la mochila, arriba a la derecha. Arrastra objetos para moverlos y tócalos para ver qué son.</td></tr>
@@ -549,7 +559,7 @@ const AIR=0, GRASS=1, DIRT=2, STONE=3, SAND=4, GRAVEL=5, SNOW=6, PLANKS=7, BRICK
   HELM_LE=109, CHEST_LE=110, BOOTS_LE=111, HELM_FE=112, CHEST_FE=113, BOOTS_FE=114, HELM_SH=115, CHEST_SH=116, BOOTS_SH=117,
   PET_LE=118, PET_CU=119, PET_FE=120, PET_AU=121, PET_CR=122, PET_SH=123, CORE=124, GSWORD=125, ELIXIR=126, GBOW=127, HEARTH=128, SPEAR_FE=129, SPEAR_CR=130, WAXE_FE=131, WAXE_SH=132, DAG_CU=133, DAG_CR=134,
   CAULDRON=135, FLASK=136, P_HEAL=137, P_REGEN=138, P_STR=139, P_SPEED=140, P_NIGHT=141, P_IRON=142, BONE=143, TUSK=144, SPEAR_TUSK=145, SAP=146, BOW_LIVE=147, VENOM=148, DAG_VEN=149, ICECORE=150, HAMMER_ICE=151, TSWORD=152, SADDLE=153, ROD=154, FISH=155, FISH_C=156, GFISH=157, EGG=158, FRIED_EGG=159, FEATHER=160,
-  TILE_W=161, TILE_R=162, TILE_B=163, TILE_G=164, TILE_Y=165, TILE_K=166, PLANKS_D=167, WINDOW=168, LANTERN=169, SHELF=170, CARPET_R=171, CARPET_B=172, CARPET_G=173;
+  TILE_W=161, TILE_R=162, TILE_B=163, TILE_G=164, TILE_Y=165, TILE_K=166, PLANKS_D=167, WINDOW=168, LANTERN=169, SHELF=170, CARPET_R=171, CARPET_B=172, CARPET_G=173, COIN=174, GRAVE=175;
 // tex: [arriba, lados, abajo] · hard: segundos a mano · mat: qué herramienta lo acelera
 // need: nivel mínimo de pico para que suelte algo · drop: qué suelta (por defecto, él mismo)
 const BLOCKS=[null,
@@ -689,7 +699,9 @@ const BLOCKS=[null,
   {name:'Ventana', tex:[53,53,53], hard:.5, mat:'wood'},
   {name:'Farol', tex:[54,54,54], hard:1, mat:'stone', lamp:true},
   {name:'Estantería', tex:[52,55,52], hard:1.3, mat:'wood'},
-  {name:'Alfombra roja', tex:[56,56,56], hard:.2, shape:'carpet', ic:'carpet'},{name:'Alfombra azul', tex:[57,57,57], hard:.2, shape:'carpet', ic:'carpet'},{name:'Alfombra verde', tex:[58,58,58], hard:.2, shape:'carpet', ic:'carpet'}
+  {name:'Alfombra roja', tex:[56,56,56], hard:.2, shape:'carpet', ic:'carpet'},{name:'Alfombra azul', tex:[57,57,57], hard:.2, shape:'carpet', ic:'carpet'},{name:'Alfombra verde', tex:[58,58,58], hard:.2, shape:'carpet', ic:'carpet'},
+  {name:'Moneda', stack:999},
+  {name:'Tumba', tex:[59,59,59], hard:.6, mat:'stone', shape:'grave', drop:0}
 ];
 // agua: la quieta (fuente) y tres niveles de agua que corre
 const WATERISH=new Uint8Array(256); for(const i of [9,85,86,87]) WATERISH[i]=1;
@@ -697,7 +709,7 @@ const WLEVEL=new Uint8Array(256); WLEVEL[85]=1; WLEVEL[86]=2; WLEVEL[87]=3;
 const WTOP=new Float32Array(256); WTOP[9]=.12; WTOP[85]=.3; WTOP[86]=.5; WTOP[87]=.7;
 const OPAQUE=new Uint8Array(256); for(const i of [1,2,3,4,5,6,7,8,11,12,13,14,15,16,17,18,19,30,31,39,41,42,57,135,143,161,162,163,164,165,166,167,169,170]) OPAQUE[i]=1;
 // SOLID: lo que frena al jugador. El vidrio frena pero deja pasar la luz.
-const SOLID=new Uint8Array(256); for(let i=0;i<256;i++) SOLID[i]=OPAQUE[i]; SOLID[40]=1; SOLID[168]=1;
+const SOLID=new Uint8Array(256); for(let i=0;i<256;i++) SOLID[i]=OPAQUE[i]; SOLID[40]=1; SOLID[168]=1; SOLID[175]=1;
 for(let i=58;i<=78;i++) if(i!==69&&i!==75&&i!==76&&i!==77) SOLID[i]=1;   // formas sólidas (losas, escaleras, vallas, puertas, cama, cultivo)
 // cajas de cada forma, en fracciones de bloque: [x0,y0,z0,x1,y1,z1]
 const FULLBOX=[[0,0,0,1,1,1]];
@@ -710,6 +722,7 @@ function shapeBoxes(id,nb,coll){
   switch(d.shape){
     case 'slab': return [[0,0,0,1,.5,1]];
     case 'carpet': return [[0,0,0,1,.0625,1]];
+    case 'grave': return [[.04,0,.04,.96,.12,.96],[.2,.12,.4,.8,.92,.6]];
     case 'stair': return [[0,0,0,1,.5,1],STAIR_TOP[d.rot]];
     case 'door': return DOORBOX[id];
     case 'bed': return [[0,0,0,1,.5625,1]];
@@ -841,6 +854,8 @@ function buildAtlas(){
     const row=y<8?0:1, b=Math.floor((x+row*3)/2.3), col=[[150,40,40],[40,70,140],[50,110,60],[180,140,50],[110,60,120],[90,60,40]][Math.floor(hash2(b,row,77)*6)], top=(y===1||y===9)&&hash2(b,row,78)>.5;
     if(top) return [30,22,18]; const sp=(Math.floor((x+row*3)/2.3)!==Math.floor((x+1+row*3)/2.3))?-30:0; return [col[0]+sp,col[1]+sp,col[2]+sp]; });
   [[196,58,52],[58,104,186],[70,148,82]].forEach((c,k)=>tile(56+k,(x,y,r)=>{ const n=(r-.5)*16, b=(x<1||x>14||y<1||y>14)?-40:((x+y)%4===0)?14:0; return [c[0]+n+b,c[1]+n+b,c[2]+n+b]; }));   // alfombras
+  tile(59,(x,y,r)=>{ const cr=(x>=7&&x<=8&&y>=3&&y<=11)||(y>=5&&y<=6&&x>=5&&x<=10);   // lápida: piedra gris con una cruz y musgo abajo
+    if(cr) return [62+r*8,64+r*8,70+r*8]; const n=(r-.5)*22+(x===0||x===15||y===0?14:0); if(y>12&&hash2(x,y,59)>.45) return [86+n,118+n,70+n]; return [146+n,148+n,152+n]; });
   tile(45,(x,y,r)=>{ const dx=(x-7.5)/3.6, dy=(y-11.2)/4.4; if(dx*dx+dy*dy>1) return [0,0,0,0]; const n=(r-.5)*10, sh=(x<6&&y<10)?18:x>9?-22:0; return [240+n+sh,232+n+sh,212+n+sh]; });   // huevo
   g.putImageData(img,0,0);
   return cv;
@@ -1001,12 +1016,27 @@ class WorldGenerator{
     const s=this.seed, r=hash2(cx,cz,s+31337);
     if(r>=.11&&r<.155) return this.bigStructAt(cx,cz,r);
     if(r>=.155&&r<.172) return this.portalAt(cx,cz);
+    if(r>=.172&&r<.196) return this.cacheAt(cx,cz);
+    if(r>=.196&&r<.204) return this.campAt(cx,cz);
     if(r>.11) return null;
     const lx=2+Math.floor(hash2(cx,cz,s+31338)*3), lz=2+Math.floor(hash2(cx,cz,s+31339)*3);
     const wx=cx*CS+lx+3, wz=cz*CS+lz+3, h=this.heightAt(wx,wz), bio=this.biomeAt(wx,wz);
     if(h<=SEA+1||h>=40) return null;
     const type=(bio!==2&&r<.055)?'cabin':'ruin';
     return {type,lx,lz,h,chest:type==='cabin'?[cx*CS+lx+5,h+1,cz*CS+lz+5]:[wx,h+1,wz]};
+  }
+  // cofre perdido: un cofre suelto junto a un mojón de piedra con una antorcha encima
+  cacheAt(cx,cz){
+    const s=this.seed, lx=4+Math.floor(hash2(cx,cz,s+41)*8), lz=4+Math.floor(hash2(cx,cz,s+42)*8), wx=cx*CS+lx, wz=cz*CS+lz, h=this.heightAt(wx,wz);
+    if(h<=SEA+1||h>=44) return null;
+    return {type:'cache',lx,lz,h,chest:[wx,h+1,wz]};
+  }
+  // campamento de mercader: un puesto con toldo de rayas, farol y hoguera
+  campAt(cx,cz){
+    const x0=cx*CS, z0=cz*CS, h=this.heightAt(x0+8,z0+8);
+    if(h<=SEA+1||h>=38) return null;
+    for(const q of [[5,5],[11,5],[5,11],[11,11]]) if(Math.abs(this.heightAt(x0+q[0],z0+q[1])-h)>2) return null;
+    return {type:'camp',h,key:'m'+cx+','+cz,cx,cz,chests:[],mp:[x0+8.5,h+1,z0+7.5]};
   }
   // estructuras grandes: ocupan casi todo su chunk. tier: calidad del botín (1 mazmorra y torre, 2 cripta)
   bigStructAt(cx,cz,r){
@@ -1123,6 +1153,20 @@ class WorldGenerator{
     const get=(x,y,z)=>data[x+z*CS+y*256];
     if(st.type==='portal'){ this.buildPortal(st,set,get); return; }
     if(st.big){ this.buildBig(data,st,set,get); return; }
+    if(st.type==='cache'){ const {lx,lz,h}=st, mx=lx<8?lx+1:lx-1;
+      for(const x of [lx,mx]){ for(let y=h;y>0&&(!SOLID[get(x,y,lz)]||WATERISH[get(x,y,lz)]);y--) set(x,y,lz,STONE); for(let y=h+1;y<=h+4;y++) set(x,y,lz,AIR); }
+      set(lx,h+1,lz,CHEST); set(mx,h+1,lz,STONE); set(mx,h+2,lz,STONE); set(mx,h+3,lz,TORCH); return; }
+    if(st.type==='camp'){ const h=st.h;
+      for(let z=4;z<=12;z++)for(let x=4;x<=12;x++){ for(let y=h-1;y>0&&(!SOLID[get(x,y,z)]||WATERISH[get(x,y,z)]);y--) set(x,y,z,DIRT);
+        if(!SOLID[get(x,h,z)]||WATERISH[get(x,h,z)]) set(x,h,z,GRASS); for(let y=h+1;y<=h+6;y++) set(x,y,z,AIR); }
+      for(let z=6;z<=9;z++)for(let x=6;x<=10;x++) set(x,h,z,PLANKS_D);                         // suelo del puesto
+      for(const q of [[6,6],[10,6],[6,9],[10,9]]) for(let y=h+1;y<=h+3;y++) set(q[0],y,q[1],LOG);   // postes
+      for(let z=5;z<=10;z++)for(let x=5;x<=11;x++) set(x,h+4,z,x%2?TILE_R:TILE_W);                  // toldo de rayas
+      set(8,h+4,7,LANTERN);                                                                     // farol en el toldo
+      set(7,h+1,9,SLAB_W); set(9,h+1,9,SLAB_W);                                                 // mostrador
+      set(6,h+1,7,SHELF); set(10,h+1,7,SHELF); set(10,h+1,8,PLANKS_D);                         // estanterías y caja
+      set(8,h+1,11,HEARTH);                                                                     // hoguera delante
+      return; }
     const {lx,lz,h}=st, cab=st.type==='cabin', s=this.seed;
     for(let dz=0;dz<7;dz++)for(let dx=0;dx<7;dx++){
       const x=lx+dx, z=lz+dz;
@@ -1550,7 +1594,7 @@ let jumpHeld=false, selected=0, started=false, sneakOn=false;
 addEventListener('keydown',e=>{
   if(!started&&e.code==='Escape'){ closeCtl(); $('set').classList.remove('on'); $('slots').classList.remove('on'); return; }
   if(!started||e.target.id==='seed') return;
-  if(e.code==='Escape'){ if($('book').classList.contains('on')) closeBook(); else if($('skills').classList.contains('on')) closeSkills(); else if($('ctl').classList.contains('on')) closeCtl(); else if($('set').classList.contains('on')) $('set').classList.remove('on'); else if(mapOpen) closeMap(); else if(invOpen) closeInv(); else togglePause(); return; }
+  if(e.code==='Escape'){ if($('shop').classList.contains('on')) closeShop(); else if($('book').classList.contains('on')) closeBook(); else if($('skills').classList.contains('on')) closeSkills(); else if($('ctl').classList.contains('on')) closeCtl(); else if($('set').classList.contains('on')) $('set').classList.remove('on'); else if(mapOpen) closeMap(); else if(invOpen) closeInv(); else togglePause(); return; }
   keys[e.code]=true; refreshKeys();
   if(e.code.startsWith('Digit')){ const n=+e.code.slice(5)-1; if(n>=0&&n<9) selectSlot(n); }
   if(e.code==='KeyE') toggleInv();
@@ -1635,7 +1679,7 @@ const atlasCanvas=buildAtlas();
 
 /* ---------- INVENTORY: 27 huecos, los 9 primeros son la barra rápida ---------- */
 const INV_N=27, inv=new Array(INV_N).fill(null);
-const maxStack=id=>(BLOCKS[id].tool||BLOCKS[id].armor||BLOCKS[id].pet||BLOCKS[id].one)?1:64;
+const maxStack=id=>(BLOCKS[id].tool||BLOCKS[id].armor||BLOCKS[id].pet||BLOCKS[id].one)?1:(BLOCKS[id].stack||64);
 function countItem(id){ let c=0; for(const s of inv) if(s&&s.id===id) c+=s.n; return c; }
 function addItem(id,n){ const n0=n;
   for(let i=0;i<INV_N&&n>0;i++){ const s=inv[i]; if(s&&s.id===id&&s.n<maxStack(id)){ const k=Math.min(n,maxStack(id)-s.n); s.n+=k; n-=k; } }
@@ -1736,6 +1780,7 @@ function icon(id){
   }
   else if(id===ELIXIR){ x.fillStyle='#d8e8ee'; x.fillRect(6,2,4,3); x.fillStyle='#8a5a34'; x.fillRect(6,1,4,2); x.fillStyle='#bfe9f0'; x.fillRect(4,5,8,9); x.fillRect(3,7,10,6); x.fillStyle='#4fd8e8'; x.fillRect(4,9,8,4); x.fillStyle='#f2fdff'; x.fillRect(5,7,2,2); }
   else if(id===TUSK){ x.fillStyle='#e9e0c8'; [[2,13],[3,11],[4,9],[5,7],[7,5],[9,4],[11,3],[13,2]].forEach((q,i)=>x.fillRect(q[0],q[1],i<5?3:2,i<5?3:2)); x.fillStyle='#b8ab88'; x.fillRect(2,15,3,1); x.fillStyle='#f2c54a'; x.fillRect(3,10,4,2); x.fillStyle='#fffaf0'; x.fillRect(6,7,1,1); x.fillRect(9,5,1,1); }
+  else if(id===COIN){ x.fillStyle='#8a6414'; x.fillRect(4,2,8,12); x.fillRect(2,4,12,8); x.fillRect(3,3,10,10); x.fillStyle='#f2c54a'; x.fillRect(4,3,8,10); x.fillRect(3,4,10,8); x.fillStyle='#ffe58a'; x.fillRect(5,4,3,2); x.fillRect(4,5,2,3); x.fillStyle='#b8861e'; x.fillRect(7,6,2,5); x.fillRect(6,6,4,1); x.fillRect(6,10,4,1); }
   else if(id===FEATHER){ x.fillStyle='#f2f0e4'; for(let j=0;j<10;j++) x.fillRect(4+j,12-j,3,2); x.fillStyle='#c8c2b2'; for(let j=0;j<11;j++) x.fillRect(4+j,13-j,1,1); x.fillStyle='#8a7a68'; x.fillRect(2,13,3,1); }
   else if(id===FRIED_EGG){ x.fillStyle='#fbf7ef'; x.fillRect(3,5,10,7); x.fillRect(2,7,12,4); x.fillRect(5,4,6,9); x.fillStyle='#f2b630'; x.fillRect(6,7,4,3); x.fillStyle='#ffe08a'; x.fillRect(6,7,2,1); }
   else if(id===ROD){ x.fillStyle='#8a5a34'; for(let j=0;j<11;j++) x.fillRect(2+j,13-j,2,2); x.fillStyle='#4a3b2c'; x.fillRect(2,12,3,3); x.fillStyle='#e8e4da'; for(let j=0;j<9;j++) x.fillRect(13,3+j,1,1); x.fillStyle='#d8362f'; x.fillRect(12,12,3,2); x.fillStyle='#ffffff'; x.fillRect(12,14,3,1); }
@@ -1781,7 +1826,75 @@ function renderHotbar(){
 }
 function selectSlot(i){ selected=i; hbEls.forEach((el,n)=>el.classList.toggle('sel',n===i)); renderHotbar(); }
 let toastT=0;
-function useLabel(id){ return id===WORKBENCH?'Fabricar':id===FURNACE?'Horno':id===CAULDRON?'Cocinar':id===CHEST?'Abrir':id===BED?'Dormir':BLOCKS[id].shape==='door'?'Puerta':'Usar'; }
+const merchants=new Map(); let merchT=0;
+const MNAMES=['Aldo','Brisa','Casimiro','Dalia','Eloy','Fermina','Gaspar','Hortensia','Ismael','Julia'];
+function merchModel(v){
+  const g=new THREE.Group(), B=AB(), robe=[0x5a3c8a,0x2f6a5a,0x8a3c3c,0x3c5a8a][v%4], skin=[0xe0b48a,0xc8946a,0x9a6a48][v%3];
+  for(const sx of [1,-1]){ abx(B,.17,.5,.18,0x3a2a1e,sx*.1,.25,0); abx(B,.19,.08,.24,0x241a12,sx*.1,.04,.03); }
+  abx(B,.52,.78,.34,robe,0,.86,0); abx(B,.56,.08,.36,0xc8a24a,0,.62,0); abx(B,.1,.1,.04,0xf2c54a,.1,.62,.19);
+  for(const sx of [1,-1]){ abx(B,.15,.6,.17,robe,sx*.34,.95,0); abx(B,.13,.13,.13,skin,sx*.34,.6,.02); }
+  abx(B,.38,.38,.36,skin,0,1.45,0); abx(B,.3,.14,.08,0xd8d4c8,0,1.3,.17); abx(B,.08,.06,.04,skin,0,1.42,.2);
+  abEye(B,.09,1.5,.18,1,true); abEye(B,-.09,1.5,.18,-1,true);
+  abx(B,.64,.05,.64,0x6a4a2a,0,1.66,0); abx(B,.38,.24,.38,0x6a4a2a,0,1.8,0); abx(B,.39,.05,.39,0xb2343a,0,1.71,0);
+  abx(B,.44,.52,.22,0x8a5a34,0,.98,-.28); abx(B,.32,.14,.18,0x4a3a2a,0,1.28,-.28); abx(B,.06,.4,.06,0x6a4a2a,.16,1.1,-.4);
+  g.add(abMesh(B)); return g;
+}
+function updateMerchants(dt){
+  if(!player) return;
+  merchT-=dt;
+  if(merchT<=0){ merchT=.6;
+    if(arenaIdx<0){ const pcx=Math.floor(player.x/CS), pcz=Math.floor(player.z/CS);
+      for(let dz=-3;dz<=3;dz++)for(let dx=-3;dx<=3;dx++){ const st=world.gen.structAt(pcx+dx,pcz+dz); if(!st||st.type!=='camp'||merchants.has(st.key)) continue;
+        const v=Math.floor(hash2(st.cx,st.cz,world.gen.seed+515)*1000), g=merchModel(v); g.position.set(st.mp[0],st.mp[1],st.mp[2]); scene.add(g);
+        merchants.set(st.key,{key:st.key,cx:st.cx,cz:st.cz,x:st.mp[0],y:st.mp[1],z:st.mp[2],g,name:MNAMES[v%MNAMES.length],yaw:0,ph:v}); } }
+    merchants.forEach((m,k)=>{ if(arenaIdx>=0||Math.hypot(m.x-player.x,m.z-player.z)>90){ scene.remove(m.g); merchants.delete(k); } });
+  }
+  merchants.forEach(m=>{ m.ph+=dt; const d=Math.hypot(player.x-m.x,player.z-m.z);
+    const ty=d<10?Math.atan2(player.x-m.x,player.z-m.z):Math.sin(m.ph*.25)*.6; let df=ty-m.yaw; while(df>Math.PI) df-=6.283; while(df<-Math.PI) df+=6.283; m.yaw+=df*Math.min(1,dt*4);
+    m.g.rotation.y=m.yaw; m.g.position.y=m.y+Math.abs(Math.sin(m.ph*1.6))*.015; });
+}
+// el mercader al que apuntas (rayo contra un cilindro de su tamaño)
+function aimMerchant(ex,ey,ez,maxd){
+  let best=null, bd=maxd;
+  merchants.forEach(m=>{ const vx=m.x-ex, vy=m.y+.95-ey, vz=m.z-ez, t=vx*dir.x+vy*dir.y+vz*dir.z; if(t<0||t>bd) return;
+    const px=ex+dir.x*t-m.x, py=ey+dir.y*t-(m.y+.95), pz=ez+dir.z*t-m.z; if(px*px+pz*pz<.22&&Math.abs(py)<1){ best=m; bd=t; } });
+  return best;
+}
+// la tienda: cada puesto tiene su surtido fijo; el pan y las antorchas siempre están
+const SHOP_ALL=[[BREAD,3,4],[TORCH,8,3],[COOKED_MEAT,3,5],[SEEDS,6,2],[ARROW,12,6],[BANDAGE,2,6],[IRON_INGOT,2,8],[GOLD_INGOT,1,9],[CRYSTAL,1,16],[P_HEAL,1,12],[SADDLE,1,25],[ROD,1,10],[GOLD_APPLE,1,28],[LANTERN,1,9],[TRANQ,4,8],[PICK_IRON,1,20],[P_SPEED,1,14],[P_NIGHT,1,12]];
+const SHOP_SELL=[[LEATHER,1,1],[BONE,2,1],[FISH,1,1],[FISH_C,1,1],[GFISH,1,6],[EGG,3,1],[WHEAT_ITEM,4,1],[TUSK,1,3],[GOLD_INGOT,1,4],[CRYSTAL,1,7]];
+let shopM=null, shopTab=0;
+function shopStock(m){ const R=rng(Math.imul(m.cx,73856093)^Math.imul(m.cz,19349663)^world.gen.seed), rest=SHOP_ALL.slice(2);
+  for(let i=rest.length-1;i>0;i--){ const j=Math.floor(R()*(i+1)); [rest[i],rest[j]]=[rest[j],rest[i]]; }
+  return SHOP_ALL.slice(0,2).concat(rest.slice(0,6)); }
+function openShop(m){ shopM=m; shopTab=0; closeInv(); renderShop(); $('shop').classList.add('on'); sfx('tame'); try{ if(document.exitPointerLock) document.exitPointerLock(); }catch(_){}
+  flags.shop=true; }
+function closeShop(){ if($('shop')) $('shop').classList.remove('on'); shopM=null; }
+function renderShop(){
+  if(!shopM) return; const coins=countItem(COIN);
+  $('shTitle').textContent='Mercader '+shopM.name;
+  $('shHead').innerHTML='Tienes <b>'+coins+'</b> moneda'+(coins===1?'':'s')+'. '+(shopTab?'Te compro lo que te sobre.':'Las monedas se encuentran en los cofres repartidos por el mundo.');
+  $('shT0').classList.toggle('on',!shopTab); $('shT1').classList.toggle('on',!!shopTab);
+  const L=$('shList'); L.innerHTML='';
+  const list=shopTab?SHOP_SELL:shopStock(shopM);
+  for(const q of list){ const [id,n,price]=q, has=countItem(id), ok=shopTab?has>=n:coins>=price;
+    const row=document.createElement('div'); row.className='skrow'+(ok?'':' done');
+    row.innerHTML='<div class="skic"><img alt="" src="'+icon(id).url+'"></div><div class="sktx"><b></b><span></span></div>';
+    row.querySelector('b').textContent=BLOCKS[id].name+(n>1?' ×'+n:'');
+    row.querySelector('span').textContent=shopTab?'Tienes '+has:price+' moneda'+(price===1?'':'s');
+    const b=document.createElement('button'); b.className='mini'+(ok?' pri':''); b.disabled=!ok;
+    b.textContent=shopTab?'Vender por '+price:'Comprar · '+price;
+    b.addEventListener('click',()=>shopTab?sellItem(q):buyItem(q)); row.appendChild(b); L.appendChild(row); }
+}
+function buyItem(q){ const [id,n,price]=q; if(countItem(COIN)<price){ toast('No tienes monedas suficientes.'); return; }
+  removeItem(COIN,price); const left=addItem(id,n);
+  if(left===n){ addItem(COIN,price); toast('No te cabe en la mochila.'); }
+  else{ sfx('craft'); toast('Has comprado '+BLOCKS[id].name.toLowerCase()+(n>1?' ×'+n:'')+'.'); stats.bought=(stats.bought||0)+1; }
+  invChanged(); renderShop(); }
+function sellItem(q){ const [id,n,price]=q; if(countItem(id)<n) return; removeItem(id,n); const left=addItem(COIN,price);
+  if(left>0){ addItem(id,n); removeItem(COIN,price-left); toast('No te caben las monedas.'); } else sfx('tick');
+  invChanged(); renderShop(); }
+function useLabel(id){ return id===GRAVE?'Recuperar':id===WORKBENCH?'Fabricar':id===FURNACE?'Horno':id===CAULDRON?'Cocinar':id===CHEST?'Abrir':id===BED?'Dormir':BLOCKS[id].shape==='door'?'Puerta':'Usar'; }
 function toast(msg){ const h=$('hint'); h.textContent=msg; h.style.opacity='1'; clearTimeout(toastT); toastT=setTimeout(()=>{ h.style.opacity='0'; },2600); }
 
 /* ---------- CRAFTING ---------- */
@@ -2171,7 +2284,7 @@ function updateBook(dt){ bookT-=dt; if(bookT>0||!player) return; bookT=1;
   if(cryptPt) bookBoss('boss');
   if(arenaIdx<0){ const pcx=Math.floor(player.x/CS), pcz=Math.floor(player.z/CS);
     for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++){ const st=world.gen.structAt(pcx+dx,pcz+dz); if(!st||places.has(st.key)) continue;
-      const q=st.type==='portal'?{k:'portal',x:st.px,z:st.pz,a:st.arena}:st.big?{k:st.type,x:st.center[0],z:st.center[2],a:0}:null;
+      const q=st.type==='portal'?{k:'portal',x:st.px,z:st.pz,a:st.arena}:st.type==='camp'?{k:'camp',x:st.mp[0],z:st.mp[2],a:0}:st.big?{k:st.type,x:st.center[0],z:st.center[2],a:0}:null;
       if(q&&Math.hypot(q.x-player.x,q.z-player.z)<36) places.set(st.key,q); } }
   if(bookNew&&$('bkBtn')) $('bkBtn').classList.add('pri'); }
 selectSlot(0);
@@ -2412,7 +2525,7 @@ for(let i=0;i<PN;i++) pPos[i*3+1]=-999;
 const pGeo=new THREE.BufferGeometry();
 pGeo.setAttribute('position',new THREE.BufferAttribute(pPos,3)); pGeo.setAttribute('color',new THREE.BufferAttribute(pCol,3));
 const pts=new THREE.Points(pGeo,new THREE.PointsMaterial({size:.13,vertexColors:true})); pts.frustumCulled=false; scene.add(pts);
-const BCOL={1:[.41,.67,.33],2:[.53,.38,.27],3:[.5,.52,.55],4:[.89,.82,.6],5:[.52,.5,.49],6:[.94,.96,.98],7:[.75,.56,.35],8:[.67,.33,.25],11:[.42,.31,.2],12:[.23,.5,.24],18:[.75,.56,.35],29:[.9,.7,.3],30:[.26,.54,.27],31:[.66,.83,.93],39:[.61,.64,.7],40:[.82,.92,.96],41:[.59,.61,.64],42:[.62,.44,.25],43:[.33,.63,.29],44:[.88,.28,.36],57:[.6,.9,.95],108:[.3,.55,.25],143:[.89,.86,.77],144:[.94,.92,.85],161:[.9,.89,.85],162:[.77,.23,.2],163:[.23,.41,.73],164:[.27,.58,.32],165:[.89,.72,.24],166:[.18,.17,.2],167:[.38,.27,.18],168:[.6,.45,.3],169:[1,.75,.35],170:[.45,.3,.2],171:[.77,.23,.2],172:[.23,.41,.73],173:[.27,.58,.32],150:[.7,.92,1],96:[.84,.94,.4],97:[.96,.4,.55],98:[.85,.16,.16],99:[.42,.22,.62]};
+const BCOL={1:[.41,.67,.33],2:[.53,.38,.27],3:[.5,.52,.55],4:[.89,.82,.6],5:[.52,.5,.49],6:[.94,.96,.98],7:[.75,.56,.35],8:[.67,.33,.25],11:[.42,.31,.2],12:[.23,.5,.24],18:[.75,.56,.35],29:[.9,.7,.3],30:[.26,.54,.27],31:[.66,.83,.93],39:[.61,.64,.7],40:[.82,.92,.96],41:[.59,.61,.64],42:[.62,.44,.25],43:[.33,.63,.29],44:[.88,.28,.36],57:[.6,.9,.95],108:[.3,.55,.25],143:[.89,.86,.77],144:[.94,.92,.85],161:[.9,.89,.85],162:[.77,.23,.2],163:[.23,.41,.73],164:[.27,.58,.32],165:[.89,.72,.24],166:[.18,.17,.2],167:[.38,.27,.18],168:[.6,.45,.3],169:[1,.75,.35],170:[.45,.3,.2],171:[.77,.23,.2],172:[.23,.41,.73],173:[.27,.58,.32],175:[.6,.61,.63],150:[.7,.92,1],96:[.84,.94,.4],97:[.96,.4,.55],98:[.85,.16,.16],99:[.42,.22,.62]};
 let pNext=0;
 function burst(x,y,z,id){
   const c=BCOL[id]||BCOL[3];
@@ -2486,7 +2599,7 @@ const AU=(()=>{
   }
   // ---- EFECTOS ----
   // material del bloque: madera, piedra, tierra, arena, grava, nieve, hojas, cristal, hielo, metal
-  const MAT={1:'grass',2:'dirt',3:'stone',4:'sand',5:'gravel',6:'snow',7:'wood',8:'stone',11:'wood',12:'leaf',13:'stone',14:'stone',15:'stone',16:'stone',17:'glass',18:'wood',19:'stone',30:'leaf',31:'ice',39:'dirt',40:'glass',41:'stone',42:'wood',43:'leaf',44:'leaf',57:'glass',78:'dirt',108:'leaf',128:'wood',135:'stone',143:'bone',158:'leaf',161:'stone',162:'stone',163:'stone',164:'stone',165:'stone',166:'stone',167:'wood',168:'glass',169:'stone',170:'wood',171:'leaf',172:'leaf',173:'leaf'};
+  const MAT={1:'grass',2:'dirt',3:'stone',4:'sand',5:'gravel',6:'snow',7:'wood',8:'stone',11:'wood',12:'leaf',13:'stone',14:'stone',15:'stone',16:'stone',17:'glass',18:'wood',19:'stone',30:'leaf',31:'ice',39:'dirt',40:'glass',41:'stone',42:'wood',43:'leaf',44:'leaf',57:'glass',78:'dirt',108:'leaf',128:'wood',135:'stone',143:'bone',158:'leaf',161:'stone',162:'stone',163:'stone',164:'stone',165:'stone',166:'stone',167:'wood',168:'glass',169:'stone',170:'wood',171:'leaf',172:'leaf',173:'leaf',175:'stone'};
   const matOf=id=>MAT[id]||(id>=58&&id<=74?'wood':'stone');
   function crunch(t,n,gap,f,q,peak,len,pan,buf){ for(let i=0;i<n;i++) nz(buf||white,t+i*gap*(.6+R()*.8),len*(.6+R()*.8),'bandpass',f*(.75+R()*.5),q,peak*(.6+R()*.5),.002,sfxB,pan); }
   function knock(t,f,peak,dur,pan){ tone('sine',f,t,.002,dur,peak,sfxB,pan,0,f*.6,dur); nz(white,t,.02,'bandpass',f*4,2,peak*.5,.001,sfxB,pan); }
@@ -2809,13 +2922,16 @@ function lootChest(x,y,z){
   looted.add(k); flags.loot=true; gainXp(st.tier?10+st.tier*10:10);
   const T=st.tier===2?LOOT3:st.tier===1?LOOT2:LOOT;
   const R=rng(Math.imul(x,92837111)^Math.imul(z,689287499)^world.gen.seed), c=chestAt(k), tot=T.reduce((a,l)=>a+l[3],0);
-  const n=4+Math.floor(R()*4)+(st.tier||0)+(perk('tesoro')?2:0)+world.gen.zoneAt(x,z);
+  const n=st.type==='cache'?1+Math.floor(R()*3):4+Math.floor(R()*4)+(st.tier||0)+(perk('tesoro')?2:0)+world.gen.zoneAt(x,z);
   for(let i=0;i<n;i++){
     let r=R()*tot, l=T[0]; for(const e of T){ r-=e[3]; if(r<=0){ l=e; break; } }
     let slot=Math.floor(R()*18); while(c[slot]) slot=(slot+1)%18;
     c[slot]={id:l[0],n:l[1]+Math.floor(R()*(l[2]-l[1]+1)),d:0};
   }
-  toast(st.tier===2?'¡Un cofre de la cripta!':st.tier===1?'Has encontrado un cofre con buen botín.':'Has encontrado un cofre con botín.');
+  // monedas: siempre hay, más cuanto mejor es el cofre y más lejos del inicio
+  { const zn=world.gen.zoneAt(x,z), coins=(st.type==='cache'?8+Math.floor(R()*10):st.tier===2?25+Math.floor(R()*20):st.tier===1?12+Math.floor(R()*10):4+Math.floor(R()*6))+zn*3;
+    let slot=Math.floor(R()*18); while(c[slot]&&c.some(q=>!q)) slot=(slot+1)%18; if(!c[slot]) c[slot]={id:COIN,n:coins,d:0}; }
+  toast(st.type==='cache'?'¡Un cofre perdido! Dentro hay monedas.':st.tier===2?'¡Un cofre de la cripta!':st.tier===1?'Has encontrado un cofre con buen botín.':'Has encontrado un cofre con botín.');
   if(st.tier) flags.dloot=true;
   if(st.type==='dungeon'&&!cryptPt){ const cp=findCrypt(); if(cp){ cryptPt=cp; setTimeout(()=>toast('Entre el botín hay un mapa antiguo: marca una cripta. Síguela con el ☠ de la brújula.'),2700); } }
 }
@@ -2924,6 +3040,7 @@ function updateFlow(dt){
 }
 
 function breakBlock(hit,held){
+  if(hit.id===GRAVE){ recoverGrave(hit.x,hit.y,hit.z); return; }
   const def=BLOCKS[hit.id];
   world.setBlock(hit.x,hit.y,hit.z,AIR); burst(hit.x,hit.y,hit.z,hit.id); sfx('break',hit.id); stats.mined++;
   if(!def.need||(held&&held.tool==='pick'&&held.tier>=def.need)){
@@ -4932,7 +5049,41 @@ function hurtPlayer(n,dx,dz){
   hp=Math.max(0,hp-n); if(dx||dz) lastHurt=gameT; renderStats(); sfx('hurt'); rumble(Math.min(1,.35+n*.08),140);
   const fx=$('dmg'); fx.style.transition='none'; fx.style.opacity='.55'; setTimeout(()=>{ fx.style.transition='opacity .5s'; fx.style.opacity='0'; },60);
   if(dx||dz){ const l=Math.hypot(dx,dz)||1; player.vx+=dx/l*8; player.vz+=dz/l*8; player.vy=5; player.onGround=false; }
-  if(hp<=0){ dead=true; stats.deaths++; dismount(); closeInv(); closeMap(); $('dead').classList.add('on'); try{ if(document.exitPointerLock) document.exitPointerLock(); }catch(_){} }
+  if(hp<=0){ dead=true; stats.deaths++; dismount(); closeInv(); closeMap(); closeShop(); lastGrave=diff>0?makeGrave():null;
+    $('deadP').textContent=lastGrave?'Tus cosas se han quedado en una tumba donde caíste. Vuelve a por ellas: está marcada en el mapa con ✝.':'Conservas la mochila. Vuelves a tu base o, si no tienes, al punto donde empezaste.';
+    $('dead').classList.add('on'); try{ if(document.exitPointerLock) document.exitPointerLock(); }catch(_){} }
+}
+// TUMBA: en normal y difícil, al morir todo lo que llevas se queda en una lápida donde caíste (en fácil conservas la mochila)
+const graves=new Map(); let lastGrave=null;
+function makeGrave(){
+  const items=[]; const take=s=>s?(s.d?[s.id,s.n,s.d]:[s.id,s.n]):null;
+  for(let i=0;i<INV_N;i++) if(inv[i]){ items.push(take(inv[i])); inv[i]=null; }
+  for(let i=0;i<3;i++) if(armor[i]){ items.push(take(armor[i])); armor[i]=null; }
+  if(!items.length){ return null; }
+  // dentro de una arena la tumba aparece junto a su portal, en el mundo normal
+  const inAr=arenaIdx>=0&&arenaRet, src=inAr?arenaRet:[player.x,player.y,player.z];
+  const x=Math.floor(src[0]), z=Math.floor(src[2]); let y=Math.max(1,Math.min(WH-2,Math.floor(src[1]+.2)));
+  let k=0; while(k<40&&!isFree(x,y,z)&&y<WH-2){ y++; k++; }
+  if(!isFree(x,y,z)){ restoreItems(items); return null; }
+  if(!inAr) for(let i=0;i<24&&y>1&&isFree(x,y-1,z)&&!WATERISH[world.getBlock(x,y-1,z)];i++) y--;
+  world.setBlock(x,y,z,GRAVE); graves.set(x+','+y+','+z,{items,day:dayNum});
+  invChanged(); return [x,y,z];
+}
+// devuelve objetos a la mochila (y la armadura a su sitio); lo que no cabe se devuelve en una lista
+function restoreItems(items){
+  const left=[];
+  for(const q of items){ const id=q[0], n=q[1], d=q[2]||0, A=BLOCKS[id]&&BLOCKS[id].armor;
+    if(A&&!armor[A.slot]){ armor[A.slot]={id,n,d}; continue; }
+    if(maxStack(id)===1||d){ const e=inv.findIndex(s=>!s); if(e<0){ left.push(q); continue; } inv[e]=d?{id,n,d}:{id,n}; }
+    else{ const r=addItem(id,n); if(r>0) left.push([id,r]); } }
+  invChanged(); return left;
+}
+function recoverGrave(x,y,z){
+  const k=x+','+y+','+z, g=graves.get(k);
+  if(!g){ world.setBlock(x,y,z,AIR); return; }
+  const left=restoreItems(g.items); sfx('chest');
+  if(left.length){ g.items=left; if(world.getBlock(x,y,z)!==GRAVE) world.setBlock(x,y,z,GRAVE); toast('No te cabe todo: el resto sigue en la tumba.'); }
+  else{ graves.delete(k); world.setBlock(x,y,z,AIR); burst(x,y,z,GRAVE); toast('Has recuperado tus cosas.'); }
 }
 function respawn(){
   dead=false; hp=maxHp(); hunger=20; invuln=3; hungerAcc=0; regenAcc=0;
@@ -4942,6 +5093,7 @@ function respawn(){
   for(let i=enemies.length-1;i>=0;i--) removeEntity(enemies[i]);
   while(shots.length){ scene.remove(shots[0].m); shots.shift(); }
   $('dead').classList.remove('on'); renderStats(); saveGame();
+  if(lastGrave){ const g=lastGrave; setTimeout(()=>toast('Tu tumba está en '+g[0]+', '+g[2]+'. Búscala con ✝ en el mapa.'),700); lastGrave=null; }
 }
 $('respawn').addEventListener('click',respawn);
 // efectos de las pociones: segundos que quedan de cada uno
@@ -5027,7 +5179,7 @@ let mapOpen=false, mapZoom=1, base=null;
 const MAP_STEPS=[.5,1,2];   // bloques por píxel: 128, 256 o 512 bloques de lado
 const MAP_COL={1:[96,160,74],2:[134,98,68],3:[128,132,138],4:[222,204,150],5:[132,128,124],6:[238,244,250],7:[190,144,90],8:[170,86,66],
   9:[62,130,198],11:[110,82,54],12:[52,118,56],13:[90,90,96],14:[160,140,120],15:[180,120,80],16:[200,180,90],17:[110,200,210],18:[170,128,80],19:[110,110,116],
-  29:[255,210,90],30:[66,138,70],31:[168,212,238],58:[190,144,90],59:[150,156,164],68:[170,128,80],74:[178,52,58],78:[96,66,44],39:[156,163,180],40:[200,230,240],41:[150,156,164],42:[156,110,62],57:[150,230,240],143:[222,214,190],161:[230,226,216],162:[196,58,52],163:[58,104,186],164:[70,148,82],165:[226,184,62],166:[46,44,50],167:[96,64,40],168:[180,140,90],169:[240,190,90],170:[120,80,50],171:[196,58,52],172:[58,104,186],173:[70,148,82]};
+  29:[255,210,90],30:[66,138,70],31:[168,212,238],58:[190,144,90],59:[150,156,164],68:[170,128,80],74:[178,52,58],78:[96,66,44],39:[156,163,180],40:[200,230,240],41:[150,156,164],42:[156,110,62],57:[150,230,240],143:[222,214,190],161:[230,226,216],162:[196,58,52],163:[58,104,186],164:[70,148,82],165:[226,184,62],166:[46,44,50],167:[96,64,40],168:[180,140,90],169:[240,190,90],170:[120,80,50],171:[196,58,52],172:[58,104,186],173:[70,148,82],175:[150,152,156]};
 function mapColumn(x,z){
   // si el chunk está cargado se usa lo real (construcciones, agujeros, árboles); si no, la previsión del generador
   const ch=world.chunks.get((x>>4)+','+(z>>4));
@@ -5099,7 +5251,8 @@ function drawMap(){
   // lugares que ya has visto: portales, torres, mazmorras y criptas
   const mr=mapZoom===2?6:mapZoom===1?8:10; g.font=(mr+3)+'px sans-serif'; g.textAlign='center'; g.textBaseline='middle';
   const mark=(x,z,txt)=>{ const [mx,my]=toMap(x,z); if(mx<6||mx>N-6||my<6||my>N-6) return; g.fillStyle='rgba(16,26,30,.7)'; g.beginPath(); g.arc(mx,my,mr,0,6.283); g.fill(); g.fillStyle='#ffffff'; g.fillText(txt,mx,my+1); };
-  places.forEach(q=>mark(q.x,q.z,q.k==='portal'?ARENAS[q.a].em:q.k==='tower'?'🗼':q.k==='crypt'?'☠':'⛏'));
+  places.forEach(q=>mark(q.x,q.z,q.k==='portal'?ARENAS[q.a].em:q.k==='tower'?'🗼':q.k==='crypt'?'☠':q.k==='camp'?'💰':'⛏'));
+  graves.forEach((v,k)=>{ const q=k.split(','); mark(+q[0]+.5,+q[2]+.5,'✝'); });
   if(cryptPt&&![...places.values()].some(q=>q.k==='crypt'&&Math.abs(q.x-cryptPt[0])<2)) mark(cryptPt[0],cryptPt[2],'☠');
   // jugador: flecha blanca que apunta hacia donde miras (norte arriba)
   const a=Math.atan2(-Math.cos(player.yaw),-Math.sin(player.yaw));
@@ -5112,7 +5265,7 @@ function dirName(dx,dz){
   return ['norte','noreste','este','sureste','sur','suroeste','oeste','noroeste'][Math.round(a/45)%8];
 }
 function updateMapText(){
-  $('mapPos').textContent='Estás en '+Math.floor(player.x)+', '+Math.floor(player.z)+' (altura '+Math.floor(player.y)+'). Lo oscuro es lo que aún no has explorado. Los portales, torres 🗼, mazmorras ⛏ y criptas ☠ que veas quedan marcados.';
+  $('mapPos').textContent='Estás en '+Math.floor(player.x)+', '+Math.floor(player.z)+' (altura '+Math.floor(player.y)+'). Lo oscuro es lo que aún no has explorado. Los portales, torres 🗼, mazmorras ⛏, criptas ☠ y mercaderes 💰 que veas quedan marcados; tu tumba, con ✝.';
   if(base){
     const dx=base[0]-player.x, dz=base[2]-player.z, dd=Math.round(Math.hypot(dx,dz));
     $('mapBase').textContent=dd<4?'Estás en tu base.':'Tu base está a '+dd+' bloques hacia el '+dirName(dx,dz)+'.';
@@ -5232,7 +5385,7 @@ function saveGame(){
     try{ localStorage.setItem('tesela-last',String(curSlot)); }catch(_){}
     if(!storeSet(slotKey(curSlot),JSON.stringify({v:1,seed:curSeed,at:Date.now(),goal:goalIdx,fl:{c:[...flags.crafted],n:flags.night,l:flags.loot,p:flags.plant,t:flags.tamed,d:flags.dloot,b:flags.boss,po:flags.portal,fi:flags.final},
       p:[+player.x.toFixed(3),+(player.y+.01).toFixed(3),+player.z.toFixed(3),+player.yaw.toFixed(3),+player.pitch.toFixed(3)],
-      inv:inv.map(s=>s?(s.d?[s.id,s.n,s.d]:[s.id,s.n]):0),sel:selected,dayT:+dayT.toFixed(4),hp,fd:hunger,pl:plvl,px:+pxp.toFixed(1),un:[...unlocked],sp:spawnPt,base,pets:animals.filter(a=>a.tame||a.owned).map(a=>({k:a.kind,x:+a.x.toFixed(2),y:+a.y.toFixed(2),z:+a.z.toFixed(2),hp:+a.hp.toFixed(1),sex:a.sex,baby:!!a.baby,grow:a.baby?Math.round(a.grow):0,tame:!!a.tame,owned:!!a.owned,lvl:a.lvl||0,xp:a.xp||0,sit:!!a.sit,bc:Math.round(a.breedCd||0),arm:a.arm||0,sd:!!a.saddle,co:a.coat||0})),looted:[...looted],rs:Math.round(rested),efx:effects,wk:[...woken],sl:[...slain],cp:cryptPt,se:[...seals],lp:lairPt,df:diff,dn:dayNum,st:stats,pl2:[...places].map(q=>[q[0],q[1].k,q[1].x,q[1].z,q[1].a]),ar:arenaRet,ex:exPack(),bk:{i:[...bookItems],a:[...bookAnimals],b:[...bookBosses]},gt:+gameT.toFixed(1),crops:[...crops].map(c=>[c[0],+c[1].toFixed(1)]),arm:armor.map(s=>s?[s.id,s.d||0]:0),chests:ch,edits:ed}))) return false;
+      inv:inv.map(s=>s?(s.d?[s.id,s.n,s.d]:[s.id,s.n]):0),sel:selected,dayT:+dayT.toFixed(4),hp,fd:hunger,pl:plvl,px:+pxp.toFixed(1),un:[...unlocked],sp:spawnPt,base,pets:animals.filter(a=>a.tame||a.owned).map(a=>({k:a.kind,x:+a.x.toFixed(2),y:+a.y.toFixed(2),z:+a.z.toFixed(2),hp:+a.hp.toFixed(1),sex:a.sex,baby:!!a.baby,grow:a.baby?Math.round(a.grow):0,tame:!!a.tame,owned:!!a.owned,lvl:a.lvl||0,xp:a.xp||0,sit:!!a.sit,bc:Math.round(a.breedCd||0),arm:a.arm||0,sd:!!a.saddle,co:a.coat||0})),looted:[...looted],rs:Math.round(rested),efx:effects,wk:[...woken],sl:[...slain],cp:cryptPt,se:[...seals],lp:lairPt,df:diff,dn:dayNum,st:stats,pl2:[...places].map(q=>[q[0],q[1].k,q[1].x,q[1].z,q[1].a]),ar:arenaRet,ex:exPack(),bk:{i:[...bookItems],a:[...bookAnimals],b:[...bookBosses]},gt:+gameT.toFixed(1),crops:[...crops].map(c=>[c[0],+c[1].toFixed(1)]),arm:armor.map(s=>s?[s.id,s.d||0]:0),chests:ch,gr:[...graves].map(q=>[q[0],q[1].items,q[1].day]),edits:ed}))) return false;
     lastSaveAt=Date.now(); if(!paused){ $('saveIc').classList.add('on'); saveIcT=1.4; } return true;
   }catch(_){ return false; }
 }
@@ -5247,7 +5400,7 @@ function startGame(seed,save,slot){
   if(world) world.chunks.forEach(ch=>world.disposeMesh(ch));
   while(animals.length) removeEntity(animals[0]); while(enemies.length) removeEntity(enemies[0]);
   while(shots.length){ scene.remove(shots[0].m); shots.shift(); }
-  decayQ.length=0; chests.clear(); paused=false; crops.clear(); looted.clear(); woken.clear(); slain.clear(); seals.clear(); lairPt=null; lairTry=0; arenaRet=null; exUnpack(null); diff=settings.diff; dayNum=1; for(const k in stats) stats[k]=0; places.clear(); lpX=null; bookItems.clear(); bookAnimals.clear(); bookBosses.clear(); bookNew=false; rested=0; restT=0; curZone=-1; for(const k in effects) effects[k]=0; cryptPt=null;
+  decayQ.length=0; chests.clear(); graves.clear(); lastGrave=null; paused=false; crops.clear(); looted.clear(); woken.clear(); slain.clear(); seals.clear(); lairPt=null; lairTry=0; arenaRet=null; exUnpack(null); diff=settings.diff; dayNum=1; for(const k in stats) stats[k]=0; places.clear(); lpX=null; bookItems.clear(); bookAnimals.clear(); bookBosses.clear(); bookNew=false; rested=0; restT=0; curZone=-1; for(const k in effects) effects[k]=0; cryptPt=null;
   goalIdx=0; goalTxt=''; flags.crafted.clear(); flags.night=flags.loot=flags.plant=flags.tamed=flags.dloot=flags.boss=flags.portal=flags.final=false; flowQ.length=0; gameT=0;
   if(save&&save.chests) for(const k in save.chests) chests.set(k,save.chests[k].map(s=>(s&&BLOCKS[s[0]])?{id:s[0],n:s[1],d:s[2]||0}:null));
   const R=settings.dist;
@@ -5280,6 +5433,7 @@ function startGame(seed,save,slot){
     rested=save.rs||0;
     if(save.efx) for(const k in effects) effects[k]=+save.efx[k]||0;
     cryptPt=save.cp||null;
+    if(save.gr) for(const q of save.gr) graves.set(q[0],{items:q[1],day:q[2]||1});
     if(save.fl){ for(const c of save.fl.c||[]) flags.crafted.add(c); flags.night=!!save.fl.n; flags.loot=!!save.fl.l; flags.plant=!!save.fl.p; flags.tamed=!!save.fl.t; flags.dloot=!!save.fl.d; flags.boss=!!save.fl.b; flags.portal=!!save.fl.po; flags.final=!!save.fl.fi; }
     goalIdx=save.goal||0;
     if(save.gt) gameT=save.gt; if(save.crops) for(const c of save.crops) crops.set(c[0],c[1]);
@@ -5485,6 +5639,9 @@ $('tabK').addEventListener('click',()=>ctlTab('k'));
 $('tabP').addEventListener('click',()=>ctlTab('p'));
 $('ctlBtn').addEventListener('click',openCtl);
 $('pCtl').addEventListener('click',openCtl);
+$('shX').addEventListener('click',closeShop); $('shDone').addEventListener('click',closeShop);
+$('shT0').addEventListener('click',()=>{ shopTab=0; renderShop(); }); $('shT1').addEventListener('click',()=>{ shopTab=1; renderShop(); });
+$('shop').addEventListener('pointerdown',e=>{ if(e.target===$('shop')) closeShop(); });
 $('pSk').addEventListener('click',()=>{ renderSkills(); $('skills').classList.add('on'); });
 $('skDone').addEventListener('click',closeSkills);
 $('skX').addEventListener('click',closeSkills);
@@ -5511,7 +5668,7 @@ addEventListener('gamepadconnected',()=>{ toast('Mando conectado. Tienes sus con
 addEventListener('gamepaddisconnected',()=>{ padActive=false; padIdx=-1; document.body.classList.remove('padmode'); inp.px=inp.py=0; inp.prun=false; });
 // qué ventana está delante (para moverse por ella con la cruceta)
 function activeUI(){
-  for(const id of ['bye','book','skills','ctl','set','slots']) if($(id).classList.contains('on')) return $(id);
+  for(const id of ['bye','book','skills','shop','ctl','set','slots']) if($(id).classList.contains('on')) return $(id);
   if($('editBar').classList.contains('on')) return null;
   if(mapOpen) return $('map'); if(invOpen) return $('inv');
   if($('dead').classList.contains('on')) return $('dead');
@@ -5546,7 +5703,8 @@ function padAdjust(e,step){
   return false;
 }
 function padBack(){
-  if($('book').classList.contains('on')) closeBook();
+  if($('shop').classList.contains('on')) closeShop();
+  else if($('book').classList.contains('on')) closeBook();
   else if($('skills').classList.contains('on')) closeSkills();
   else if($('ctl').classList.contains('on')) closeCtl();
   else if($('set').classList.contains('on')) $('set').classList.remove('on');
@@ -5617,6 +5775,7 @@ if(!standalone&&/iphone|ipad|ipod/i.test(navigator.userAgent)&&window.top===wind
   $('installNote').style.display='block'; $('installNote').textContent='Para instalarla en iPhone: botón Compartir de Safari y luego «Añadir a pantalla de inicio».';
 }
 try{ if('serviceWorker' in navigator&&window.top===window&&location.protocol==='https:') navigator.serviceWorker.register('sw.js').catch(()=>{}); }catch(_){}
+try{ $('newDiff').value=String(settings.diff===undefined?1:settings.diff); }catch(_){}
 applySettings(); refreshMenu(); makeMenuWorld();
 
 let sneakEye=0, lastMine='';
@@ -5676,14 +5835,15 @@ function loop(now){
   $('cross').style.setProperty('--p',(mineP*100).toFixed(0));
 
   // si apuntas a una mesa u horno, el botón de colocar pasa a ser "Usar"
-  const useT=!!hit&&(hit.id===WORKBENCH||hit.id===FURNACE||hit.id===CAULDRON||hit.id===CHEST||hit.id===BED||BLOCKS[hit.id].shape==='door');
+  const useT=!!hit&&(hit.id===GRAVE||hit.id===WORKBENCH||hit.id===FURNACE||hit.id===CAULDRON||hit.id===CHEST||hit.id===BED||BLOCKS[hit.id].shape==='door');
   const tillT=!!hit&&held&&held.tool==='hoe'&&(hit.id===GRASS||hit.id===DIRT);
   const plantT=!!hit&&inv[selected]&&inv[selected].id===SEEDS&&hit.id===FARMLAND;
   const anim=targetAnimal(ex,ey,ez,Math.min(3.6,hit?hit.t+.3:9)), animAct=animalAction(anim);
   const ranged=!!(held&&held.rng);
   const fishW=held&&held.rod&&!fishing?findWater(ex,ey,ez):null;
-  const mode=held&&held.rod&&(fishing||fishW)?(fishing?'Recoger':'Pescar'):animAct?animAct:(riding&&!useT&&!(held&&(held.food||held.heal||held.potion||held.rng||held.armor)))?'Bajar':ranged&&!useT?'Disparar':useT?useLabel(hit.id):tillT?'Arar':plantT?'Plantar':(held&&held.potion)?'Beber':(held&&(held.food||held.heal))?(held.food?'Comer':'Curarse'):(held&&held.armor)?'Equipar':'Colocar';
-  const aimF=findTarget(ex,ey,ez,Math.min(reach,hit?hit.t:9)), aimC=aimF&&aimF.hostile?'foe':(animAct||useT)?'use':'';
+  const merch=merchants.size&&arenaIdx<0?aimMerchant(ex,ey,ez,Math.min(4.5,hit?hit.t+.4:4.5)):null;
+  const mode=merch?'Comerciar':held&&held.rod&&(fishing||fishW)?(fishing?'Recoger':'Pescar'):animAct?animAct:(riding&&!useT&&!(held&&(held.food||held.heal||held.potion||held.rng||held.armor)))?'Bajar':ranged&&!useT?'Disparar':useT?useLabel(hit.id):tillT?'Arar':plantT?'Plantar':(held&&held.potion)?'Beber':(held&&(held.food||held.heal))?(held.food?'Comer':'Curarse'):(held&&held.armor)?'Equipar':'Colocar';
+  const aimF=findTarget(ex,ey,ez,Math.min(reach,hit?hit.t:9)), aimC=aimF&&aimF.hostile?'foe':(animAct||useT||merch)?'use':'';
   if(aimC!==lastAim){ lastAim=aimC; $('dot').className=aimC; }
   if(mode!==lastUse){ lastUse=mode; $('placeLbl').textContent=mode; $('bPlace').classList.toggle('use',mode!=='Colocar'); $('bPlace').setAttribute('aria-label',mode); }
   const mMode=aimF?'Atacar':(hit&&BLOCKS[hit.id]&&BLOCKS[hit.id].mat==='wood')?'Talar':'Picar';
@@ -5693,11 +5853,13 @@ function loop(now){
   placeCd-=dt;
   if(inp.place){
     inp.place=false;
-    if(mode==='Pescar'){ castRod(fishW); }
+    if(mode==='Comerciar'){ openShop(merch); }
+    else if(mode==='Pescar'){ castRod(fishW); }
     else if(mode==='Recoger'){ reelIn(); }
     else if(mode==='Bajar'){ dismount(); }
     else if(animAct){ useAnimal(anim); }
     else if(ranged&&!useT){ fireHeld(ex,ey,ez); }
+    else if(hit&&hit.id===GRAVE){ recoverGrave(hit.x,hit.y,hit.z); }
     else if(hit&&hit.id===CHEST){ chestKey=hit.x+','+hit.y+','+hit.z; lootChest(hit.x,hit.y,hit.z); openInv(CHEST); sfx('chest'); }
     else if(hit&&(hit.id===WORKBENCH||hit.id===FURNACE||hit.id===CAULDRON)){ openInv(hit.id); }
     else if(hit&&BLOCKS[hit.id].shape==='door'){ toggleDoor(hit.x,hit.y,hit.z); }
@@ -5729,7 +5891,7 @@ function loop(now){
   updateSky(dt,ex,ey,ez);
   if(arenaIdx<0) updateWeather(dt,ex,ey,ez); else { wx.w=0; wxPts.visible=false; }
   updateCompass();
-  updateAnimals(dt);
+  updateAnimals(dt); updateMerchants(dt);
   updateEnemies(dt);
   updatePortals(dt); updateArena(dt); updateExplore(dt); updateBook(dt); updateFeedback(dt); updateFishing(dt);
   updateShadows();
