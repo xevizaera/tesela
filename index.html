@@ -453,7 +453,7 @@ body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width
     <tr><th>Picar y atacar</th><td>Mantén Picar sobre un bloque. Un toque corto golpea a un animal o enemigo. Puedes deslizar desde el botón para apuntar.</td></tr>
     <tr><th>Colocar</th><td>El botón dice lo que va a hacer según lo que mires o lleves: Colocar, Abrir, Dormir, Fabricar, Comer, Montar, Pescar… Picar también cambia a Atacar o Talar.</td></tr>
     <tr><th>Mercaderes y monedas</th><td>Las monedas salen de los cofres: en casas, ruinas, mazmorras y cofres perdidos junto a un mojón con antorcha. Los mercaderes tienen un puesto con toldo de rayas (💰 en el mapa): toca Comerciar para comprar o vender.</td></tr>
-    <tr><th>Tumba</th><td>En normal y difícil, al morir tus cosas se quedan en una tumba (✝ en el mapa). Vuelve y tócala para recuperarlas. En fácil conservas la mochila.</td></tr>
+    <tr><th>Tumba</th><td>Al morir: en fácil no pierdes nada; en normal conservas la barra rápida y la armadura, y el resto de la mochila se queda en una tumba; en difícil se queda todo en la tumba. Está marcada con ✝ en el mapa: vuelve y tócala para recuperarlo.</td></tr>
     <tr><th>Agacharse</th><td>Botón Agachar (se queda activado hasta que lo vuelvas a tocar). Vas más lento y no te caes por los bordes: útil para construir puentes y torres.</td></tr>
     <tr><th>Elegir objeto</th><td>Toca una casilla de la barra de abajo.</td></tr>
     <tr><th>Mochila</th><td>Botón de la mochila, arriba a la derecha. Arrastra objetos para moverlos y tócalos para ver qué son.</td></tr>
@@ -5136,17 +5136,17 @@ function hurtPlayer(n,dx,dz){
   const fx=$('dmg'); fx.style.transition='none'; fx.style.opacity='.55'; setTimeout(()=>{ fx.style.transition='opacity .5s'; fx.style.opacity='0'; },60);
   if(dx||dz) showHitDir(dx,dz);
   if(dx||dz){ const l=Math.hypot(dx,dz)||1; player.vx+=dx/l*8; player.vz+=dz/l*8; player.vy=5; player.onGround=false; }
-  if(hp<=0){ dead=true; stats.deaths++; dismount(); closeInv(); closeMap(); closeShop(); lastGrave=diff>0?makeGrave():null;
-    $('deadP').textContent=lastGrave?'Tus cosas se han quedado en una tumba donde caíste. Vuelve a por ellas: está marcada en el mapa con ✝.':'Conservas la mochila. Vuelves a tu base o, si no tienes, al punto donde empezaste.';
+  if(hp<=0){ dead=true; stats.deaths++; dismount(); closeInv(); closeMap(); closeShop(); lastGrave=diff>0?makeGrave(diff>=2):null;
+    $('deadP').textContent=lastGrave?(diff>=2?'Todo lo que llevabas, armadura incluida, se ha quedado en una tumba donde caíste. Vuelve a por ello: está marcada en el mapa con ✝.':'Conservas la barra rápida y la armadura; el resto de la mochila se ha quedado en una tumba donde caíste (✝ en el mapa).'):'Conservas todo lo que llevabas. Vuelves a tu base o, si no tienes, al punto donde empezaste.';
     { const sk=streakDays(); $('deadS').textContent='Día '+dayNum+' · '+playTime()+' jugados · '+stats.kills+' enemigos derrotados · '+sk+' día'+(sk===1?'':'s')+' sin caer (récord: '+Math.max(stats.rec||0,sk)+').'; stats.rec=Math.max(stats.rec||0,sk); stats.life0=dayNum; }
     $('dead').classList.add('on'); try{ if(document.exitPointerLock) document.exitPointerLock(); }catch(_){} }
 }
-// TUMBA: en normal y difícil, al morir todo lo que llevas se queda en una lápida donde caíste (en fácil conservas la mochila)
+// TUMBA: en fácil no pierdes nada; en normal la mochila (no la barra rápida ni la armadura puesta) se queda en una lápida donde caíste; en difícil, todo
 const graves=new Map(); let lastGrave=null;
-function makeGrave(){
+function makeGrave(all){
   const items=[]; const take=s=>s?(s.d?[s.id,s.n,s.d]:[s.id,s.n]):null;
-  for(let i=0;i<INV_N;i++) if(inv[i]){ items.push(take(inv[i])); inv[i]=null; }
-  for(let i=0;i<3;i++) if(armor[i]){ items.push(take(armor[i])); armor[i]=null; }
+  for(let i=all?0:9;i<INV_N;i++) if(inv[i]){ items.push(take(inv[i])); inv[i]=null; }
+  if(all) for(let i=0;i<3;i++) if(armor[i]){ items.push(take(armor[i])); armor[i]=null; }
   if(!items.length){ return null; }
   // dentro de una arena la tumba aparece junto a su portal, en el mundo normal
   const inAr=arenaIdx>=0&&arenaRet, src=inAr?arenaRet:[player.x,player.y,player.z];
