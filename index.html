@@ -2235,6 +2235,10 @@ const ANBOOK=[
   ['pig','Cerdo','Llanura y bosque.','No hace falta domarlo: con manzanas o bayas en la mano te sigue. Dale de comer a dos cerdos cerca para que tengan un cerdito.','Carne cruda y cuero.'],
   ['chicken','Gallina y gallo','Llanura y bosque.','Con semillas o trigo en la mano te siguen. Si das de comer a una gallina, pasa a ser tuya y pone huevos cada pocos minutos. Gallo y gallina tienen pollitos.','Carne cruda y plumas (con una pluma las flechas salen de 8 en 8).'],
   ['bird','Pájaro','Vuela sobre todos los biomas.','No se puede domesticar.','Carne cruda.']];
+// criaturas hostiles comunes: se apuntan en el libro (pestaña Animales) al verlas de cerca
+const ENBOOK=[
+  ['umbrio','Sombra errante','👤','Sale de noche en la superficie y a cualquier hora en las cuevas oscuras.','Te ve desde lejos, te persigue y golpea cuerpo a cuerpo. Cuanto más lejos del inicio, más fuertes; algunas son más grandes (de élite) y aguantan más.','Lucha con espada y armadura, o escóndete tras una puerta y espera al amanecer.'],
+  ['thrower','Lanzaespinas','🌵','Aparece con las sombras errantes, de noche y en las cuevas.','Se queda a distancia y te lanza espinas.','Acércate rápido o usa el arco: de cerca es débil.']];
 const BOSSBOOK=[
   {k:'boss',where:'Al fondo de una cripta. Encontrarás el mapa en el cofre de una mazmorra; la brújula la marca con ☠.',how:'Golpea el suelo a su alrededor, lanza orbes y con media vida invoca sombras.',weak:'Aléjate cuando levante los brazos.',drop:'Núcleo sombrío: Espada y Arco del Guardián.'},
   {k:'boarKing',where:'Portal dimensional de la llanura (🐗).',how:'Escarba y embiste en línea recta; cornea de cerca. Con media vida llama a su manada y da pisotones.',weak:'Esquiva la embestida para que se estrelle contra una columna: aturdido recibe más daño.',drop:'Colmillos: Lanza del Rey jabalí.'},
@@ -2257,6 +2261,9 @@ function renderBook(){
     $('bkHead').textContent='Has visto '+ANBOOK.filter(a=>bookAnimals.has(a[0])).length+' de '+ANBOOK.length+' animales. Se apuntan al verlos de cerca.';
     for(const a of ANBOOK){ if(!bookAnimals.has(a[0])){ row('unk','?','<b>???</b><span>Aún no lo has visto.</span>'); continue; }
       row('',{pig:'🐖',chicken:'🐔',horse:'🐎',deer:'🦌',boar:'🐗',cow:'🐄',dog:'🐕',wolf:'🐺',bird:'🐦'}[a[0]],'<b>'+a[1]+'</b><span>'+a[2]+'</span><span><b>Doma:</b> '+a[3]+'</span><span><b>Suelta:</b> '+a[4]+'</span>'); }
+    const h=document.createElement('div'); h.className='ptitle'; h.style.marginTop='12px'; h.textContent='Criaturas hostiles'; L.appendChild(h);
+    for(const e of ENBOOK){ if(!bookAnimals.has('e_'+e[0])){ row('unk','?','<b>???</b><span>Aún no la has visto.</span>'); continue; }
+      row('',e[2],'<b>'+e[1]+'</b><span>'+e[3]+'</span><span><b>Cómo ataca:</b> '+e[4]+'</span><span><b>Consejo:</b> '+e[5]+'</span>'); }
   }else if(bookTab===3){
     $('bkHead').textContent='Tu partida hasta ahora.';
     const n=v=>Math.round(v).toLocaleString('es-ES');
@@ -2280,7 +2287,7 @@ for(let i=0;i<4;i++) $('bkT'+i).addEventListener('click',()=>{ bookTab=i; render
 let bookT=0;
 function updateBook(dt){ bookT-=dt; if(bookT>0||!player) return; bookT=1;
   for(const a of animals) if(Math.hypot(a.x-player.x,a.z-player.z)<14) bookAnimal(a.kind);
-  for(const e of enemies) if(e.boss&&Math.hypot(e.x-player.x,e.z-player.z)<30) bookBoss(e.kind);
+  for(const e of enemies){ const d=Math.hypot(e.x-player.x,e.z-player.z); if(e.boss&&d<30) bookBoss(e.kind); else if(!e.boss&&d<16&&ENBOOK.some(q=>q[0]===e.kind)) bookAnimal('e_'+e.kind); }
   if(cryptPt) bookBoss('boss');
   if(arenaIdx<0){ const pcx=Math.floor(player.x/CS), pcz=Math.floor(player.z/CS);
     for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++){ const st=world.gen.structAt(pcx+dx,pcz+dz); if(!st||places.has(st.key)) continue;
@@ -4081,9 +4088,9 @@ function petStatus(){
   el.textContent=dogs.slice(0,3).map(a=>(a.kind==='wolf'?'Lobo':'Perro')+(a.arm?' con armadura':'')+', nivel '+a.lvl+': '+Math.ceil(a.hp)+'/'+a.maxhp+' de vida'+(a.sit?' (quieto)':'')).join('\n');
 }
 
-/* ---------- ENEMIES: el umbrío, criatura nocturna que persigue y golpea ---------- */
+/* ---------- ENEMIES: la sombra errante (en el código, 'umbrio'), criatura nocturna que persigue y golpea ---------- */
 const enemies=[], ENEMY_MAX=5;
-/* ---------- MODELOS DE ENEMIGOS: umbrío, lanzaespinas y Guardián sombrío ---------- */
+/* ---------- MODELOS DE ENEMIGOS: sombra errante, lanzaespinas y Guardián sombrío ---------- */
 // los ojos y el núcleo van en una malla aparte que no se oscurece de noche: brillan en la oscuridad
 const glowMat=new THREE.MeshBasicMaterial({vertexColors:true});
 function glowMesh(B){ const m=abMesh(B); m.material=glowMat; return m; }
