@@ -250,6 +250,9 @@ body.touchmode .touch{display:block}
   pointer-events:auto;display:flex;align-items:center;justify-content:center;flex-direction:column;
   font-size:11px;font-family:inherit;padding:0;touch-action:none}
 .btn svg{width:46%;height:46%;display:block;margin-bottom:2px}
+.btn.big{border-radius:50%;font-size:12px;font-weight:700}
+.btn.big svg{width:42%;height:42%}
+#bJump,#bPlace,#bSneak{border-radius:50%;font-size:9.5px;letter-spacing:-.2px}
 .btn.down,.btn.use{background:rgba(185,224,122,.34);border-color:var(--moss)}
 .btn{opacity:.8}
 #bMine,#bPlace,#bJump,#bSneak{width:56px;height:56px;margin-right:var(--sr);margin-bottom:var(--sb)}
@@ -5699,12 +5702,15 @@ $('pExit').addEventListener('click',()=>{
 });
 const EDIT_IDS=['bJump','bPlace','bMine','bSneak'];
 function applyBtnLayout(){
-  const sz=Math.round(56*(settings.btnScale||1));
-  EDIT_IDS.forEach((id,k)=>{
-    const el=$(id), pos=settings.btn&&settings.btn[id];
-    el.style.width=el.style.height=sz+'px';
-    // sin posición propia: columna a la derecha, de abajo arriba Picar, Colocar, Saltar
-    const def=k<3?[10,12+(2-k)*(sz+8)]:[10,12+3*(sz+8)];   // Agachar: en la misma columna, encima de Saltar
+  // como en los juegos de móvil: Picar grande en la esquina y los demás en arco alrededor del pulgar
+  const sc=settings.btnScale||1, M=Math.round(74*sc), S=Math.round(54*sc), r0=12, b0=12;
+  const cx=r0+M/2, cy=b0+M/2, R=M/2+S/2+20*sc, ANG={bPlace:178,bJump:131,bSneak:84};
+  EDIT_IDS.forEach(id=>{
+    const el=$(id), pos=settings.btn&&settings.btn[id], big=id==='bMine', z=big?M:S;
+    el.style.width=el.style.height=z+'px'; el.classList.toggle('big',big);
+    let def;
+    if(big) def=[r0,b0];
+    else{ const a=ANG[id]*Math.PI/180; def=[Math.round(cx-Math.cos(a)*R-z/2),Math.round(cy+Math.sin(a)*R-z/2)]; }
     el.style.right=(pos?pos[0]:def[0])+'px'; el.style.bottom=(pos?pos[1]:def[1])+'px';
   });
 }
