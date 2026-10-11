@@ -5704,7 +5704,7 @@ function applyBtnLayout(){
     const el=$(id), pos=settings.btn&&settings.btn[id];
     el.style.width=el.style.height=sz+'px';
     // sin posición propia: columna a la derecha, de abajo arriba Picar, Colocar, Saltar
-    const def=k<3?[10,12+(2-k)*(sz+8)]:[10+sz+10,12+2*(sz+8)];   // Agachar: a la izquierda de Saltar
+    const def=k<3?[10,12+(2-k)*(sz+8)]:[10,12+3*(sz+8)];   // Agachar: en la misma columna, encima de Saltar
     el.style.right=(pos?pos[0]:def[0])+'px'; el.style.bottom=(pos?pos[1]:def[1])+'px';
   });
 }
