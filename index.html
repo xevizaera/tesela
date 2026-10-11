@@ -150,6 +150,13 @@ body.padmode .touch{display:none!important}
 #cmpIn span.m{font-weight:400;opacity:.65;font-size:11px}
 #cmpIn span.b{color:#f2c54a}
 #cmpIn span.k{color:#c9a2ff}
+#cmpIn span.pn{color:#8fd8ff}
+#pinIcons{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0}
+.pinic{font:inherit;font-size:17px;width:34px;height:34px;padding:0;border-radius:6px;border:2px solid var(--line);background:rgba(0,0,0,.3);color:var(--bone)}
+.pinic.on{border-color:var(--moss);background:rgba(185,224,122,.28)}
+#pinName{font:inherit;font-size:14px;padding:7px 9px;border-radius:7px;border:2px solid var(--line);background:rgba(0,0,0,.3);color:var(--bone);width:100%;box-sizing:border-box;user-select:text;-webkit-user-select:text;margin-bottom:4px}
+#pinTxt{margin:8px 0 2px}
+#mapSide #pinInfo .mbtn,#mapSide #pinEd .mbtn{font-size:14px;padding:7px 6px;min-width:0;flex:1}
 #cmpMid{position:absolute;left:50%;bottom:0;width:2px;height:5px;margin-left:-1px;background:var(--bone)}
 #bossBar{display:none;position:absolute;left:50%;top:calc(34px + var(--st));transform:translateX(-50%);width:min(340px,56vw);text-align:center;font-size:12px;color:#e9dcff;text-shadow:0 1px 2px #000;pointer-events:none}
 #bossBar.on{display:block}
@@ -348,6 +355,10 @@ body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width
     <p id="mapBase"></p>
     <div class="mrow"><button id="mapOut" class="mbtn" aria-label="Alejar">−</button><button id="mapIn" class="mbtn" aria-label="Acercar">+</button></div>
     <button id="mapSet" class="mbtn pri">Marcar mi base aquí</button>
+    <button id="pinAdd" class="mbtn">Añadir marcador aquí</button>
+    <div id="pinEd" style="display:none"><div id="pinIcons"></div><input id="pinName" maxlength="16" placeholder="Nombre (opcional)" autocomplete="off" enterkeyhint="done">
+      <div class="mrow"><button id="pinCancel" class="mbtn">Cancelar</button><button id="pinOk" class="mbtn pri">Guardar</button></div></div>
+    <div id="pinInfo" style="display:none"><p id="pinTxt"></p><div class="mrow"><button id="pinFollow" class="mbtn">Seguir</button><button id="pinDel" class="mbtn">Borrar</button></div></div>
     <button id="mapClose" class="mbtn">Cerrar</button>
   </div>
 </div></div>
@@ -1593,7 +1604,7 @@ function refreshKeys(){
 let jumpHeld=false, selected=0, started=false, sneakOn=false;
 addEventListener('keydown',e=>{
   if(!started&&e.code==='Escape'){ closeCtl(); $('set').classList.remove('on'); $('slots').classList.remove('on'); return; }
-  if(!started||e.target.id==='seed') return;
+  if(!started||e.target.id==='seed'||e.target.id==='pinName') return;
   if(e.code==='Escape'){ if($('shop').classList.contains('on')) closeShop(); else if($('book').classList.contains('on')) closeBook(); else if($('skills').classList.contains('on')) closeSkills(); else if($('ctl').classList.contains('on')) closeCtl(); else if($('set').classList.contains('on')) $('set').classList.remove('on'); else if(mapOpen) closeMap(); else if(invOpen) closeInv(); else togglePause(); return; }
   keys[e.code]=true; refreshKeys();
   if(e.code.startsWith('Digit')){ const n=+e.code.slice(5)-1; if(n>=0&&n<9) selectSlot(n); }
@@ -5163,6 +5174,7 @@ const CMP=[['N',0],['NE',45],['E',90],['SE',135],['S',180],['SO',225],['O',270],
 });
 const cmpBase=document.createElement('span'); cmpBase.className='b'; $('cmpIn').appendChild(cmpBase);
 const cmpCrypt=document.createElement('span'); cmpCrypt.className='k'; $('cmpIn').appendChild(cmpCrypt);
+const cmpPin=document.createElement('span'); cmpPin.className='pn'; $('cmpIn').appendChild(cmpPin);
 const cmpLair=document.createElement('span'); cmpLair.className='k'; cmpLair.style.color='#f2c54a'; $('cmpIn').appendChild(cmpLair);
 let cmpT=0;
 function wrapA(a){ while(a>Math.PI) a-=2*Math.PI; while(a<-Math.PI) a+=2*Math.PI; return a; }
@@ -5170,8 +5182,9 @@ function updateCompass(){
   const on=settings.compass!==false; $('compass').style.display=on?'block':'none'; if(!on) return;
   const head=-player.yaw, place=(el,b)=>{ const d=wrapA(b-head); if(Math.abs(d)>Math.PI/2){ el.style.display='none'; return; } el.style.display='block'; el.style.left=(50+d/(Math.PI/2)*50)+'%'; };
   for(const c of CMP) place(c[0],c[1]);
+  cmpT++;
   if(base){ const dx=base[0]-player.x, dz=base[2]-player.z; place(cmpBase,Math.atan2(dx,-dz));
-    if((cmpT++%15)===0) cmpBase.textContent='⌂ '+Math.round(Math.hypot(dx,dz)); }
+    if((cmpT%15)===0) cmpBase.textContent='⌂ '+Math.round(Math.hypot(dx,dz)); }
   else cmpBase.style.display='none';
   if(cryptPt){ const dx=cryptPt[0]-player.x, dz=cryptPt[2]-player.z, d=Math.hypot(dx,dz); place(cmpCrypt,Math.atan2(dx,-dz));
     if((cmpT%15)===1) cmpCrypt.textContent='☠ '+Math.round(d); }
@@ -5179,6 +5192,9 @@ function updateCompass(){
   if(lairPt){ const dx=lairPt[0]-player.x, dz=lairPt[2]-player.z, d=Math.hypot(dx,dz); place(cmpLair,Math.atan2(dx,-dz));
     if((cmpT%15)===2||!cmpLair.textContent) cmpLair.textContent=ARENAS[lairPt[3]].em+' '+Math.round(d); }
   else cmpLair.style.display='none';
+  const fp=pins.find(q=>q.f);
+  if(fp){ const dx=fp.x-player.x, dz=fp.z-player.z; place(cmpPin,Math.atan2(dx,-dz)); if((cmpT%15)===3||!cmpPin.textContent) cmpPin.textContent=fp.ic+' '+Math.round(Math.hypot(dx,dz)); }
+  else{ cmpPin.style.display='none'; cmpPin.textContent=''; }
 }
 
 /* ---------- MAP: vista cenital alrededor del jugador y marca de la base ---------- */
@@ -5260,6 +5276,11 @@ function drawMap(){
   const mark=(x,z,txt)=>{ const [mx,my]=toMap(x,z); if(mx<6||mx>N-6||my<6||my>N-6) return; g.fillStyle='rgba(16,26,30,.7)'; g.beginPath(); g.arc(mx,my,mr,0,6.283); g.fill(); g.fillStyle='#ffffff'; g.fillText(txt,mx,my+1); };
   places.forEach(q=>mark(q.x,q.z,q.k==='portal'?ARENAS[q.a].em:q.k==='tower'?'🗼':q.k==='crypt'?'☠':q.k==='camp'?'💰':'⛏'));
   graves.forEach((v,k)=>{ const q=k.split(','); mark(+q[0]+.5,+q[2]+.5,'✝'); });
+  // marcadores propios: icono con su nombre debajo; el elegido, con borde
+  pins.forEach((q,i)=>{ const [mx,my]=toMap(q.x,q.z); if(mx<6||mx>N-6||my<6||my>N-6) return;
+    g.fillStyle=i===pinSel?'rgba(185,224,122,.95)':'rgba(16,26,30,.75)'; g.beginPath(); g.arc(mx,my,mr+1,0,6.283); g.fill();
+    g.fillStyle='#ffffff'; g.fillText(q.ic,mx,my+1);
+    if(q.name){ g.font='9px sans-serif'; const w=g.measureText(q.name).width+6; g.fillStyle='rgba(16,26,30,.75)'; g.fillRect(mx-w/2,my+mr+2,w,11); g.fillStyle='#ecf4e6'; g.fillText(q.name,mx,my+mr+8); g.font=(mr+3)+'px sans-serif'; } });
   if(cryptPt&&![...places.values()].some(q=>q.k==='crypt'&&Math.abs(q.x-cryptPt[0])<2)) mark(cryptPt[0],cryptPt[2],'☠');
   // jugador: flecha blanca que apunta hacia donde miras (norte arriba)
   const a=Math.atan2(-Math.cos(player.yaw),-Math.sin(player.yaw));
@@ -5272,18 +5293,18 @@ function dirName(dx,dz){
   return ['norte','noreste','este','sureste','sur','suroeste','oeste','noroeste'][Math.round(a/45)%8];
 }
 function updateMapText(){
-  $('mapPos').textContent='Estás en '+Math.floor(player.x)+', '+Math.floor(player.z)+' (altura '+Math.floor(player.y)+'). Lo oscuro es lo que aún no has explorado. Los portales, torres 🗼, mazmorras ⛏, criptas ☠ y mercaderes 💰 que veas quedan marcados; tu tumba, con ✝.';
+  $('mapPos').textContent='Estás en '+Math.floor(player.x)+', '+Math.floor(player.z)+' (altura '+Math.floor(player.y)+'). Lo oscuro aún no lo has explorado. Toca un marcador para seguirlo con la brújula o borrarlo.';
   if(base){
     const dx=base[0]-player.x, dz=base[2]-player.z, dd=Math.round(Math.hypot(dx,dz));
     $('mapBase').textContent=dd<4?'Estás en tu base.':'Tu base está a '+dd+' bloques hacia el '+dirName(dx,dz)+'.';
     $('mapSet').textContent='Mover la base aquí';
   }else{
-    $('mapBase').textContent='Aún no has marcado tu base. Ponte donde la tengas y pulsa el botón; reaparecerás allí al morir.';
+    $('mapBase').textContent='Sin base: pulsa el botón donde la tengas y reaparecerás allí.';
     $('mapSet').textContent='Marcar mi base aquí';
   }
 }
 function openMap(){ if(!started||dead||paused) return; closeInv(); mapOpen=true; $('map').classList.add('on'); drawMap(); sfx('tick'); try{ if(document.exitPointerLock) document.exitPointerLock(); }catch(_){} }
-function closeMap(){ mapOpen=false; $('map').classList.remove('on'); }
+function closeMap(){ mapOpen=false; $('map').classList.remove('on'); pinSel=-1; try{ pinPanel(''); $('pinName').blur(); }catch(_){} }
 $('bMap').addEventListener('pointerdown',e=>{ e.preventDefault(); if(mapOpen) closeMap(); else openMap(); });
 $('mapClose').addEventListener('click',closeMap);
 // pellizcar para acercar o alejar (y rueda del ratón)
@@ -5300,6 +5321,33 @@ $('mapClose').addEventListener('click',closeMap);
 }
 $('mapIn').addEventListener('click',()=>{ if(mapZoom>0){ mapZoom--; drawMap(); } });
 $('mapOut').addEventListener('click',()=>{ if(mapZoom<2){ mapZoom++; drawMap(); } });
+// MARCADORES PROPIOS: además de la base, todos los que quieras (hasta 40), con icono y nombre
+const pins=[]; let pinSel=-1, pinIc='⭐';
+const PIN_ICONS=['⭐','🏠','⛏','💎','🌾','🌲','💧','⚠','🚩'];
+PIN_ICONS.forEach(ic=>{ const b=document.createElement('button'); b.className='pinic'+(ic===pinIc?' on':''); b.textContent=ic; b.setAttribute('aria-label','Icono '+ic);
+  b.addEventListener('click',()=>{ pinIc=ic; [...$('pinIcons').children].forEach(c=>c.classList.toggle('on',c.textContent===ic)); }); $('pinIcons').appendChild(b); });
+function pinPanel(mode){ $('pinEd').style.display=mode==='ed'?'block':'none'; $('pinInfo').style.display=mode==='info'?'block':'none'; $('pinAdd').style.display=mode==='ed'?'none':'block'; }
+function showPin(i){ pinSel=i; if(i<0){ pinPanel(''); drawMap(); return; }
+  const q=pins[i], dx=q.x-player.x, dz=q.z-player.z, d=Math.round(Math.hypot(dx,dz));
+  $('pinTxt').textContent=q.ic+' '+(q.name||'Marcador')+(d<4?' · estás aquí.':' · a '+d+' bloques hacia el '+dirName(dx,dz)+'.');
+  $('pinFollow').textContent=q.f?'No seguir':'Seguir'; pinPanel('info'); drawMap(); try{ $('pinInfo').scrollIntoView({block:'nearest'}); }catch(_){} }
+$('pinAdd').addEventListener('click',()=>{ if(pins.length>=40){ toast('Tienes 40 marcadores: borra alguno para poner más.'); return; } pinSel=-1; $('pinName').value=''; pinPanel('ed'); drawMap(); try{ $('pinEd').scrollIntoView({block:'nearest'}); }catch(_){} });
+$('pinCancel').addEventListener('click',()=>{ pinPanel(''); });
+$('pinName').addEventListener('keydown',e=>{ e.stopPropagation(); if(e.key==='Enter') $('pinOk').click(); });
+$('pinOk').addEventListener('click',()=>{ const name=$('pinName').value.trim().slice(0,16); $('pinName').blur();
+  pins.push({x:+player.x.toFixed(1),z:+player.z.toFixed(1),ic:pinIc,name,f:false}); sfx('place'); toast('Marcador puesto'+(name?': '+name:'')+'.'); showPin(pins.length-1); saveGame(); });
+$('pinFollow').addEventListener('click',()=>{ const q=pins[pinSel]; if(!q) return; const on=!q.f; pins.forEach(o=>o.f=false); q.f=on;
+  if(on&&settings.compass===false) toast('Activa la brújula en Ajustes para ver el marcador.'); showPin(pinSel); saveGame(); });
+$('pinDel').addEventListener('click',()=>{ if(pinSel<0) return; pins.splice(pinSel,1); sfx('tick'); showPin(-1); saveGame(); });
+// tocar un marcador en el mapa lo selecciona
+{ const cv=$('mapCv'); let st=null;
+  cv.addEventListener('pointerdown',e=>{ st={x:e.clientX,y:e.clientY,id:e.pointerId,n:0}; });
+  cv.addEventListener('pointermove',e=>{ if(st&&e.pointerId!==st.id) st.n=2; });
+  cv.addEventListener('pointerup',e=>{ if(!st||e.pointerId!==st.id||st.n||Math.hypot(e.clientX-st.x,e.clientY-st.y)>10){ st=null; return; } st=null;
+    const r=cv.getBoundingClientRect(), mx=(e.clientX-r.left)/r.width*256, my=(e.clientY-r.top)/r.height*256, sc=MAP_STEPS[mapZoom];
+    let best=-1, bd=14; pins.forEach((q,i)=>{ const d=Math.hypot(256/2+(q.x-player.x)/sc-mx,256/2+(q.z-player.z)/sc-my); if(d<bd){ bd=d; best=i; } });
+    if(best>=0||pinSel>=0) showPin(best); });
+}
 $('mapSet').addEventListener('click',()=>{
   base=[+player.x.toFixed(2),+player.y.toFixed(2),+player.z.toFixed(2)]; spawnPt=base.slice();
   drawMap(); sfx('place'); saveGame(); toast('Base marcada. Reaparecerás aquí si caes.');
@@ -5392,7 +5440,7 @@ function saveGame(){
     try{ localStorage.setItem('tesela-last',String(curSlot)); }catch(_){}
     if(!storeSet(slotKey(curSlot),JSON.stringify({v:1,seed:curSeed,at:Date.now(),goal:goalIdx,fl:{c:[...flags.crafted],n:flags.night,l:flags.loot,p:flags.plant,t:flags.tamed,d:flags.dloot,b:flags.boss,po:flags.portal,fi:flags.final},
       p:[+player.x.toFixed(3),+(player.y+.01).toFixed(3),+player.z.toFixed(3),+player.yaw.toFixed(3),+player.pitch.toFixed(3)],
-      inv:inv.map(s=>s?(s.d?[s.id,s.n,s.d]:[s.id,s.n]):0),sel:selected,dayT:+dayT.toFixed(4),hp,fd:hunger,pl:plvl,px:+pxp.toFixed(1),un:[...unlocked],sp:spawnPt,base,pets:animals.filter(a=>a.tame||a.owned).map(a=>({k:a.kind,x:+a.x.toFixed(2),y:+a.y.toFixed(2),z:+a.z.toFixed(2),hp:+a.hp.toFixed(1),sex:a.sex,baby:!!a.baby,grow:a.baby?Math.round(a.grow):0,tame:!!a.tame,owned:!!a.owned,lvl:a.lvl||0,xp:a.xp||0,sit:!!a.sit,bc:Math.round(a.breedCd||0),arm:a.arm||0,sd:!!a.saddle,co:a.coat||0})),looted:[...looted],rs:Math.round(rested),efx:effects,wk:[...woken],sl:[...slain],cp:cryptPt,se:[...seals],lp:lairPt,df:diff,dn:dayNum,st:stats,pl2:[...places].map(q=>[q[0],q[1].k,q[1].x,q[1].z,q[1].a]),ar:arenaRet,ex:exPack(),bk:{i:[...bookItems],a:[...bookAnimals],b:[...bookBosses]},gt:+gameT.toFixed(1),crops:[...crops].map(c=>[c[0],+c[1].toFixed(1)]),arm:armor.map(s=>s?[s.id,s.d||0]:0),chests:ch,gr:[...graves].map(q=>[q[0],q[1].items,q[1].day]),edits:ed}))) return false;
+      inv:inv.map(s=>s?(s.d?[s.id,s.n,s.d]:[s.id,s.n]):0),sel:selected,dayT:+dayT.toFixed(4),hp,fd:hunger,pl:plvl,px:+pxp.toFixed(1),un:[...unlocked],sp:spawnPt,base,pets:animals.filter(a=>a.tame||a.owned).map(a=>({k:a.kind,x:+a.x.toFixed(2),y:+a.y.toFixed(2),z:+a.z.toFixed(2),hp:+a.hp.toFixed(1),sex:a.sex,baby:!!a.baby,grow:a.baby?Math.round(a.grow):0,tame:!!a.tame,owned:!!a.owned,lvl:a.lvl||0,xp:a.xp||0,sit:!!a.sit,bc:Math.round(a.breedCd||0),arm:a.arm||0,sd:!!a.saddle,co:a.coat||0})),looted:[...looted],rs:Math.round(rested),efx:effects,wk:[...woken],sl:[...slain],cp:cryptPt,se:[...seals],lp:lairPt,df:diff,dn:dayNum,st:stats,pl2:[...places].map(q=>[q[0],q[1].k,q[1].x,q[1].z,q[1].a]),ar:arenaRet,ex:exPack(),bk:{i:[...bookItems],a:[...bookAnimals],b:[...bookBosses]},gt:+gameT.toFixed(1),crops:[...crops].map(c=>[c[0],+c[1].toFixed(1)]),arm:armor.map(s=>s?[s.id,s.d||0]:0),chests:ch,gr:[...graves].map(q=>[q[0],q[1].items,q[1].day]),pn:pins.map(q=>[q.x,q.z,q.ic,q.name,q.f?1:0]),edits:ed}))) return false;
     lastSaveAt=Date.now(); if(!paused){ $('saveIc').classList.add('on'); saveIcT=1.4; } return true;
   }catch(_){ return false; }
 }
@@ -5407,7 +5455,7 @@ function startGame(seed,save,slot){
   if(world) world.chunks.forEach(ch=>world.disposeMesh(ch));
   while(animals.length) removeEntity(animals[0]); while(enemies.length) removeEntity(enemies[0]);
   while(shots.length){ scene.remove(shots[0].m); shots.shift(); }
-  decayQ.length=0; chests.clear(); graves.clear(); lastGrave=null; paused=false; crops.clear(); looted.clear(); woken.clear(); slain.clear(); seals.clear(); lairPt=null; lairTry=0; arenaRet=null; exUnpack(null); diff=settings.diff; dayNum=1; for(const k in stats) stats[k]=0; places.clear(); lpX=null; bookItems.clear(); bookAnimals.clear(); bookBosses.clear(); bookNew=false; rested=0; restT=0; curZone=-1; for(const k in effects) effects[k]=0; cryptPt=null;
+  decayQ.length=0; chests.clear(); graves.clear(); lastGrave=null; pins.length=0; pinSel=-1; paused=false; crops.clear(); looted.clear(); woken.clear(); slain.clear(); seals.clear(); lairPt=null; lairTry=0; arenaRet=null; exUnpack(null); diff=settings.diff; dayNum=1; for(const k in stats) stats[k]=0; places.clear(); lpX=null; bookItems.clear(); bookAnimals.clear(); bookBosses.clear(); bookNew=false; rested=0; restT=0; curZone=-1; for(const k in effects) effects[k]=0; cryptPt=null;
   goalIdx=0; goalTxt=''; flags.crafted.clear(); flags.night=flags.loot=flags.plant=flags.tamed=flags.dloot=flags.boss=flags.portal=flags.final=false; flowQ.length=0; gameT=0;
   if(save&&save.chests) for(const k in save.chests) chests.set(k,save.chests[k].map(s=>(s&&BLOCKS[s[0]])?{id:s[0],n:s[1],d:s[2]||0}:null));
   const R=settings.dist;
@@ -5441,6 +5489,7 @@ function startGame(seed,save,slot){
     if(save.efx) for(const k in effects) effects[k]=+save.efx[k]||0;
     cryptPt=save.cp||null;
     if(save.gr) for(const q of save.gr) graves.set(q[0],{items:q[1],day:q[2]||1});
+    if(save.pn) for(const q of save.pn) pins.push({x:q[0],z:q[1],ic:q[2]||'⭐',name:q[3]||'',f:!!q[4]});
     if(save.fl){ for(const c of save.fl.c||[]) flags.crafted.add(c); flags.night=!!save.fl.n; flags.loot=!!save.fl.l; flags.plant=!!save.fl.p; flags.tamed=!!save.fl.t; flags.dloot=!!save.fl.d; flags.boss=!!save.fl.b; flags.portal=!!save.fl.po; flags.final=!!save.fl.fi; }
     goalIdx=save.goal||0;
     if(save.gt) gameT=save.gt; if(save.crops) for(const c of save.crops) crops.set(c[0],c[1]);
