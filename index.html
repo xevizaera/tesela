@@ -223,6 +223,9 @@ body.bossfight #hint{top:calc(66px + var(--st))}
 #grid .slot{width:min(42px,4.9vw);height:min(42px,4.9vw);min-width:30px;min-height:30px}
 #grid .slot.hb{margin-top:8px}
 #invTip{font-size:11px;opacity:.7;margin-top:8px;max-width:400px;line-height:1.35}
+#recTabs{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 6px}
+.rtab{font:inherit;font-size:11px;font-weight:700;padding:4px 7px;border-radius:6px;border:1.5px solid var(--line);background:rgba(0,0,0,.3);color:var(--bone)}
+.rtab.on{background:var(--moss);color:#1b2a2f;border-color:transparent}
 #recipes{overflow-y:auto;display:flex;flex-direction:column;gap:5px;max-height:min(64vh,320px);padding-right:4px;touch-action:pan-y}
 .rec{display:grid;grid-template-columns:30px 1fr;column-gap:8px;align-items:center;text-align:left;font:inherit;color:var(--bone);
   background:rgba(0,0,0,.3);border:2px solid var(--line);border-radius:6px;padding:5px 8px;flex:none}
@@ -355,7 +358,7 @@ body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width
 <div id="inv"><div id="invPanel">
   <div id="charCol"><div class="ptitle">Tu personaje</div><canvas id="charCv" aria-label="Vista de tu personaje con la armadura y el objeto en la mano"></canvas><div id="armorRow"></div><span id="armorPct"></span></div>
   <div id="invLeft"><div class="ptitle prow">Mochila <span><button id="bkBtn" class="mini">Libro</button> <button id="skBtn" class="mini">Desbloqueos</button> <button id="sortBtn" class="mini">Ordenar</button></span></div><div id="grid"></div><div id="invTip">Arrastra un objeto con el dedo para moverlo; tócalo para ver qué es. La fila de abajo es la barra rápida. Suelta armadura sobre tu personaje para ponértela.</div></div>
-  <div id="invRight"><div class="ptitle" id="recTitle">Fabricar</div><div id="recipes"></div><div id="chestGrid"></div><div id="chestBtns" class="mrow" style="display:none;margin-top:8px"><button id="chDep" class="mini pri">Depositar todo</button><button id="chTake" class="mini">Coger todo</button></div></div>
+  <div id="invRight"><div class="ptitle" id="recTitle">Fabricar</div><div id="recTabs"></div><div id="recipes"></div><div id="chestGrid"></div><div id="chestBtns" class="mrow" style="display:none;margin-top:8px"><button id="chDep" class="mini pri">Depositar todo</button><button id="chTake" class="mini">Coger todo</button></div></div>
   <button id="invClose" aria-label="Cerrar mochila">✕</button>
 </div></div>
 
@@ -1645,7 +1648,14 @@ addEventListener('contextmenu',e=>e.preventDefault());
 // punteros
 let joyId=null, joyCX=0, joyCY=0, mineId=null, lockOK=true;
 // si el navegador no deja capturar el ratón (por ejemplo dentro de otra página), los clics vuelven a picar normal
-document.addEventListener('pointerlockerror',()=>{ lockOK=false; });
+document.addEventListener('pointerlockerror',()=>{ if(!autoLocking) lockOK=false; });
+// al cerrar la mochila, el mapa u otro panel con el ratón, se vuelve a capturar solo (sin tener que hacer clic otra vez)
+let autoLocking=false, usingMouse=false;
+addEventListener('pointerdown',e=>{ usingMouse=e.pointerType==='mouse'; },true);
+function relock(){ setTimeout(()=>{
+  if(!usingMouse||!lockOK||!started||paused||dead||invOpen||mapOpen||activeUI()||document.pointerLockElement===canvas||!canvas.requestPointerLock) return;
+  autoLocking=true; try{ const r=canvas.requestPointerLock(); if(r&&r.catch) r.catch(()=>{}); }catch(_){}
+  setTimeout(()=>{ autoLocking=false; },600); },0); }
 const looks=new Map(), joy=$('joy'), knob=$('knob');
 const JR=50;
 function joyMove(e){
@@ -1902,7 +1912,7 @@ function shopStock(m){ const R=rng(Math.imul(m.cx,73856093)^Math.imul(m.cz,19349
   return SHOP_ALL.slice(0,2).concat(rest.slice(0,6)); }
 function openShop(m){ shopM=m; shopTab=0; closeInv(); renderShop(); $('shop').classList.add('on'); sfx('tame'); try{ if(document.exitPointerLock) document.exitPointerLock(); }catch(_){}
   flags.shop=true; }
-function closeShop(){ if($('shop')) $('shop').classList.remove('on'); shopM=null; }
+function closeShop(){ if($('shop')) $('shop').classList.remove('on'); shopM=null; relock(); }
 function renderShop(){
   if(!shopM) return; const coins=countItem(COIN);
   $('shTitle').textContent='Mercader '+shopM.name;
@@ -2234,21 +2244,36 @@ function renderInv(){
       box.appendChild(b);
     }
   }
-  RECIPES.filter(r=>(!invStation||r.st===invStation)&&(!r.lock||unlocked.has(r.lock))).forEach(r=>{
+  $('recTabs').style.display=isChest?'none':'flex';
+  const all=RECIPES.filter(r=>(!invStation||r.st===invStation)&&(!r.lock||unlocked.has(r.lock)));
+  const tabs=REC_TABS.filter(t=>t[0]==='all'||all.some(r=>recCat(r.out)===t[0])); if(!tabs.some(t=>t[0]===recTab)) recTab='all';
+  const tb=$('recTabs'); tb.innerHTML='';
+  for(const t of tabs){ const b=document.createElement('button'); b.className='rtab'+(t[0]===recTab?' on':''); b.textContent=t[1]; b.addEventListener('click',()=>{ recTab=t[0]; renderInv(); $('recipes').scrollTop=0; }); tb.appendChild(b); }
+  const shown=all.filter(r=>recTab==='all'||recCat(r.out)===recTab), can=shown.filter(r=>canCraft(r));
+  can.concat(shown.filter(r=>!canCraft(r))).forEach(r=>{
     const ok=canCraft(r), w=document.createElement('div'); w.className='recw';
     const b=document.createElement('button'); b.className='rec'+(ok?'':' no');
     b.innerHTML='<img alt="" src="'+icon(r.out).url+'"><span class="rn">'+BLOCKS[r.out].name+(r.n>1?' ×'+r.n:'')+'</span><span class="ri">'+
-      r.inp.map(q=>q[1]+' '+BLOCKS[q[0]].name).join(' + ')+(r.st?(r.st===WORKBENCH?'. Junto a una mesa de trabajo':'. Junto a un horno'):'')+'</span>';
+      r.inp.map(q=>q[1]+' '+BLOCKS[q[0]].name).join(' + ')+(r.st&&r.st!==invStation?(r.st===WORKBENCH?'. Junto a una mesa de trabajo':'. Junto a un horno'):'')+'</span>';
     b.addEventListener('click',()=>craft(r)); w.appendChild(b);
     if(ok){ const all=document.createElement('button'); all.className='rall'; all.textContent='Todo'; all.setAttribute('aria-label','Fabricar todo lo posible de '+BLOCKS[r.out].name); all.addEventListener('click',()=>craftMax(r)); w.appendChild(all); }
     box.appendChild(w);
   });
 }
+// pestañas de recetas
+const REC_TABS=[['all','Todas'],['tool','Útiles'],['war','Combate'],['build','Bloques'],['food','Comida'],['misc','Otros']];
+let recTab='all';
+function recCat(id){ const d=BLOCKS[id];
+  if(d.tool==='pick'||d.tool==='axe'||d.tool==='hoe'||d.rod||id===BUCKET||id===FLASK||id===SADDLE) return 'tool';
+  if(d.tool||d.armor||d.pet||id===ARROW||id===TRANQ) return 'war';
+  if(d.food||d.heal||d.potion) return 'food';
+  if(d.tex) return 'build';
+  return 'misc'; }
 function invChanged(){ try{ for(const q of inv) if(q) bookItems.add(q.id); for(const q of armor) if(q) bookItems.add(q.id); }catch(_){} renderHotbar(); if(invOpen) renderInv(); if(statsReady) renderStats(); }
 var statsReady=false;
 let invStation=0;
 function openInv(station){ if(!started) return; invStation=station||0; invOpen=true; invPick=null; scanStations(); if(invStation&&invStation!==CAULDRON) nearSt[invStation]=true; $('inv').classList.add('on'); renderInv(); sfx('tick'); try{ if(document.exitPointerLock) document.exitPointerLock(); }catch(_){} }
-function closeInv(){ invOpen=false; invPick=null; invStation=0; hideTip(); drag=null; $('ghost').style.display='none'; $('inv').classList.remove('on'); }
+function closeInv(){ invOpen=false; invPick=null; invStation=0; hideTip(); drag=null; $('ghost').style.display='none'; $('inv').classList.remove('on'); relock(); }
 function toggleInv(){ if(invOpen) closeInv(); else openInv(); }
 $('bInv').addEventListener('pointerdown',e=>{ e.preventDefault(); toggleInv(); });
 $('invClose').addEventListener('click',closeInv);
@@ -2328,7 +2353,7 @@ function renderBook(){
   }
 }
 function openBook(){ if(!started) return; bookNew=false; $('bkBtn').classList.remove('pri'); renderBook(); $('book').classList.add('on'); $('book').querySelector('.panel').scrollTop=0; sfx('tick'); try{ if(document.exitPointerLock) document.exitPointerLock(); }catch(_){} }
-function closeBook(){ $('book').classList.remove('on'); }
+function closeBook(){ $('book').classList.remove('on'); relock(); }
 $('bkBtn').addEventListener('click',openBook); $('pBook').addEventListener('click',openBook);
 $('bkX').addEventListener('click',closeBook); $('bkDone').addEventListener('click',closeBook);
 $('book').addEventListener('pointerdown',e=>{ if(e.target===$('book')) closeBook(); });
@@ -2920,7 +2945,7 @@ function updateAudio(dt){
     const aggro=enemies.some(e=>e.aggro&&!e.minion&&Math.hypot(e.x-player.x,e.z-player.z)<18);
     if(aggro) combatT=6; else combatT-=.3;
     const bossNear=enemies.some(e=>e.boss&&e.aggro&&Math.hypot(e.x-player.x,e.z-player.z)<30);
-    const surf=g.heightAt(px,pz), under=py<surf-4&&!skyExposed(px,py+1,pz), bio=g.biomeAt(px,pz), night=dayLight<.4;
+    const surf=g.heightAt(px,pz), under=py<surf-4&&!skyExposed(px,py+1,pz), bio=g.biomeAt(px,pz), night=sunLight<.4;
     mus=bossNear?'boss':combatT>0?'combat':under?'cave':night?'night':['forest','day','desert','tundra'][bio];
     if(under){ A.cave=.7; A.drips=.7; }
     else{
@@ -3073,7 +3098,7 @@ function toggleDoor(x,y,z){
 }
 function useBed(hit){
   spawnPt=[hit.x+.5,hit.y+1.01,hit.z+.5];
-  if(dayLight>=.4){ toast('Solo puedes dormir de noche. Reaparecerás junto a esta cama.'); saveGame(); return; }
+  if(sunLight>=.4){ toast('Solo puedes dormir de noche. Reaparecerás junto a esta cama.'); saveGame(); return; }
   for(const e of enemies){ if(Math.hypot(e.x-player.x,e.z-player.z)<12){ toast('No puedes dormir con enemigos cerca.'); return; } }
   const fx=$('dmg'); fx.style.transition='none'; fx.style.background='#000'; fx.style.opacity='1';
   setTimeout(()=>{ fx.style.transition='opacity 1.2s'; fx.style.opacity='0'; setTimeout(()=>{ fx.style.background=''; },1300); },700);
@@ -3170,7 +3195,7 @@ let world=null, player=null, mineKey='', mineP=0, placeCd=0;
 
 /* ---------- DAYNIGHTSYSTEM: sol, luna, estrellas y color del cielo ---------- */
 const DAY_LEN=540;   // segundos que dura un día completo
-let dayT=.04, dayLight=1;
+let dayT=.04, dayLight=1, sunLight=1;   // dayLight: lo que se ve (la lluvia oscurece); sunLight: la hora del día, para la noche y los enemigos
 const sun=new THREE.Mesh(new THREE.PlaneGeometry(36,36),new THREE.MeshBasicMaterial({color:0xfff0b0,fog:false}));
 const moon=new THREE.Mesh(new THREE.PlaneGeometry(24,24),new THREE.MeshBasicMaterial({color:0xdfe8f5,fog:false}));
 scene.add(sun); scene.add(moon);
@@ -3213,7 +3238,7 @@ function updateSky(dt,ex,ey,ez){
   const dPrev=dayT; dayT=(dayT+dt/DAY_LEN)%1; if(dayT<dPrev&&started){ dayNum++; toast('Amanece. Comienza el día '+dayNum+'.'); }
   const ang=dayT*Math.PI*2, sn=Math.sin(ang), cs=Math.cos(ang);
   let f=(sn+.12)/.36; f=f<0?0:f>1?1:f; f=f*f*(3-2*f);
-  dayLight=(.14+.86*f)*(1-.25*wx.w);
+  sunLight=.14+.86*f; dayLight=sunLight*(1-.25*wx.w);
   const dusk=1-Math.abs(2*f-1);
   skyCol.setRGB(Math.min(1,.03+.59*f+dusk*.3), Math.min(1,.05+.78*f+dusk*.06), Math.max(0,.12+.82*f-dusk*.12));
   if(wx.w>0){ const gr=(skyCol.r+skyCol.g+skyCol.b)/3*.85; skyCol.setRGB(skyCol.r+(gr-skyCol.r)*wx.w*.7, skyCol.g+(gr-skyCol.g)*wx.w*.7, skyCol.b+(gr-skyCol.b)*wx.w*.7); }
@@ -3229,7 +3254,7 @@ function updateSky(dt,ex,ey,ez){
   cloudU.uFog.value.copy(skyCol);
   if(world){ const l=Math.hypot(cs,sn,.24); world.U.uSun.value.set(cs/l,sn/l,.24/l); }
   updateClouds(dt,ex,ez);
-  if(arenaIdx>=0){ const c=ARENAS[arenaIdx].sky; skyCol.setRGB(c[0],c[1],c[2]); if(scene.fog) scene.fog.color.copy(skyCol); dayLight=.95;
+  if(arenaIdx>=0){ const c=ARENAS[arenaIdx].sky; skyCol.setRGB(c[0],c[1],c[2]); if(scene.fog) scene.fog.color.copy(skyCol); dayLight=.95; sunLight=.95;
     if(world){ world.U.uFog.value.copy(skyCol); world.U.uDay.value=.95; } sun.visible=moon.visible=false; stars.visible=true; stars.material.opacity=.9; for(const c2 of clouds) c2.visible=false; }
 }
 
@@ -3753,7 +3778,7 @@ function ambSpawn(t,x,y,z,vx,vy,vz,c,life){
 function splashAt(x,y,z){ for(let k=0;k<26;k++){ const an=Math.random()*6.28, sp=1+Math.random()*2.2; ambSpawn(4,x+Math.cos(an)*.3,y,z+Math.sin(an)*.3,Math.cos(an)*sp,3+Math.random()*3.5,Math.sin(an)*sp,[.85,.93,1],1.1); } }
 function updateAmbient(dt){
   if(!player) return;
-  const px=player.x, py=player.y, pz=player.z, night=dayLight<.35, rain=wx.w>.25;
+  const px=player.x, py=player.y, pz=player.z, night=sunLight<.35, rain=wx.w>.25;
   ambUnderT-=dt; if(ambUnderT<=0){ ambUnderT=.5; ambUnder=!skyExposed(Math.floor(px),Math.floor(py+1),Math.floor(pz)); }
   // hojas: buscan hojas con aire debajo cerca de ti
   for(let k=0;k<4&&ambCount[1]<40;k++){
@@ -4666,13 +4691,13 @@ function bossReward(a){
 }
 function updateEnemies(dt){
   enemyT-=dt;
-  if(enemyT<=0){ const D=DIFF[diff]; enemyT=4/(D.spawn||1); const emax=ENEMY_MAX+D.emax+world.gen.zoneAt(player.x,player.z); if(D.spawn>0&&enemies.length<emax&&!dead&&arenaIdx<0){ if(dayLight<.4) spawnEnemy(); if(enemies.length<emax&&Math.random()<.6) spawnCaveEnemy(); } }
+  if(enemyT<=0){ const D=DIFF[diff]; enemyT=4/(D.spawn||1); const emax=ENEMY_MAX+D.emax+world.gen.zoneAt(player.x,player.z); if(D.spawn>0&&enemies.length<emax&&!dead&&arenaIdx<0){ if(sunLight<.4) spawnEnemy(); if(enemies.length<emax&&Math.random()<.6) spawnCaveEnemy(); } }
   updateShots(dt); updatePShots(dt); checkGuards(dt); updateRootFx(dt);
   for(let i=enemies.length-1;i>=0;i--){
     const a=enemies[i], dx=player.x-a.x, dz=player.z-a.z, dy=player.y-a.y, d2=dx*dx+dz*dz;
     if(d2>70*70){ removeEntity(a); continue; }
     a.skT-=dt; if(a.skT<=0){ a.skT=.5; a.sky=skyExposed(Math.floor(a.x),Math.floor(a.y),Math.floor(a.z)); }
-    if(dayLight>.6&&a.sky&&!a.guard){      // la luz del día los deshace, pero bajo tierra no les llega
+    if(sunLight>.6&&a.sky&&!a.guard){      // la luz del día los deshace, pero bajo tierra no les llega
       a.hp-=4*dt; if(Math.random()<dt*7) burst(Math.floor(a.x),Math.floor(a.y+.7),Math.floor(a.z),99);
       if(a.hp<=0){ removeEntity(a); continue; }
     }
@@ -4951,7 +4976,7 @@ function renderSkills(){
   }
 }
 function openSkills(){ if(!started) return; closeInv(); renderSkills(); $('skills').classList.add('on'); try{ if(document.exitPointerLock) document.exitPointerLock(); }catch(_){} }
-function closeSkills(){ $('skills').classList.remove('on'); }
+function closeSkills(){ $('skills').classList.remove('on'); relock(); }
 const MAX_LVL=50;
 const xpNeed=l=>20+(l-1)*15;                         // experiencia para pasar del nivel l al siguiente
 const maxHp=()=>20+Math.min(10,Math.floor(plvl/3)*2)+rk('vital')*2+(plvl>=50?4:0); // +1 corazón cada 3 niveles hasta el 27, más Vitalidad y el hito del 50
@@ -5167,6 +5192,9 @@ let hitDirT=null;
 function showHitDir(dx,dz){ const el=$('hitDir'); if(!el||!player) return;
   const d=wrapA(Math.atan2(-dx,dz)+player.yaw); el.style.transform='rotate('+d+'rad)';
   el.style.transition='none'; el.style.opacity='1'; clearTimeout(hitDirT); hitDirT=setTimeout(()=>{ el.style.transition='opacity .9s'; el.style.opacity='0'; },350); }
+// avisos de daño que no es un golpe (hambre, veneno, caída), sin repetirse a cada momento
+const causeT={};
+function hurtCause(k,msg,cd){ if((causeT[k]||-99)>gameT-(cd||20)) return; causeT[k]=gameT; toast(msg); }
 function hurtPlayer(n,dx,dz){
   if(dead||invuln>0) return;
   if(dx||dz){ n*=DIFF[diff].dmg; n*=1-armorPts()*.04; n*=[1,.9,.82,.75,.7][rk('piel')]*(effects.iron>0?.7:1); wearArmor(); }
@@ -5238,7 +5266,7 @@ function drinkHeld(){
 }
 function updateEffects(dt){
   for(const k in effects) if(effects[k]>0) effects[k]=Math.max(0,effects[k]-dt);
-  if(effects.poison>0&&!dead){ poisonAcc+=dt; if(poisonAcc>=1){ poisonAcc=0; hurtPlayer(1,0,0); } }
+  if(effects.poison>0&&!dead){ poisonAcc+=dt; if(poisonAcc>=1){ poisonAcc=0; hurtPlayer(1,0,0); hurtCause('pois','Veneno: pierdes vida unos segundos. La leche lo cura.',12); } }
   if(effects.regen>0&&!dead){ fxRegenT+=dt; if(fxRegenT>=1.5){ fxRegenT=0; if(hp<maxHp()){ hp=Math.min(maxHp(),hp+1); renderStats(); } } }
   const el=$('fx'), parts=[]; for(const k in effects) if(effects[k]>0) parts.push(FXNAME[k]+' '+Math.floor(effects[k]/60)+':'+String(Math.floor(effects[k]%60)).padStart(2,'0'));
   const txt=parts.join(' · '); if(el.textContent!==txt){ el.textContent=txt; el.style.display=txt?'block':'none'; }
@@ -5262,16 +5290,16 @@ function updateSurvival(dt){
   if(regenAcc>=[4,3,2.2,1.6][rk('regen')]*(rested>0?.5:1)){
     regenAcc=0;
     if(hunger>=14&&hp<maxHp()){ hp=Math.min(maxHp(),hp+1); hungerAcc+=6; renderStats(); }
-    else if(hunger<=0) hurtPlayer(1,0,0);
+    else if(hunger<=0){ hurtPlayer(1,0,0); hurtCause('hun','Tienes hambre: pierdes vida. Come algo.',15); }
   }
   // daño de caída: se mide desde el punto más alto del salto o la caída
   if(player.wasWater) peakY=player.y;
   if(!player.onGround){ if(player.y>peakY) peakY=player.y; }
-  else{ const fall=peakY-player.y, safe=riding?5.6:3.6; peakY=player.y; if(fall>safe&&DIFF[diff].fall) hurtPlayer(Math.floor(fall-safe+.6),0,0); }
+  else{ const fall=peakY-player.y, safe=riding?5.6:3.6; peakY=player.y; if(fall>safe&&DIFF[diff].fall){ hurtPlayer(Math.floor(fall-safe+.6),0,0); hurtCause('fall','Daño por caída.',8); } }
   // unos 30 segundos antes de que caiga la noche (la noche empieza hacia dayT 0,496)
   if(dayT>.44&&dayT<.49&&!duskWarned&&arenaIdx<0){ duskWarned=true; toast(diff>0?'Está anocheciendo: pronto saldrán las sombras errantes. Busca refugio o enciende antorchas.':'Está anocheciendo.'); sfx('tick'); }
   if(dayT<.4) duskWarned=false;
-  const night=dayLight<.4;
+  const night=sunLight<.4;
   if(night&&!wasNight) toast('Cae la noche. Algo se mueve en la oscuridad.');
   if(!night&&wasNight&&!dead){ flags.night=true; gainXp(20); toast('Has sobrevivido a la noche.'); }
   wasNight=night;
@@ -5415,7 +5443,7 @@ function updateMapText(){
   }
 }
 function openMap(){ if(!started||dead||paused) return; closeInv(); mapOpen=true; $('map').classList.add('on'); drawMap(); sfx('tick'); try{ if(document.exitPointerLock) document.exitPointerLock(); }catch(_){} }
-function closeMap(){ mapOpen=false; $('map').classList.remove('on'); pinSel=-1; try{ pinPanel(''); $('pinName').blur(); }catch(_){} }
+function closeMap(){ mapOpen=false; $('map').classList.remove('on'); pinSel=-1; try{ pinPanel(''); $('pinName').blur(); }catch(_){} relock(); }
 $('bMap').addEventListener('pointerdown',e=>{ e.preventDefault(); if(mapOpen) closeMap(); else openMap(); });
 $('mapClose').addEventListener('click',closeMap);
 // pellizcar para acercar o alejar (y rueda del ratón)
@@ -5714,7 +5742,7 @@ $('setBtn').addEventListener('click',()=>{ $('btnEditRow').style.display='none';
 $('setDone').addEventListener('click',()=>$('set').classList.remove('on'));
 function savedText(ok){ $('pSaved').textContent=ok===false?'No se ha podido guardar: el navegador no deja espacio. Libera espacio o exporta la partida desde Partidas.':'Partida guardada a las '+new Date(lastSaveAt).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})+'. También se guarda sola cada 15 segundos.'; }
 function openPause(){ if(!started||dead) return; closeInv(); closeMap(); muteWeather(); paused=true; $('pause').classList.add('on'); savedText(saveGame()); $('pDay').textContent='Día '+dayNum+' · '+playTime()+' jugados · nivel '+plvl+' · dificultad '+DNAME[diff]; try{ if(document.exitPointerLock) document.exitPointerLock(); }catch(_){} }
-function closePause(){ paused=false; $('pause').classList.remove('on'); last=performance.now(); }
+function closePause(){ paused=false; $('pause').classList.remove('on'); last=performance.now(); relock(); }
 function togglePause(){ if(paused) closePause(); else openPause(); }
 $('bPause').addEventListener('pointerdown',e=>{ e.preventDefault(); openPause(); });
 $('pResume').addEventListener('click',closePause);
