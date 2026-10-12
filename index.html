@@ -903,7 +903,8 @@ function buildAtlas(){
 const CS=16, WH=64, SEA=22, SNOWLINE=44;
 function rng(seed){ let a=seed|0; return ()=>{ a=(a+0x6D2B79F5)|0; let t=Math.imul(a^(a>>>15),1|a); t=(t+Math.imul(t^(t>>>7),61|t))^t; return ((t^(t>>>14))>>>0)/4294967296; }; }
 // [bloque, vetas por chunk, tamaño de veta, altura mínima, altura máxima]
-const ORES=[[COAL_ORE,7,6,4,52],[IRON_ORE,4,4,3,36],[COPPER_ORE,3,4,6,40],[GOLD_ORE,1,4,2,16],[CRYSTAL_ORE,1,3,2,12]];
+// minerales por capas: [bloque, vetas por chunk, tamaño, altura mínima, altura máxima, bloques mínimos bajo la superficie]
+const ORES=[[COAL_ORE,7,6,4,52,1],[COPPER_ORE,4,5,14,44,2],[IRON_ORE,4,4,4,30,6],[GOLD_ORE,1,4,2,14,10],[CRYSTAL_ORE,1,3,1,9,12]];
 // zonas: cuanto más lejos del punto de inicio, más peligro y más riqueza
 const ZONES=['Tierras tranquilas','Tierras salvajes','Tierras peligrosas','Tierras sombrías'], ZONE_D=[300,700,1300];
 const ZHP=[1,1.4,1.9,2.6], ZDMG=[1,1.3,1.7,2.2], ZELITE=[0,.12,.2,.3];
@@ -1005,20 +1006,21 @@ class WorldGenerator{
     }
     // minerales: vetas deterministas por chunk, solo sustituyen piedra
     const R=rng(Math.imul(cx,73856093)^Math.imul(cz,19349663)^s);
+    const colH=new Int16Array(256).fill(-1), surf=(x,z)=>{ const k=x+z*CS; if(colH[k]<0) colH[k]=this.heightAt(cx*CS+x,cz*CS+z); return colH[k]; };
     for(const o of ORES){
       for(let v=0;v<o[1];v++){
         let x=Math.floor(R()*CS), y=o[3]+Math.floor(R()*(o[4]-o[3])), z=Math.floor(R()*CS);
         for(let k=0;k<o[2];k++){
-          const i=x+z*CS+y*256; if(data[i]===STONE) data[i]=o[0];
+          const i=x+z*CS+y*256; if(data[i]===STONE&&y<=surf(x,z)-o[5]) data[i]=o[0];
           const d=Math.floor(R()*6);
           if(d===0&&x<15)x++; else if(d===1&&x>0)x--; else if(d===2&&z<15)z++; else if(d===3&&z>0)z--; else if(d===4&&y<WH-1)y++; else if(d===5&&y>1)y--;
         }
       }
     }
     const zn=this.zoneAt(cx*CS+8,cz*CS+8);
-    for(const o of [[IRON_ORE,4,3,40],[GOLD_ORE,4,2,26],[CRYSTAL_ORE,3,2,20]]) for(let v=0;v<zn;v++){
+    for(const o of [[IRON_ORE,4,4,32,6],[GOLD_ORE,4,2,16,10],[CRYSTAL_ORE,3,1,11,12]]) for(let v=0;v<zn;v++){
       let x=Math.floor(R()*CS), y=o[2]+Math.floor(R()*(o[3]-o[2])), z=Math.floor(R()*CS);
-      for(let k=0;k<o[1];k++){ const i=x+z*CS+y*256; if(data[i]===STONE) data[i]=o[0]; const d=Math.floor(R()*4); if(d===0&&x<15)x++; else if(d===1&&x>0)x--; else if(d===2&&z<15)z++; else if(d===3&&y<WH-1)y++; }
+      for(let k=0;k<o[1];k++){ const i=x+z*CS+y*256; if(data[i]===STONE&&y<=surf(x,z)-o[4]) data[i]=o[0]; const d=Math.floor(R()*4); if(d===0&&x<15)x++; else if(d===1&&x>0)x--; else if(d===2&&z<15)z++; else if(d===3&&y<WH-1)y++; }
     }
     // vegetación: se decide por celdas de 5x5 para que encaje entre chunks vecinos
     const x0=cx*CS, z0=cz*CS;
