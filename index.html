@@ -2940,6 +2940,38 @@ function updateAudio(dt){
 // hojas: al talar un tronco, las hojas que se quedan sin tronco cerca van cayendo poco a poco
 const decayQ=[];
 function hasLogNear(x,y,z){ for(let dy=-2;dy<=2;dy++)for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++) if(world.getBlock(x+dx,y+dy,z+dz)===LOG) return true; return false; }
+// ¿lo puso el jugador? (los bloques del mundo generado no están en la lista de cambios)
+function placedAt(x,y,z){ const ed=world.edits.get((x>>4)+','+(z>>4)); return !!(ed&&ed.has((x&15)+(z&15)*CS+y*256)&&ed.get((x&15)+(z&15)*CS+y*256)!==AIR); }
+// TALA: al cortar un tronco de un árbol natural, cae todo lo que hay encima y te llevas la madera; las hojas se deshacen enseguida y sueltan palos y manzanas
+const fellQ=[];
+function fellTree(x0,y0,z0,held){
+  const seen=new Set(), logs=[], st=[[x0,y0,z0]], key=(x,y,z)=>x+','+y+','+z;
+  while(st.length&&logs.length<80){ const [x,y,z]=st.pop();
+    for(let dy=0;dy<=1;dy++)for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){ const nx=x+dx, ny=y+dy, nz=z+dz;
+      if(ny<=y0||(dx===0&&dy===0&&dz===0)||Math.abs(nx-x0)>5||Math.abs(nz-z0)>5) continue;
+      const k=key(nx,ny,nz); if(seen.has(k)) continue; seen.add(k);
+      if(world.getBlock(nx,ny,nz)===LOG&&!placedAt(nx,ny,nz)){ logs.push([nx,ny,nz]); st.push([nx,ny,nz]); } } }
+  if(!logs.length) return;
+  // si algún tronco de arriba sigue apoyado en otro tronco que no se ha cortado (tronco doble), no cae nada
+  const inSet=new Set(logs.map(q=>key(q[0],q[1],q[2])));
+  for(const [x,y,z] of logs){ const b=world.getBlock(x,y-1,z); if(b===LOG&&!inSet.has(key(x,y-1,z))&&!(x===x0&&y-1===y0&&z===z0)) return; }
+  // solo si es un árbol de verdad: con hojas pegadas a la copa
+  let leafy=false; for(const [x,y,z] of logs){ for(const d of [[1,0,0],[-1,0,0],[0,1,0],[0,0,1],[0,0,-1]]) if(world.getBlock(x+d[0],y+d[1],z+d[2])===LEAVES){ leafy=true; break; } if(leafy) break; }
+  if(!leafy) return;
+  logs.sort((a,b)=>a[1]-b[1]);
+  const lost=addItem(LOG,logs.length); if(lost>0) toast('Inventario lleno: parte de la madera se ha perdido.');
+  stats.mined+=logs.length; gainXp((XP_BLOCK[LOG]||1)*logs.length*.5);
+  logs.forEach((q,i)=>fellQ.push({x:q[0],y:q[1],z:q[2],t:.06*(i+1)}));
+  if(held&&held.tool==='axe'&&inv[selected]&&BLOCKS[inv[selected].id]===held) wearHeld(Math.floor(logs.length/3));
+  toast('¡Árbol talado! +'+(logs.length+1)+' troncos.');
+}
+function updateFell(dt){
+  for(let i=fellQ.length-1;i>=0;i--){ const q=fellQ[i]; q.t-=dt; if(q.t>0) continue; fellQ.splice(i,1);
+    if(world.getBlock(q.x,q.y,q.z)!==LOG) continue;
+    world.setBlock(q.x,q.y,q.z,AIR); burst(q.x,q.y,q.z,LOG); if(i%2===0) sfx('break',LOG);
+    for(let dy=-3;dy<=3;dy++)for(let dz=-3;dz<=3;dz++)for(let dx=-3;dx<=3;dx++){ const bx=q.x+dx, by=q.y+dy, bz=q.z+dz;
+      if(world.getBlock(bx,by,bz)===LEAVES&&!placedAt(bx,by,bz)&&!decayQ.some(d=>d.x===bx&&d.y===by&&d.z===bz)) decayQ.push({x:bx,y:by,z:bz,t:.3+Math.random()*1.2,f:1}); } }
+}
 function leafDecay(x,y,z){
   for(let dy=-3;dy<=3;dy++)for(let dz=-3;dz<=3;dz++)for(let dx=-3;dx<=3;dx++){
     const bx=x+dx, by=y+dy, bz=z+dz;
@@ -2947,10 +2979,11 @@ function leafDecay(x,y,z){
   }
 }
 function updateDecay(dt){
+  updateFell(dt);
   for(let i=decayQ.length-1;i>=0;i--){
     const q=decayQ[i]; q.t-=dt; if(q.t>0) continue;
     decayQ.splice(i,1);
-    if(world.getBlock(q.x,q.y,q.z)===LEAVES&&!hasLogNear(q.x,q.y,q.z)){ world.setBlock(q.x,q.y,q.z,AIR); flowAround(q.x,q.y,q.z); burst(q.x,q.y,q.z,LEAVES); if(Math.random()<.15) addItem(STICK,1); }
+    if(world.getBlock(q.x,q.y,q.z)===LEAVES&&!hasLogNear(q.x,q.y,q.z)){ world.setBlock(q.x,q.y,q.z,AIR); flowAround(q.x,q.y,q.z); burst(q.x,q.y,q.z,LEAVES); if(Math.random()<.15) addItem(STICK,1); if(q.f&&Math.random()<.06) addItem(APPLE,1); }
   }
 }
 /* ---------- botín de las estructuras: se rellena la primera vez que abres su cofre ---------- */
@@ -3097,6 +3130,7 @@ function updateFlow(dt){
 
 function breakBlock(hit,held){
   if(hit.id===GRAVE){ recoverGrave(hit.x,hit.y,hit.z); return; }
+  const natLog=hit.id===LOG&&!placedAt(hit.x,hit.y,hit.z);
   const def=BLOCKS[hit.id];
   world.setBlock(hit.x,hit.y,hit.z,AIR); burst(hit.x,hit.y,hit.z,hit.id); sfx('break',hit.id); stats.mined++;
   if(!def.need||(held&&held.tool==='pick'&&held.tier>=def.need)){
@@ -3117,6 +3151,7 @@ function breakBlock(hit,held){
   flowAround(hit.x,hit.y,hit.z);
   if(held&&held.tool&&!held.rng&&inv[selected]&&BLOCKS[inv[selected].id]===held) wearHeld(1);
   if(hit.id===LOG) leafDecay(hit.x,hit.y,hit.z);
+  if(natLog) fellTree(hit.x,hit.y,hit.z,held);
   if(hit.id===CHEST){ const k=hit.x+','+hit.y+','+hit.z, c=chests.get(k); if(c){ let lost=0; c.forEach(s=>{ if(s) lost+=addItem(s.id,s.n); }); chests.delete(k); if(lost) toast('Inventario lleno: parte del cofre se ha perdido.'); } }
 }
 
@@ -5531,7 +5566,7 @@ function startGame(seed,save,slot){
   if(world) world.chunks.forEach(ch=>world.disposeMesh(ch));
   while(animals.length) removeEntity(animals[0]); while(enemies.length) removeEntity(enemies[0]);
   while(shots.length){ scene.remove(shots[0].m); shots.shift(); }
-  decayQ.length=0; chests.clear(); graves.clear(); lastGrave=null; pins.length=0; pinSel=-1; ach.clear(); duskWarned=false; paused=false; crops.clear(); looted.clear(); woken.clear(); slain.clear(); seals.clear(); lairPt=null; lairTry=0; arenaRet=null; exUnpack(null); diff=settings.diff; dayNum=1; for(const k in stats) stats[k]=0; places.clear(); lpX=null; bookItems.clear(); bookAnimals.clear(); bookBosses.clear(); bookNew=false; rested=0; restT=0; curZone=-1; for(const k in effects) effects[k]=0; cryptPt=null;
+  decayQ.length=0; fellQ.length=0; chests.clear(); graves.clear(); lastGrave=null; pins.length=0; pinSel=-1; ach.clear(); duskWarned=false; paused=false; crops.clear(); looted.clear(); woken.clear(); slain.clear(); seals.clear(); lairPt=null; lairTry=0; arenaRet=null; exUnpack(null); diff=settings.diff; dayNum=1; for(const k in stats) stats[k]=0; places.clear(); lpX=null; bookItems.clear(); bookAnimals.clear(); bookBosses.clear(); bookNew=false; rested=0; restT=0; curZone=-1; for(const k in effects) effects[k]=0; cryptPt=null;
   goalIdx=0; goalTxt=''; flags.crafted.clear(); flags.night=flags.loot=flags.plant=flags.tamed=flags.dloot=flags.boss=flags.portal=flags.final=false; flowQ.length=0; gameT=0;
   if(save&&save.chests) for(const k in save.chests) chests.set(k,save.chests[k].map(s=>(s&&BLOCKS[s[0]])?{id:s[0],n:s[1],d:s[2]||0}:null));
   const R=settings.dist;
