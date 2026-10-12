@@ -587,7 +587,7 @@ const AIR=0, GRASS=1, DIRT=2, STONE=3, SAND=4, GRAVEL=5, SNOW=6, PLANKS=7, BRICK
   HELM_LE=109, CHEST_LE=110, BOOTS_LE=111, HELM_FE=112, CHEST_FE=113, BOOTS_FE=114, HELM_SH=115, CHEST_SH=116, BOOTS_SH=117,
   PET_LE=118, PET_CU=119, PET_FE=120, PET_AU=121, PET_CR=122, PET_SH=123, CORE=124, GSWORD=125, ELIXIR=126, GBOW=127, HEARTH=128, SPEAR_FE=129, SPEAR_CR=130, WAXE_FE=131, WAXE_SH=132, DAG_CU=133, DAG_CR=134,
   CAULDRON=135, FLASK=136, P_HEAL=137, P_REGEN=138, P_STR=139, P_SPEED=140, P_NIGHT=141, P_IRON=142, BONE=143, TUSK=144, SPEAR_TUSK=145, SAP=146, BOW_LIVE=147, VENOM=148, DAG_VEN=149, ICECORE=150, HAMMER_ICE=151, TSWORD=152, SADDLE=153, ROD=154, FISH=155, FISH_C=156, GFISH=157, EGG=158, FRIED_EGG=159, FEATHER=160,
-  TILE_W=161, TILE_R=162, TILE_B=163, TILE_G=164, TILE_Y=165, TILE_K=166, PLANKS_D=167, WINDOW=168, LANTERN=169, SHELF=170, CARPET_R=171, CARPET_B=172, CARPET_G=173, COIN=174, GRAVE=175, PLANKS_L=176, CHISELED=177, HAY=178;
+  TILE_W=161, TILE_R=162, TILE_B=163, TILE_G=164, TILE_Y=165, TILE_K=166, PLANKS_D=167, WINDOW=168, LANTERN=169, SHELF=170, CARPET_R=171, CARPET_B=172, CARPET_G=173, COIN=174, GRAVE=175, PLANKS_L=176, CHISELED=177, HAY=178, DAG_FE=179, SPEAR_CU=180, WAXE_CU=181, WAXE_CR=182;
 // tex: [arriba, lados, abajo] · hard: segundos a mano · mat: qué herramienta lo acelera
 // need: nivel mínimo de pico para que suelte algo · drop: qué suelta (por defecto, él mismo)
 const BLOCKS=[null,
@@ -732,7 +732,12 @@ const BLOCKS=[null,
   {name:'Tumba', tex:[59,59,59], hard:.6, mat:'stone', shape:'grave', drop:0},
   {name:'Tablas claras', tex:[60,60,60], hard:1.2, mat:'wood'},
   {name:'Piedra tallada', tex:[61,61,61], hard:1.6, mat:'stone'},
-  {name:'Bala de heno', tex:[63,62,63], hard:.6, mat:'wood'}
+  {name:'Bala de heno', tex:[63,62,63], hard:.6, mat:'wood'},
+  // armas que faltaban para que cada tipo tenga cobre, hierro y cristal
+  {name:'Dagas de hierro', tool:'dagger', tier:3, dmg:4.2, dur:300, cd:.2, col:'#e3e8ee', hc:0xe3e8ee, rep:[27,2]},
+  {name:'Lanza de cobre', tool:'spear', tier:2, dmg:4.8, dur:180, reach:4.6, cd:.55, col:'#e08a52', hc:0xe08a52, rep:[45,2]},
+  {name:'Hacha de guerra de cobre', tool:'waraxe', tier:2, dmg:8, dur:180, cd:.95, col:'#e08a52', hc:0xe08a52, rep:[45,2]},
+  {name:'Hacha de guerra de cristal', tool:'waraxe', tier:4, dmg:13, dur:500, cd:.9, col:'#6fe6f0', hc:0x6fe6f0, rep:[28,1]}
 ];
 // agua: la quieta (fuente) y tres niveles de agua que corre
 const WATERISH=new Uint8Array(256); for(const i of [9,85,86,87]) WATERISH[i]=1;
@@ -1959,6 +1964,8 @@ const RECIPES=[
   {out:P_IRON,n:1,inp:[[FLASK,1],[IRON_INGOT,1],[LEATHER,1]],st:CAULDRON},
   {out:DAG_CU,n:1,inp:[[COPPER_INGOT,2],[STICK,1]],st:WORKBENCH},
   {out:SPEAR_FE,n:1,inp:[[IRON_INGOT,3],[STICK,3]],st:WORKBENCH},
+  {out:DAG_FE,n:1,inp:[[IRON_INGOT,2],[STICK,1]],st:WORKBENCH},{out:SPEAR_CU,n:1,inp:[[COPPER_INGOT,3],[STICK,3]],st:WORKBENCH},{out:WAXE_CU,n:1,inp:[[COPPER_INGOT,5],[STICK,2]],st:WORKBENCH},
+  {out:WAXE_CR,n:1,inp:[[CRYSTAL,5],[STICK,2]],st:WORKBENCH,lock:'hachacr'},
   {out:WAXE_FE,n:1,inp:[[IRON_INGOT,5],[STICK,2]],st:WORKBENCH},
   {out:DAG_CR,n:1,inp:[[CRYSTAL,2],[STICK,1]],st:WORKBENCH,lock:'dagacr'},
   {out:SPEAR_CR,n:1,inp:[[CRYSTAL,3],[STICK,3]],st:WORKBENCH,lock:'lanzacr'},
@@ -4927,6 +4934,7 @@ const UNLOCKS=[
   {id:'mant',    lv:[14,36,49], t:'Mantenimiento',        d:['Tus herramientas y armaduras se gastan un 25 % menos.','Un 40 % menos.','Un 50 % menos.']},
   {id:'regen',   lv:[16,34,41], t:'Recuperación',         d:['Recuperas vida más deprisa cuando estás bien alimentado.','Aún más deprisa.','Mucho más deprisa.']},
   {id:'armcr',   lv:[17], t:'Receta: armadura de cristal',d:['Casco con cresta de cristales y hombreras de cristal. Protege un 48 %. También para tu perro o lobo.'], ic:CHEST_CR},
+  {id:'hachacr', lv:[20], t:'Receta: hacha de guerra de cristal', d:['Golpe en abanico que alcanza a todos los enemigos que tienes delante.'], ic:WAXE_CR},
   {id:'lanzacr', lv:[18], t:'Receta: lanza de cristal',   d:['Alcanza más lejos y atraviesa a dos enemigos.'], ic:SPEAR_CR},
   {id:'arcocr',  lv:[19], t:'Receta: arco de cristal',    d:['Rápido y potente. Sus dardos duermen un 70 % más.'], ic:BOW_CR},
   {id:'lider',   lv:[21,37,47], t:'Líder de la manada',   d:['Tu perro o lobo tiene un 20 % más de vida y de mordisco.','Un 40 % más.','Un 60 % más.']},
