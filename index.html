@@ -2520,6 +2520,18 @@ function makeToolModel(def){
     abx(B,.056,.1,.056,0x5a3a22,0,0,0); for(let i=0;i<3;i++) abx(B,.06,.015,.06,0x3a2416,0,-.035+i*.035,0);
     abx(B,.008,.56,.008,0xecece2,-.12,0,0);
   }else return null;
+  const G=def.tier>=4?(def.hc?tlit(def.hc,.5):0xfff4a0):def.tier===3?0x3fa8ff:0xd8343a, WL=tlit(W,.25), ML=tlit(M,.7), wrap=(len,y0,wd)=>{ for(let i=0;i<len;i++) abx(B,wd,.016,wd,i%2?WL:WD,0,y0+i*.022,0); };
+  if(T==='sword'){ abx(B,.032,.032,.085,G,0,-.31,0); abx(B,.014,.014,.088,tlit(G,.6),.008,-.302,0); wrap(7,-.28,.056);
+    for(const sd of [1,-1]){ abx(B,.03,.03,.09,L,sd*.135,-.085,0); abx(B,.022,.022,.022,G,sd*.06,-.105,.04); }
+    abx(B,.008,.32,.03,ML,0,.12,0); for(let i=0;i<3;i++) abx(B,.02,.012,.027,L,0,.0+i*.08,0); abx(B,.06,.012,.027,ML,0,.36,0); }
+  else if(T==='dagger'){ abx(B,.026,.026,.06,G,0,-.15,0); wrap(5,-.13,.05); for(const sd of [1,-1]) abx(B,.022,.022,.065,L,sd*.07,.012,0); abx(B,.006,.14,.024,ML,0,.1,0); }
+  else if(T==='spear'){ for(const sd of [1,-1]){ abx(B,.018,.14,.018,0xb2343a,sd*.03,.5,0,0,0,sd*.25); abx(B,.016,.06,.016,0xe8c25a,sd*.04,.43,0,0,0,sd*.25); }
+    for(let i=0;i<2;i++) abx(B,.05,.016,.05,L,0,.55-i*.03,0); wrap(6,-.05,.046); abx(B,.006,.16,.026,ML,0,.72,0); }
+  else if(T==='waraxe'){ for(const sd of [1,-1]){ for(const y of [.18,.32]) abx(B,.025,.025,.05,D,sd*.12,y,0); abx(B,.012,.3,.046,ML,sd*.225,.25,0); abx(B,.08,.012,.046,L,sd*.15,.25,0); }
+    abx(B,.04,.09,.04,M,0,.39,0); abx(B,.025,.04,.025,L,0,.45,0); wrap(8,-.2,.056); abx(B,.03,.03,.08,G,0,.25,0); }
+  else if(T==='axe'||T==='pick'||T==='hoe'){ wrap(6,-.22,.056); abx(B,.025,.025,.08,L,0,T==='pick'?.26:.24,0); }
+  else if(T==='bow'){ for(let i=0;i<5;i++) abx(B,.062,.012,.062,i%2?0x7a4a26:0x3a2416,0,-.045+i*.022,0);
+    for(const sd of [1,-1]){ abx(B,.045,.03,.045,L,-.098,sd*.29,0); abx(B,.012,.012,.012,0xe8c25a,-.12,sd*.04,0); } abx(B,.03,.02,.03,0xd8c27a,-.04,.02,0); }
   const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(new Float32Array(B.p),3)); g.setAttribute('color',new THREE.BufferAttribute(new Float32Array(B.c),3)); g.setIndex(B.i);
   g.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(B.u),2));
   return new THREE.Mesh(g,hm(new THREE.MeshBasicMaterial({vertexColors:true,map:DET_HARD})));
@@ -3727,11 +3739,29 @@ const ASHINE={
   }
 };
 
+// detalles comunes a todas las armaduras; el cuero lleva costuras claras en vez de remaches
+const AEXTRA={
+  helm(B,k,soft){ const rv=soft?k.l:k.d, rl=tlit(k.c,.35);
+    for(let i=0;i<5;i++) abx(B,soft?.04:.03,soft?.012:.03,.02,rv,-.18+i*.09,1.745,.255);                 // remaches o puntadas del borde
+    abx(B,.5,.018,.512,rl,0,1.775,0);                                                                       // filo claro arriba del borde
+    for(let i=0;i<2;i++) abx(B,.46-i*.04,.05,.04,i?k.d:k.c,0,1.47-i*.055,-.25);                            // láminas de la nuca
+    for(const s of ASD){ abx(B,.02,.03,.03,rv,s*.262,1.62,.08); abx(B,.015,.2,.02,rl,s*.26,1.6,-.12); } },
+  chest(B,k,soft){ const rv=soft?k.l:k.d, rl=tlit(k.c,.35), dk=tcol(k.c,.72);
+    abr(B,.36,.06,.3,dk,0,1.43,0,.015); abx(B,.34,.015,.02,rl,0,1.455,.155);                              // gola
+    abx(B,.58,.06,.36,k.d,0,.83,0); abx(B,.08,.07,.02,rl,0,.83,.185); abx(B,.04,.035,.022,k.d,0,.83,.19);   // cinturón con hebilla
+    for(const s of ASD){ abx(B,.02,.5,.02,dk,s*.26,1.1,.176); abx(B,.17,.12,.03,k.c,s*.13,.72,.17,.15); abx(B,.17,.015,.032,rl,s*.13,.775,.172,.15);  // costados y faldones
+      for(let i=0;i<3;i++) abx(B,.025,.025,.02,rv,s*.27,1.38+i*.04-.02,.155+i*.005);                       // remaches de la hombrera
+      abx(B,.012,.16,.02,rl,s*.07,1.2,.18,0,0,s*.35); }                                                    // grabados en diagonal
+    for(let i=0;i<4;i++) abx(B,.025,.025,.02,rv,-.15+i*.1,1.31,.178); },
+  boots(B,k,soft){ const rv=soft?k.l:k.d, rl=tlit(k.c,.4);
+    for(const s of ASD){ abx(B,.22,.07,.06,rl,s*.11,.07,.19); abx(B,.27,.035,.34,k.d,s*.11,.2,.03); abx(B,.05,.04,.02,rl,s*.11+.06,.2,.2);    // puntera, correa y hebilla
+      abr(B,.16,.12,.05,k.c,s*.11,.38,.17,.015); abx(B,.03,.03,.02,rv,s*.11,.38,.198); abx(B,.27,.02,.34,tcol(k.d,.7),s*.11,.008,.03); } }  // rodillera y suela
+};
 const ARMOR_KEY={le:'cuero',cu:'cobre',fe:'hierro',au:'oro',cr:'cristal',sh:'sombria'};
 const armorMat=new THREE.MeshBasicMaterial({vertexColors:true,map:DET_HARD});
 function armorMesh(metal,slot){
   const k=ARMOR_KEY[metal]||'cobre', c=ASETS[k], B=AB(), part=['helm','chest','boots'][slot];
-  B.gain=c.gain||1; ADES[k][part](B,c); if(ASHINE[k]) ASHINE[k][part](B,c);
+  B.gain=c.gain||1; ADES[k][part](B,c); AEXTRA[part](B,c,k==='cuero'); if(ASHINE[k]) ASHINE[k][part](B,c);
   const m=abMesh(B); m.material=armorMat; return m;
 }
 /* ---------- ARMADURA DE MASCOTA: coraza sobre el lomo y pieza en la cabeza, para perro y lobo ---------- */
