@@ -587,7 +587,7 @@ const AIR=0, GRASS=1, DIRT=2, STONE=3, SAND=4, GRAVEL=5, SNOW=6, PLANKS=7, BRICK
   HELM_LE=109, CHEST_LE=110, BOOTS_LE=111, HELM_FE=112, CHEST_FE=113, BOOTS_FE=114, HELM_SH=115, CHEST_SH=116, BOOTS_SH=117,
   PET_LE=118, PET_CU=119, PET_FE=120, PET_AU=121, PET_CR=122, PET_SH=123, CORE=124, GSWORD=125, ELIXIR=126, GBOW=127, HEARTH=128, SPEAR_FE=129, SPEAR_CR=130, WAXE_FE=131, WAXE_SH=132, DAG_CU=133, DAG_CR=134,
   CAULDRON=135, FLASK=136, P_HEAL=137, P_REGEN=138, P_STR=139, P_SPEED=140, P_NIGHT=141, P_IRON=142, BONE=143, TUSK=144, SPEAR_TUSK=145, SAP=146, BOW_LIVE=147, VENOM=148, DAG_VEN=149, ICECORE=150, HAMMER_ICE=151, TSWORD=152, SADDLE=153, ROD=154, FISH=155, FISH_C=156, GFISH=157, EGG=158, FRIED_EGG=159, FEATHER=160,
-  TILE_W=161, TILE_R=162, TILE_B=163, TILE_G=164, TILE_Y=165, TILE_K=166, PLANKS_D=167, WINDOW=168, LANTERN=169, SHELF=170, CARPET_R=171, CARPET_B=172, CARPET_G=173, COIN=174, GRAVE=175, PLANKS_L=176, CHISELED=177, HAY=178, DAG_FE=179, SPEAR_CU=180, WAXE_CU=181, WAXE_CR=182;
+  TILE_W=161, TILE_R=162, TILE_B=163, TILE_G=164, TILE_Y=165, TILE_K=166, PLANKS_D=167, WINDOW=168, LANTERN=169, SHELF=170, CARPET_R=171, CARPET_B=172, CARPET_G=173, COIN=174, GRAVE=175, PLANKS_L=176, CHISELED=177, HAY=178, DAG_FE=179, SPEAR_CU=180, WAXE_CU=181, WAXE_CR=182, BIRCH_LOG=183, BIRCH_LEAVES=184, PINE_LEAVES=185, AUTUMN_LEAVES=186, SPRUCE_LOG=187, FLOWER_Y=188, FLOWER_B=189, FLOWER_W=190, FLOWER_P=191;
 // tex: [arriba, lados, abajo] · hard: segundos a mano · mat: qué herramienta lo acelera
 // need: nivel mínimo de pico para que suelte algo · drop: qué suelta (por defecto, él mismo)
 const BLOCKS=[null,
@@ -737,13 +737,25 @@ const BLOCKS=[null,
   {name:'Dagas de hierro', tool:'dagger', tier:3, dmg:4.2, dur:300, cd:.2, col:'#e3e8ee', hc:0xe3e8ee, rep:[27,2]},
   {name:'Lanza de cobre', tool:'spear', tier:2, dmg:4.8, dur:180, reach:4.6, cd:.55, col:'#e08a52', hc:0xe08a52, rep:[45,2]},
   {name:'Hacha de guerra de cobre', tool:'waraxe', tier:2, dmg:8, dur:180, cd:.95, col:'#e08a52', hc:0xe08a52, rep:[45,2]},
-  {name:'Hacha de guerra de cristal', tool:'waraxe', tier:4, dmg:13, dur:500, cd:.9, col:'#6fe6f0', hc:0x6fe6f0, rep:[28,1]}
+  {name:'Hacha de guerra de cristal', tool:'waraxe', tier:4, dmg:13, dur:500, cd:.9, col:'#6fe6f0', hc:0x6fe6f0, rep:[28,1]},
+  // árboles y flores variados: los troncos dan troncos normales y las flores, flores
+  {name:'Tronco de abedul', tex:[65,64,65], hard:1.6, mat:'wood', drop:11},
+  {name:'Hojas de abedul', tex:[66,66,66], hard:.25, mat:'leaf', drop:0},
+  {name:'Hojas de pino', tex:[67,67,67], hard:.25, mat:'leaf', drop:0},
+  {name:'Hojas de otoño', tex:[68,68,68], hard:.25, mat:'leaf', drop:0},
+  {name:'Tronco de abeto', tex:[70,69,70], hard:1.6, mat:'wood', drop:11},
+  {name:'Flor amarilla', tex:[71,71,71], hard:.05, plant:true, drop:44},
+  {name:'Flor azul', tex:[72,72,72], hard:.05, plant:true, drop:44},
+  {name:'Margarita', tex:[73,73,73], hard:.05, plant:true, drop:44},
+  {name:'Flor violeta', tex:[74,74,74], hard:.05, plant:true, drop:44}
 ];
 // agua: la quieta (fuente) y tres niveles de agua que corre
 const WATERISH=new Uint8Array(256); for(const i of [9,85,86,87]) WATERISH[i]=1;
 const WLEVEL=new Uint8Array(256); WLEVEL[85]=1; WLEVEL[86]=2; WLEVEL[87]=3;
 const WTOP=new Float32Array(256); WTOP[9]=.12; WTOP[85]=.3; WTOP[86]=.5; WTOP[87]=.7;
-const OPAQUE=new Uint8Array(256); for(const i of [1,2,3,4,5,6,7,8,11,12,13,14,15,16,17,18,19,30,31,39,41,42,57,135,143,161,162,163,164,165,166,167,169,170,176,177,178]) OPAQUE[i]=1;
+const OPAQUE=new Uint8Array(256); for(const i of [1,2,3,4,5,6,7,8,11,12,13,14,15,16,17,18,19,30,31,39,41,42,57,135,143,161,162,163,164,165,166,167,169,170,176,177,178,183,184,185,186,187]) OPAQUE[i]=1;
+const IS_LOG=new Uint8Array(256), IS_LEAF=new Uint8Array(256), IS_FLOWER=new Uint8Array(256);
+for(const i of [11,183,187]) IS_LOG[i]=1; for(const i of [12,184,185,186]) IS_LEAF[i]=1; for(const i of [44,188,189,190,191]) IS_FLOWER[i]=1;
 // SOLID: lo que frena al jugador. El vidrio frena pero deja pasar la luz.
 const SOLID=new Uint8Array(256); for(let i=0;i<256;i++) SOLID[i]=OPAQUE[i]; SOLID[40]=1; SOLID[168]=1; SOLID[175]=1;
 for(let i=58;i<=78;i++) if(i!==69&&i!==75&&i!==76&&i!==77) SOLID[i]=1;   // formas sólidas (losas, escaleras, vallas, puertas, cama, cultivo)
@@ -776,7 +788,7 @@ function shapeBoxes(id,nb,coll){
   return FULLBOX;
 }
 const isBlock=id=>!!(BLOCKS[id]&&BLOCKS[id].tex);
-const TS=16, AT=8; // píxeles por tile, tiles por lado
+const TS=16, AT=16; // píxeles por tile, tiles por lado
 
 function buildAtlas(){
   const cv=document.createElement('canvas'); cv.width=cv.height=TS*AT;
@@ -939,6 +951,27 @@ function buildAtlas(){
     const b=e?96:i?168:k?110:(Math.abs(x-7.5)+Math.abs(y-7.5)<3)?160:140; return [b+n,b+n,b+4+n]; });
   tile(62,(x,y,r)=>{ if(y===3||y===12) return [130,40,30]; const st=(hash2(x,y>>1,62)-.5)*40; return [214+st,178+st,64+st*.5]; });   // heno: lado con cuerdas
   tile(63,(x,y,r)=>{ const st=(hash2(x>>1,y,63)-.5)*44, ring=Math.abs(Math.hypot(x-7.5,y-7.5)-5)<.8?-26:0; return [204+st+ring,170+st+ring,60+st*.5]; });
+  // abedul: corteza blanca con marcas negras; abeto: corteza oscura con surcos
+  tile(64,(x,y,r)=>{ let c=pal([[214,210,198],[228,226,216],[240,238,230],[206,204,196]],pn(x,y,4,641)*.7+(r-.5)*.25);
+    const mk=hash2(Math.floor(x/3),y,642); if(mk>.82&&y%3!==2) c=mixc(c,[44,40,38],.85); else if(mk>.74) c=mixc(c,[150,146,138],.5);
+    if(hash2(x>>2,y>>2,643)>.9) c=mixc(c,[196,170,120],.3); return c; });
+  tile(65,(x,y,r)=>{ const dd=Math.max(Math.abs(x-7.5),Math.abs(y-7.5))+(pn(x,y,4,651)-.5), n=(r-.5)*10; if(dd>6.6) return [222+n,220+n,210+n];
+    return Math.floor(dd)%2?[204+n,180+n,128+n]:[224+n,200+n,148+n]; });
+  tile(66,(x,y,r)=>{ let c=pal([[70,128,48],[92,150,54],[118,170,62],[146,184,72],[104,160,70]],pn(x,y,4,661)*.6+pn(x,y,8,662)*.4+(r-.5)*.25);
+    if(r>.92) c=mixc(c,[190,214,110],.5); else if(r<.06) c=mixc(c,[40,80,34],.6); return c; });
+  tile(67,(x,y,r)=>{ const ndl=(x+y*2)%4===0||(x*2-y+16)%5===0; let c=pal([[22,58,44],[30,72,52],[40,88,60],[52,100,66],[34,80,64]],pn(x,y,4,671)*.6+(r-.5)*.3);
+    if(ndl) c=mixc(c,[74,124,84],.45); if(r<.07) c=[14,36,28]; return c; });
+  tile(68,(x,y,r)=>{ let c=pal([[156,52,30],[196,84,34],[222,124,40],[232,164,52],[210,104,46],[176,62,40]],pn(x,y,4,681)*.6+pn(x,y,8,682)*.4+(r-.5)*.3);
+    const cl=pn(x,y,4,681), hx=pn(x+1,y+1,4,681); if(cl>hx+.06) c=mixc(c,[250,206,110],.3); else if(cl<hx-.08) c=mixc(c,[90,34,20],.4);
+    if(r<.05) c=[70,30,18]; return c; });
+  tile(69,(x,y,r)=>{ let c=pal([[50,34,24],[62,42,28],[74,52,34],[58,44,36]],hash2(x,0,691)*.5+pn(x,y,4,692)*.4+(r-.5)*.2);
+    if((x+Math.floor(pn(x,y,4,693)*3))%3===0) c=mixc(c,[28,18,12],.6); return c; });
+  tile(70,(x,y,r)=>{ const dd=Math.max(Math.abs(x-7.5),Math.abs(y-7.5))+(pn(x,y,4,701)-.5), n=(r-.5)*10; if(dd>6.6) return [52+n,36+n,24+n];
+    return Math.floor(dd)%2?[134+n,96+n,58+n]:[158+n,118+n,74+n]; });
+  // flores de colores: tallo con hojas y pétalos con luz y sombra
+  const flw=(P,C)=>(x,y,r)=>{ if((x===7||x===8)&&y>=8) return [60+r*20,128+r*20,58]; if(y>=10&&y<=11&&(x===6||x===9)) return [80,154,70]; if(y===12&&(x===5||x===10)) return [70,140,62];
+    const dx2=x-7.5, dy2=y-5, d=dx2*dx2+dy2*dy2; if(d<2) return C; if(d<11){ const k=(dx2<0&&dy2<0)?1.12:(dx2>0&&dy2>0)?.82:1, n=(r-.5)*24; return [P[0]*k+n,P[1]*k+n,P[2]*k+n]; } return [0,0,0,0]; };
+  tile(71,flw([246,206,52],[200,120,30])); tile(72,flw([84,128,236],[250,236,140])); tile(73,flw([246,244,236],[244,196,52])); tile(74,flw([160,88,214],[250,226,120]));
   tile(59,(x,y,r)=>{ const cr=(x>=7&&x<=8&&y>=3&&y<=11)||(y>=5&&y<=6&&x>=5&&x<=10);   // lápida: piedra gris con una cruz y musgo abajo
     if(cr) return [62+r*8,64+r*8,70+r*8]; const n=(r-.5)*22+(x===0||x===15||y===0?14:0); if(y>12&&hash2(x,y,59)>.45) return [86+n,118+n,70+n]; return [146+n,148+n,152+n]; });
   tile(45,(x,y,r)=>{ const dx=(x-7.5)/3.6, dy=(y-11.2)/4.4; if(dx*dx+dy*dy>1) return [0,0,0,0]; const n=(r-.5)*10, sh=(x<6&&y<10)?18:x>9?-22:0; return [240+n+sh,232+n+sh,212+n+sh]; });   // huevo
@@ -1050,7 +1083,7 @@ class WorldGenerator{
       for(let y=h+1;y<=SEA;y++) data[col+y*256]=(bio===3&&y===SEA)?ICE:WATER;
       if(topId===GRASS&&data[col+h*256]===GRASS){   // hierba alta y flores
         const pr=hash2(wx,wz,s+4242), dens=bio===1?.17:.08;
-        if(pr<dens) data[col+(h+1)*256]=TALLGRASS; else if(pr<dens+.014) data[col+(h+1)*256]=FLOWER; else if(pr<dens+.022) data[col+(h+1)*256]=BUSH;
+        if(pr<dens) data[col+(h+1)*256]=TALLGRASS; else if(pr<dens+.022) data[col+(h+1)*256]=[FLOWER,FLOWER_Y,FLOWER_B,FLOWER_W,FLOWER_P][Math.floor(hash2(wx>>3,wz>>3,s+4243)*5)]; else if(pr<dens+.03) data[col+(h+1)*256]=BUSH;
       }
     }
     // minerales: vetas deterministas por chunk, solo sustituyen piedra
@@ -1073,14 +1106,24 @@ class WorldGenerator{
     }
     // vegetación: se decide por celdas de 5x5 para que encaje entre chunks vecinos
     const x0=cx*CS, z0=cz*CS;
-    const leaf=(wx,y,wz)=>{ const lx=wx-x0, lz=wz-z0; if(lx<0||lx>15||lz<0||lz>15||y>=WH) return; const i=lx+lz*CS+y*256; if(data[i]===AIR) data[i]=LEAVES; };
-    for(let tz=Math.floor((z0-2)/5);tz<=Math.floor((z0+CS+1)/5);tz++)for(let tx=Math.floor((x0-2)/5);tx<=Math.floor((x0+CS+1)/5);tx++){
+    let LV=LEAVES; const leaf=(wx,y,wz)=>{ const lx=wx-x0, lz=wz-z0; if(lx<0||lx>15||lz<0||lz>15||y>=WH) return; const i=lx+lz*CS+y*256; if(data[i]===AIR) data[i]=LV; };
+    const wood=(wx,y,wz,id)=>{ const lx=wx-x0, lz=wz-z0; if(lx<0||lx>15||lz<0||lz>15||y>=WH) return; const i=lx+lz*CS+y*256; if(data[i]===AIR||IS_LEAF[data[i]]) data[i]=id; };
+    for(let tz=Math.floor((z0-3)/5);tz<=Math.floor((z0+CS+2)/5);tz++)for(let tx=Math.floor((x0-3)/5);tx<=Math.floor((x0+CS+2)/5);tx++){
       const t=this.treeAt(tx,tz); if(!t) continue;
       const top=t.h+t.th, lx=t.x-x0, lz=t.z-z0, inside=lx>=0&&lx<=15&&lz>=0&&lz<=15;
       if(t.kind===2){ if(inside) for(let y=t.h+1;y<=top;y++) data[lx+lz*CS+y*256]=CACTUS; continue; }
-      if(t.kind===1){        // pino de tundra: copa cónica
-        const L=[[1,0],[0,1],[-1,1],[-2,2],[-3,1],[-4,2]];
-        for(const q of L){ const r=q[1]; for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++) if(Math.abs(dx)+Math.abs(dz)<=r) leaf(t.x+dx,top+q[0],t.z+dz); }
+      const LOGID=t.kind===3?BIRCH_LOG:t.kind===1?SPRUCE_LOG:LOG;
+      LV=t.kind===3?BIRCH_LEAVES:t.kind===1?PINE_LEAVES:t.kind===5?AUTUMN_LEAVES:LEAVES;
+      if(t.kind===1){        // abeto: copa cónica por pisos
+        const L=t.th>=8?[[2,0],[1,0],[0,1],[-1,1],[-2,2],[-3,1],[-4,2],[-5,3],[-6,2]]:[[1,0],[0,1],[-1,1],[-2,2],[-3,1],[-4,2]];
+        for(const q of L){ const r=q[1]; for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++) if(Math.abs(dx)+Math.abs(dz)<=r+(r===3?1:0)&&!(r===3&&Math.abs(dx)===3&&Math.abs(dz)>0)) leaf(t.x+dx,top+q[0],t.z+dz); }
+      }else if(t.kind===4){  // roble grande: copa ancha en dos pisos y ramas
+        for(let dy=-3;dy<=2;dy++){ const r=dy<=-2?3:dy<=0?3:dy===1?2:1;
+          for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++){ const dd=dx*dx+dz*dz; if(dd>r*r+1) continue; if(dd>=r*r&&hash2(t.x+dx*3+dy,t.z+dz*3,s+77)>.5) continue; leaf(t.x+dx,top+dy,t.z+dz); } }
+        for(const q of [[1,0],[-1,0],[0,1],[0,-1]]) if(hash2(t.x+q[0],t.z+q[1],s+78)>.35){ wood(t.x+q[0],top-2,t.z+q[1],LOG); wood(t.x+q[0]*2,top-1,t.z+q[1]*2,LOG); }
+      }else if(t.kind===3){  // abedul: tronco alto y copa estrecha
+        for(let dy=-3;dy<=1;dy++){ const r=dy===1?0:dy<-1?1:2; for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++){ if(r===2&&Math.abs(dx)===2&&Math.abs(dz)===2) continue; if(r===2&&(Math.abs(dx)===2||Math.abs(dz)===2)&&hash2(t.x+dx,t.z+dz,s+dy+90)>.6) continue; leaf(t.x+dx,top+dy,t.z+dz); } }
+        leaf(t.x,top+1,t.z);
       }else{                 // árbol de copa redonda
         for(let dy=-2;dy<=1;dy++){
           const r=dy<0?2:1;
@@ -1091,7 +1134,7 @@ class WorldGenerator{
           }
         }
       }
-      if(inside){ data[lx+lz*CS+t.h*256]=DIRT; for(let y=t.h+1;y<=top;y++) data[lx+lz*CS+y*256]=LOG; }
+      if(inside){ data[lx+lz*CS+t.h*256]=DIRT; for(let y=t.h+1;y<=top;y++) data[lx+lz*CS+y*256]=LOGID; }
     }
     const st=this.structAt(cx,cz); if(st) this.buildStruct(data,st,cx,cz);
     return data;
@@ -1288,7 +1331,10 @@ class WorldGenerator{
     const h=this.heightAt(x,z); if(h<=SEA+1||h>=40||this.isCave(x,h,z)) return null;
     const r=hash2(cellX,cellZ,s+14);
     if(bio===2) return {x,z,h,kind:2,th:2+Math.floor(r*2)};
-    if(bio===3) return {x,z,h,kind:1,th:6+Math.floor(r*3)};
+    if(bio===3) return {x,z,h,kind:1,th:6+Math.floor(r*4)};
+    const v=hash2(cellX,cellZ,s+15);
+    if(bio===0){ if(v<.24) return {x,z,h,kind:3,th:5+Math.floor(r*3)}; if(v<.34) return {x,z,h,kind:4,th:6+Math.floor(r*3)}; if(v<.44) return {x,z,h,kind:5,th:4+Math.floor(r*3)}; if(v<.52) return {x,z,h,kind:1,th:6+Math.floor(r*3)}; }
+    else if(v<.3) return {x,z,h,kind:3,th:5+Math.floor(r*2)};
     return {x,z,h,kind:0,th:4+Math.floor(r*3)};
   }
 }
@@ -1360,7 +1406,7 @@ function buildChunkGeometry(world,cx,cz){
     const id=lblk[(x+LP)+(z+LP)*LW+y*LA];
     if(id===AIR) continue;
     if(id===TORCH){ addTorch(sol,x,y,z); continue; }
-    if(id===TALLGRASS||id===FLOWER||id===BUSH||id===HEARTH||id===EGG){ addCross(sol,x,y,z,BLOCKS[id].tex[0],id===TALLGRASS||id===BUSH); continue; }
+    if(id===TALLGRASS||IS_FLOWER[id]||id===BUSH||id===HEARTH||id===EGG){ addCross(sol,x,y,z,BLOCKS[id].tex[0],id===TALLGRASS||id===BUSH); continue; }
     if(BLOCKS[id].shape){ if(BLOCKS[id].shape==='crop') addCross(sol,x,y,z,BLOCKS[id].tex[0]); else addShape(sol,x,y,z,id); continue; }
     const isW=WATERISH[id]===1, def=BLOCKS[id], out=isW?wat:sol;
     let j=LI(x,y+1,z);
@@ -1390,7 +1436,7 @@ function buildChunkGeometry(world,cx,cz){
         if(!s2){ sk+=j===-1?0:j===-2?15:lsky[j]; tl+=j<0?0:ltor[j]; cnt++; }
         if(!cr&&!(s1&&s2)){ sk+=jc===-1?0:jc===-2?15:lsky[jc]; tl+=jc<0?0:ltor[jc]; cnt++; }
         ao[k]=(s1&&s2)?0:3-(s1+s2+cr);
-        out.s.push(F.sh*AO_MUL[ao[k]]+(id===LEAVES?2:0)+((id===LEAVES||(id===GRASS&&dy>0))?10:0)+(isW&&dy>0&&shoreAt(x+C[0],y,z+C[2])?6:0));
+        out.s.push(F.sh*AO_MUL[ao[k]]+(IS_LEAF[id]?2:0)+(((IS_LEAF[id]&&id!==AUTUMN_LEAVES)||(id===GRASS&&dy>0))?10:0)+(isW&&dy>0&&shoreAt(x+C[0],y,z+C[2])?6:0));
         out.l.push(LUT[Math.round(sk/cnt*4)], LUT[Math.round(tl/cnt*4)]);
         let fu=C[3], fv=C[4]; for(let q=0;q<rot;q++){ const t=fu; fu=fv; fv=1-t; }
         out.u.push((tc+(fu?1-e:e))/AT, 1-(tr+(fv?e:1-e))/AT);
@@ -2718,7 +2764,7 @@ for(let i=0;i<PN;i++) pPos[i*3+1]=-999;
 const pGeo=new THREE.BufferGeometry();
 pGeo.setAttribute('position',new THREE.BufferAttribute(pPos,3)); pGeo.setAttribute('color',new THREE.BufferAttribute(pCol,3));
 const pts=new THREE.Points(pGeo,new THREE.PointsMaterial({size:.13,vertexColors:true})); pts.frustumCulled=false; scene.add(pts);
-const BCOL={1:[.41,.67,.33],2:[.53,.38,.27],3:[.5,.52,.55],4:[.89,.82,.6],5:[.52,.5,.49],6:[.94,.96,.98],7:[.75,.56,.35],8:[.67,.33,.25],11:[.42,.31,.2],12:[.23,.5,.24],18:[.75,.56,.35],29:[.9,.7,.3],30:[.26,.54,.27],31:[.66,.83,.93],39:[.61,.64,.7],40:[.82,.92,.96],41:[.59,.61,.64],42:[.62,.44,.25],43:[.33,.63,.29],44:[.88,.28,.36],57:[.6,.9,.95],108:[.3,.55,.25],143:[.89,.86,.77],144:[.94,.92,.85],161:[.9,.89,.85],162:[.77,.23,.2],163:[.23,.41,.73],164:[.27,.58,.32],165:[.89,.72,.24],166:[.18,.17,.2],167:[.38,.27,.18],168:[.6,.45,.3],169:[1,.75,.35],170:[.45,.3,.2],171:[.77,.23,.2],172:[.23,.41,.73],173:[.27,.58,.32],175:[.6,.61,.63],176:[.86,.74,.55],177:[.56,.56,.58],178:[.84,.7,.25],150:[.7,.92,1],96:[.84,.94,.4],97:[.96,.4,.55],98:[.85,.16,.16],99:[.42,.22,.62]};
+const BCOL={183:[.86,.85,.8],184:[.45,.62,.24],185:[.15,.33,.24],186:[.82,.42,.16],187:[.26,.18,.12],188:[.9,.78,.2],189:[.35,.5,.9],190:[.95,.95,.9],191:[.6,.35,.82],1:[.41,.67,.33],2:[.53,.38,.27],3:[.5,.52,.55],4:[.89,.82,.6],5:[.52,.5,.49],6:[.94,.96,.98],7:[.75,.56,.35],8:[.67,.33,.25],11:[.42,.31,.2],12:[.23,.5,.24],18:[.75,.56,.35],29:[.9,.7,.3],30:[.26,.54,.27],31:[.66,.83,.93],39:[.61,.64,.7],40:[.82,.92,.96],41:[.59,.61,.64],42:[.62,.44,.25],43:[.33,.63,.29],44:[.88,.28,.36],57:[.6,.9,.95],108:[.3,.55,.25],143:[.89,.86,.77],144:[.94,.92,.85],161:[.9,.89,.85],162:[.77,.23,.2],163:[.23,.41,.73],164:[.27,.58,.32],165:[.89,.72,.24],166:[.18,.17,.2],167:[.38,.27,.18],168:[.6,.45,.3],169:[1,.75,.35],170:[.45,.3,.2],171:[.77,.23,.2],172:[.23,.41,.73],173:[.27,.58,.32],175:[.6,.61,.63],176:[.86,.74,.55],177:[.56,.56,.58],178:[.84,.7,.25],150:[.7,.92,1],96:[.84,.94,.4],97:[.96,.4,.55],98:[.85,.16,.16],99:[.42,.22,.62]};
 let pNext=0;
 function burst(x,y,z,id){
   const c=BCOL[id]||BCOL[3];
@@ -2792,7 +2838,7 @@ const AU=(()=>{
   }
   // ---- EFECTOS ----
   // material del bloque: madera, piedra, tierra, arena, grava, nieve, hojas, cristal, hielo, metal
-  const MAT={1:'grass',2:'dirt',3:'stone',4:'sand',5:'gravel',6:'snow',7:'wood',8:'stone',11:'wood',12:'leaf',13:'stone',14:'stone',15:'stone',16:'stone',17:'glass',18:'wood',19:'stone',30:'leaf',31:'ice',39:'dirt',40:'glass',41:'stone',42:'wood',43:'leaf',44:'leaf',57:'glass',78:'dirt',108:'leaf',128:'wood',135:'stone',143:'bone',158:'leaf',161:'stone',162:'stone',163:'stone',164:'stone',165:'stone',166:'stone',167:'wood',168:'glass',169:'stone',170:'wood',171:'leaf',172:'leaf',173:'leaf',175:'stone',176:'wood',177:'stone',178:'leaf'};
+  const MAT={1:'grass',2:'dirt',3:'stone',4:'sand',5:'gravel',6:'snow',7:'wood',8:'stone',11:'wood',12:'leaf',13:'stone',14:'stone',15:'stone',16:'stone',17:'glass',18:'wood',19:'stone',30:'leaf',31:'ice',39:'dirt',40:'glass',41:'stone',42:'wood',43:'leaf',44:'leaf',57:'glass',78:'dirt',108:'leaf',128:'wood',135:'stone',143:'bone',158:'leaf',161:'stone',162:'stone',163:'stone',164:'stone',165:'stone',166:'stone',167:'wood',168:'glass',169:'stone',170:'wood',171:'leaf',172:'leaf',173:'leaf',175:'stone',176:'wood',177:'stone',178:'leaf',183:'wood',184:'leaf',185:'leaf',186:'leaf',187:'wood',188:'leaf',189:'leaf',190:'leaf',191:'leaf'};
   const matOf=id=>MAT[id]||(id>=58&&id<=74?'wood':'stone');
   function crunch(t,n,gap,f,q,peak,len,pan,buf){ for(let i=0;i<n;i++) nz(buf||white,t+i*gap*(.6+R()*.8),len*(.6+R()*.8),'bandpass',f*(.75+R()*.5),q,peak*(.6+R()*.5),.002,sfxB,pan); }
   function knock(t,f,peak,dur,pan){ tone('sine',f,t,.002,dur,peak,sfxB,pan,0,f*.6,dur); nz(white,t,.02,'bandpass',f*4,2,peak*.5,.001,sfxB,pan); }
@@ -3076,7 +3122,7 @@ function updateAudio(dt){
 
 // hojas: al talar un tronco, las hojas que se quedan sin tronco cerca van cayendo poco a poco
 const decayQ=[];
-function hasLogNear(x,y,z){ for(let dy=-2;dy<=2;dy++)for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++) if(world.getBlock(x+dx,y+dy,z+dz)===LOG) return true; return false; }
+function hasLogNear(x,y,z){ for(let dy=-2;dy<=2;dy++)for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++) if(IS_LOG[world.getBlock(x+dx,y+dy,z+dz)]) return true; return false; }
 // ¿lo puso el jugador? (los bloques del mundo generado no están en la lista de cambios)
 function placedAt(x,y,z){ const ed=world.edits.get((x>>4)+','+(z>>4)); return !!(ed&&ed.has((x&15)+(z&15)*CS+y*256)&&ed.get((x&15)+(z&15)*CS+y*256)!==AIR); }
 // TALA: al cortar un tronco de un árbol natural, cae todo lo que hay encima y te llevas la madera; las hojas se deshacen enseguida y sueltan palos y manzanas
@@ -3087,13 +3133,13 @@ function fellTree(x0,y0,z0,held){
     for(let dy=0;dy<=1;dy++)for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){ const nx=x+dx, ny=y+dy, nz=z+dz;
       if(ny<=y0||(dx===0&&dy===0&&dz===0)||Math.abs(nx-x0)>5||Math.abs(nz-z0)>5) continue;
       const k=key(nx,ny,nz); if(seen.has(k)) continue; seen.add(k);
-      if(world.getBlock(nx,ny,nz)===LOG&&!placedAt(nx,ny,nz)){ logs.push([nx,ny,nz]); st.push([nx,ny,nz]); } } }
+      if(IS_LOG[world.getBlock(nx,ny,nz)]&&!placedAt(nx,ny,nz)){ logs.push([nx,ny,nz]); st.push([nx,ny,nz]); } } }
   if(!logs.length) return;
   // si algún tronco de arriba sigue apoyado en otro tronco que no se ha cortado (tronco doble), no cae nada
   const inSet=new Set(logs.map(q=>key(q[0],q[1],q[2])));
-  for(const [x,y,z] of logs){ const b=world.getBlock(x,y-1,z); if(b===LOG&&!inSet.has(key(x,y-1,z))&&!(x===x0&&y-1===y0&&z===z0)) return; }
+  for(const [x,y,z] of logs){ const b=world.getBlock(x,y-1,z); if(IS_LOG[b]&&!inSet.has(key(x,y-1,z))&&!(x===x0&&y-1===y0&&z===z0)) return; }
   // solo si es un árbol de verdad: con hojas pegadas a la copa
-  let leafy=false; for(const [x,y,z] of logs){ for(const d of [[1,0,0],[-1,0,0],[0,1,0],[0,0,1],[0,0,-1]]) if(world.getBlock(x+d[0],y+d[1],z+d[2])===LEAVES){ leafy=true; break; } if(leafy) break; }
+  let leafy=false; for(const [x,y,z] of logs){ for(const d of [[1,0,0],[-1,0,0],[0,1,0],[0,0,1],[0,0,-1]]) if(IS_LEAF[world.getBlock(x+d[0],y+d[1],z+d[2])]){ leafy=true; break; } if(leafy) break; }
   if(!leafy) return;
   logs.sort((a,b)=>a[1]-b[1]);
   const lost=addItem(LOG,logs.length); if(lost>0) toast('Inventario lleno: parte de la madera se ha perdido.');
@@ -3104,15 +3150,15 @@ function fellTree(x0,y0,z0,held){
 }
 function updateFell(dt){
   for(let i=fellQ.length-1;i>=0;i--){ const q=fellQ[i]; q.t-=dt; if(q.t>0) continue; fellQ.splice(i,1);
-    if(world.getBlock(q.x,q.y,q.z)!==LOG) continue;
-    world.setBlock(q.x,q.y,q.z,AIR); burst(q.x,q.y,q.z,LOG); if(i%2===0) sfx('break',LOG);
+    const fid=world.getBlock(q.x,q.y,q.z); if(!IS_LOG[fid]) continue;
+    world.setBlock(q.x,q.y,q.z,AIR); burst(q.x,q.y,q.z,fid); if(i%2===0) sfx('break',LOG);
     for(let dy=-3;dy<=3;dy++)for(let dz=-3;dz<=3;dz++)for(let dx=-3;dx<=3;dx++){ const bx=q.x+dx, by=q.y+dy, bz=q.z+dz;
-      if(world.getBlock(bx,by,bz)===LEAVES&&!placedAt(bx,by,bz)&&!decayQ.some(d=>d.x===bx&&d.y===by&&d.z===bz)) decayQ.push({x:bx,y:by,z:bz,t:.3+Math.random()*1.2,f:1}); } }
+      if(IS_LEAF[world.getBlock(bx,by,bz)]&&!placedAt(bx,by,bz)&&!decayQ.some(d=>d.x===bx&&d.y===by&&d.z===bz)) decayQ.push({x:bx,y:by,z:bz,t:.3+Math.random()*1.2,f:1}); } }
 }
 function leafDecay(x,y,z){
   for(let dy=-3;dy<=3;dy++)for(let dz=-3;dz<=3;dz++)for(let dx=-3;dx<=3;dx++){
     const bx=x+dx, by=y+dy, bz=z+dz;
-    if(world.getBlock(bx,by,bz)===LEAVES&&!hasLogNear(bx,by,bz)) decayQ.push({x:bx,y:by,z:bz,t:.4+Math.random()*3.5});
+    if(IS_LEAF[world.getBlock(bx,by,bz)]&&!hasLogNear(bx,by,bz)) decayQ.push({x:bx,y:by,z:bz,t:.4+Math.random()*3.5});
   }
 }
 function updateDecay(dt){
@@ -3120,7 +3166,7 @@ function updateDecay(dt){
   for(let i=decayQ.length-1;i>=0;i--){
     const q=decayQ[i]; q.t-=dt; if(q.t>0) continue;
     decayQ.splice(i,1);
-    if(world.getBlock(q.x,q.y,q.z)===LEAVES&&!hasLogNear(q.x,q.y,q.z)){ world.setBlock(q.x,q.y,q.z,AIR); flowAround(q.x,q.y,q.z); burst(q.x,q.y,q.z,LEAVES); if(Math.random()<.15) addItem(STICK,1); if(q.f&&Math.random()<.06) addItem(APPLE,1); }
+    const lid=world.getBlock(q.x,q.y,q.z); if(IS_LEAF[lid]&&!hasLogNear(q.x,q.y,q.z)){ world.setBlock(q.x,q.y,q.z,AIR); flowAround(q.x,q.y,q.z); burst(q.x,q.y,q.z,lid); if(Math.random()<.15) addItem(STICK,1); if(q.f&&Math.random()<.06) addItem(APPLE,1); }
   }
 }
 /* ---------- botín de las estructuras: se rellena la primera vez que abres su cofre ---------- */
@@ -3267,12 +3313,12 @@ function updateFlow(dt){
 
 function breakBlock(hit,held){
   if(hit.id===GRAVE){ recoverGrave(hit.x,hit.y,hit.z); return; }
-  const natLog=hit.id===LOG&&!placedAt(hit.x,hit.y,hit.z);
+  const natLog=IS_LOG[hit.id]&&!placedAt(hit.x,hit.y,hit.z);
   const def=BLOCKS[hit.id];
   world.setBlock(hit.x,hit.y,hit.z,AIR); burst(hit.x,hit.y,hit.z,hit.id); sfx('break',hit.id); stats.mined++;
   if(!def.need||(held&&held.tool==='pick'&&held.tier>=def.need)){
     let drop=def.drop!==undefined?def.drop:hit.id, n=1;
-    if(hit.id===LEAVES){ const r=Math.random(); if(r<.07) drop=APPLE; else if(r<.25) drop=STICK; }
+    if(IS_LEAF[hit.id]){ const r=Math.random(); if(r<.07) drop=APPLE; else if(r<.25) drop=STICK; }
     if(hit.id===TALLGRASS&&Math.random()<.22) drop=SEEDS;
     if(hit.id===BUSH){ drop=BERRY; n=2+(Math.random()<.5?1:0); if(Math.random()<.45) addItem(NARCO,1+(Math.random()<.3?1:0)); }
     if(hit.id>=13&&hit.id<=17&&Math.random()<[0,.25,.4,.55][rk('minero')]) n=2;
@@ -3287,7 +3333,7 @@ function breakBlock(hit,held){
   crops.delete(hit.x+','+hit.y+','+hit.z);
   flowAround(hit.x,hit.y,hit.z);
   if(held&&held.tool&&!held.rng&&inv[selected]&&BLOCKS[inv[selected].id]===held) wearHeld(1);
-  if(hit.id===LOG) leafDecay(hit.x,hit.y,hit.z);
+  if(IS_LOG[hit.id]) leafDecay(hit.x,hit.y,hit.z);
   if(natLog) fellTree(hit.x,hit.y,hit.z,held);
   if(hit.id===CHEST){ const k=hit.x+','+hit.y+','+hit.z, c=chests.get(k); if(c){ let lost=0; c.forEach(s=>{ if(s) lost+=addItem(s.id,s.n); }); chests.delete(k); if(lost) toast('Inventario lleno: parte del cofre se ha perdido.'); } }
 }
@@ -3882,7 +3928,7 @@ function updateShadows(){
 /* ---------- DESCANSO: quieto junto a una hoguera, o a cubierto cerca de una cama o una luz, quedas Descansado ---------- */
 // cada tipo de mueble cercano suma un punto de comodidad (los repetidos no cuentan dos veces); más comodidad, más dura
 const COMFORT=new Map([[BED,'cama'],[HEARTH,'hoguera'],[WORKBENCH,'mesa de trabajo'],[FURNACE,'horno'],[CHEST,'cofre'],[LAMP,'lámpara'],[GLASS,'ventanas'],
-  [DOOR_X,'puerta'],[DOOR_Z,'puerta'],[DOOR_XO,'puerta'],[DOOR_ZO,'puerta'],[FLOWER,'flores'],[STAIR_W,'asientos'],[STAIR_W+1,'asientos'],[STAIR_W+2,'asientos'],[STAIR_W+3,'asientos'],
+  [DOOR_X,'puerta'],[DOOR_Z,'puerta'],[DOOR_XO,'puerta'],[DOOR_ZO,'puerta'],[FLOWER,'flores'],[FLOWER_Y,'flores'],[FLOWER_B,'flores'],[FLOWER_W,'flores'],[FLOWER_P,'flores'],[STAIR_W,'asientos'],[STAIR_W+1,'asientos'],[STAIR_W+2,'asientos'],[STAIR_W+3,'asientos'],
   [FENCE,'vallas'],[BRICKS,'ladrillo'],[TORCH,'antorchas'],[CAULDRON,'caldero']]);
 let zoneT=0, curZone=-1;
 let rested=0, restT=0, restScanT=0, restOk=false, comfort=0, comfortList=[], hearthPos=null, restMax=0;
@@ -3943,8 +3989,8 @@ function updateAmbient(dt){
   // hojas: buscan hojas con aire debajo cerca de ti
   for(let k=0;k<4&&ambCount[1]<40;k++){
     const x=Math.floor(px+(Math.random()-.5)*26), y=Math.floor(py+(Math.random()-.3)*14), z=Math.floor(pz+(Math.random()-.5)*26);
-    if(world.getBlock(x,y,z)===LEAVES&&world.getBlock(x,y-1,z)===AIR&&Math.random()<.35){
-      const g=.75+Math.random()*.4; ambSpawn(1,x+Math.random(),y-.02,z+Math.random(),0,-.55-Math.random()*.3,0,[.36*g,.62*g,.26*g],9); }
+    const fl=world.getBlock(x,y,z); if(IS_LEAF[fl]&&world.getBlock(x,y-1,z)===AIR&&Math.random()<.35){
+      const g=.75+Math.random()*.4; ambSpawn(1,x+Math.random(),y-.02,z+Math.random(),0,-.55-Math.random()*.3,0,fl===AUTUMN_LEAVES?[.85*g,.42*g,.14*g]:fl===BIRCH_LEAVES?[.5*g,.7*g,.28*g]:[.36*g,.62*g,.26*g],9); }
   }
   // luciérnagas: de noche, sin lluvia, sobre la hierba
   if(night&&!rain&&!ambUnder) for(let k=0;k<2&&ambCount[2]<FF_N;k++){
@@ -5144,7 +5190,7 @@ const maxHp=()=>20+Math.min(10,Math.floor(plvl/3)*2)+rk('vital')*2+(plvl>=50?4:0
 const mineMul=()=>1+.02*(plvl-1);                    // pica un 2 % más rápido por nivel
 const dmgMul=()=>1+.03*(plvl-1);                     // pega un 3 % más fuerte por nivel
 // experiencia por romper bloques (solo si sueltan algo)
-const XP_BLOCK={108:.5,1:.5,2:.5,3:1,4:.5,5:.5,6:.5,11:1,13:3,14:5,15:5,16:8,17:12,31:1,39:1};
+const XP_BLOCK={183:1,187:1,108:.5,1:.5,2:.5,3:1,4:.5,5:.5,6:.5,11:1,13:3,14:5,15:5,16:8,17:12,31:1,39:1};
 function craftXp(id){ const d=BLOCKS[id]; if(d.tool||d.armor||d.pet) return 3+(d.tier||({le:1,cu:2,fe:2,au:3,cr:3,sh:4})[d.metal]||2)*2; if(id===CAKE||id===GOLD_APPLE) return 4; return 1; }
 function gainXp(n){
   if(!n||plvl>=MAX_LVL) return;
@@ -5500,7 +5546,7 @@ function updateCompass(){
 /* ---------- MAP: vista cenital alrededor del jugador y marca de la base ---------- */
 let mapOpen=false, mapZoom=1, base=null;
 const MAP_STEPS=[.5,1,2];   // bloques por píxel: 128, 256 o 512 bloques de lado
-const MAP_COL={1:[96,160,74],2:[134,98,68],3:[128,132,138],4:[222,204,150],5:[132,128,124],6:[238,244,250],7:[190,144,90],8:[170,86,66],
+const MAP_COL={183:[220,216,204],184:[110,160,62],185:[34,82,58],186:[206,102,40],187:[70,48,32],188:[240,206,60],189:[90,130,230],190:[240,240,232],191:[160,90,210],1:[96,160,74],2:[134,98,68],3:[128,132,138],4:[222,204,150],5:[132,128,124],6:[238,244,250],7:[190,144,90],8:[170,86,66],
   9:[62,130,198],11:[110,82,54],12:[52,118,56],13:[90,90,96],14:[160,140,120],15:[180,120,80],16:[200,180,90],17:[110,200,210],18:[170,128,80],19:[110,110,116],
   29:[255,210,90],30:[66,138,70],31:[168,212,238],58:[190,144,90],59:[150,156,164],68:[170,128,80],74:[178,52,58],78:[96,66,44],39:[156,163,180],40:[200,230,240],41:[150,156,164],42:[156,110,62],57:[150,230,240],143:[222,214,190],161:[230,226,216],162:[196,58,52],163:[58,104,186],164:[70,148,82],165:[226,184,62],166:[46,44,50],167:[96,64,40],168:[180,140,90],169:[240,190,90],170:[120,80,50],171:[196,58,52],172:[58,104,186],173:[70,148,82],175:[150,152,156],176:[220,190,140],177:[140,140,146],178:[214,178,64]};
 function mapColumn(x,z){
@@ -5508,7 +5554,7 @@ function mapColumn(x,z){
   const ch=world.chunks.get((x>>4)+','+(z>>4));
   if(ch){
     const d=ch.data, col=(x&15)+(z&15)*CS;
-    for(let y=ch.top;y>=0;y--){ const b=d[col+y*256]; if(b&&b!==TALLGRASS&&b!==FLOWER&&b!==BUSH&&b!==EGG&&!(b>=79&&b<=82)){
+    for(let y=ch.top;y>=0;y--){ const b=d[col+y*256]; if(b&&b!==TALLGRASS&&!IS_FLOWER[b]&&b!==BUSH&&b!==EGG&&!(b>=79&&b<=82)){
       if(WATERISH[b]){ let fl=y; while(fl>0&&WATERISH[d[col+fl*256]]) fl--; return [WATER,y,y-fl]; }
       return [b,y,0]; } }
     return [STONE,0,0];
