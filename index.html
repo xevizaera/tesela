@@ -608,8 +608,8 @@ const BLOCKS=[null,
   {name:'Mineral de cobre',  tex:[15,15,15], hard:3.0, mat:'stone', need:2},
   {name:'Mineral de oro',    tex:[16,16,16], hard:3.4, mat:'stone', need:3},
   {name:'Veta de cristal',   tex:[17,17,17], hard:3.8, mat:'stone', need:3, drop:CRYSTAL},
-  {name:'Mesa de trabajo',   tex:[18,19,7],  hard:1.4, mat:'wood'},
-  {name:'Horno',             tex:[3,20,3],   hard:2.6, mat:'stone', need:1},
+  {name:'Mesa de trabajo',   tex:[18,19,7],  hard:1.4, mat:'wood', shape:'bench'},
+  {name:'Horno',             tex:[3,20,3],   hard:2.6, mat:'stone', need:1, shape:'furnace'},
   {name:'Pico de piedra',  tool:'pick', tier:2},
   {name:'Pico de hierro',  tool:'pick', tier:3},
   {name:'Hacha de madera', tool:'axe',  tier:1},
@@ -625,7 +625,7 @@ const BLOCKS=[null,
   {name:'Arcilla',         tex:[24,24,24], hard:.6,  mat:'soil'},
   {name:'Vidrio',          tex:[25,25,25], hard:.35, mat:'stone'},
   {name:'Piedra refinada', tex:[26,26,26], hard:2.6, mat:'stone', need:1},
-  {name:'Cofre',           tex:[27,28,27], hard:1.4, mat:'wood'},
+  {name:'Cofre',           tex:[27,28,27], hard:1.4, mat:'wood', shape:'chest'},
   {name:'Hierba alta',     tex:[29,29,29], hard:.05, plant:true, drop:0},
   {name:'Flor',            tex:[30,30,30], hard:.05, plant:true},
   {name:'Lingote de cobre'},{name:'Lingote de oro'},
@@ -691,7 +691,7 @@ const BLOCKS=[null,
   {name:'Hacha de guerra sombría', tool:'waraxe', tier:4, dmg:17, dur:800, cd:.9, col:'#8d5bd6', hc:0x8d5bd6, rep:[38,2]},
   {name:'Dagas de cobre', tool:'dagger', tier:2, dmg:3.5, dur:200, cd:.2, col:'#e08a52', hc:0xe08a52, rep:[45,2]},
   {name:'Dagas de cristal', tool:'dagger', tier:4, dmg:5, dur:450, cd:.2, col:'#6fe6f0', hc:0x6fe6f0, rep:[28,1]},
-  {name:'Caldero', tex:[43,42,42], hard:2.2, mat:'stone', need:1},
+  {name:'Caldero', tex:[43,42,42], hard:2.2, mat:'stone', need:1, shape:'cauldron'},
   {name:'Frasco'},
   // pociones: potion = efecto, dur = segundos que dura (la de curación es instantánea)
   {name:'Poción de curación', potion:'heal', col:'#e5484d'},
@@ -753,17 +753,42 @@ const BLOCKS=[null,
 const WATERISH=new Uint8Array(256); for(const i of [9,85,86,87]) WATERISH[i]=1;
 const WLEVEL=new Uint8Array(256); WLEVEL[85]=1; WLEVEL[86]=2; WLEVEL[87]=3;
 const WTOP=new Float32Array(256); WTOP[9]=.12; WTOP[85]=.3; WTOP[86]=.5; WTOP[87]=.7;
-const OPAQUE=new Uint8Array(256); for(const i of [1,2,3,4,5,6,7,8,11,12,13,14,15,16,17,18,19,30,31,39,41,42,57,135,143,161,162,163,164,165,166,167,169,170,176,177,178,183,184,185,186,187]) OPAQUE[i]=1;
+const OPAQUE=new Uint8Array(256); for(const i of [1,2,3,4,5,6,7,8,11,12,13,14,15,16,17,30,31,39,41,57,143,161,162,163,164,165,166,167,169,170,176,177,178,183,184,185,186,187]) OPAQUE[i]=1;
 const IS_LOG=new Uint8Array(256), IS_LEAF=new Uint8Array(256), IS_FLOWER=new Uint8Array(256);
 for(const i of [11,183,187]) IS_LOG[i]=1; for(const i of [12,184,185,186]) IS_LEAF[i]=1; for(const i of [44,188,189,190,191]) IS_FLOWER[i]=1;
 // SOLID: lo que frena al jugador. El vidrio frena pero deja pasar la luz.
-const SOLID=new Uint8Array(256); for(let i=0;i<256;i++) SOLID[i]=OPAQUE[i]; SOLID[40]=1; SOLID[168]=1; SOLID[175]=1;
+const SOLID=new Uint8Array(256); for(let i=0;i<256;i++) SOLID[i]=OPAQUE[i]; SOLID[40]=1; SOLID[168]=1; SOLID[175]=1; for(const i of [18,19,42,135]) SOLID[i]=1;
 for(let i=58;i<=78;i++) if(i!==69&&i!==75&&i!==76&&i!==77) SOLID[i]=1;   // formas sólidas (losas, escaleras, vallas, puertas, cama, cultivo)
 // cajas de cada forma, en fracciones de bloque: [x0,y0,z0,x1,y1,z1]
 const FULLBOX=[[0,0,0,1,1,1]];
 const STAIR_TOP=[[0,.5,0,1,1,.5],[.5,.5,0,1,1,1],[0,.5,.5,1,1,1],[0,.5,0,.5,1,1]];
 const DOORBOX={70:[[0,0,0,1,1,.1875]],71:[[0,0,0,.1875,1,1]],72:[[0,0,0,.1875,1,1]],73:[[0,0,0,1,1,.1875]]};
-function fenceLink(id){ return id===FENCE||OPAQUE[id]; }
+function fenceLink(id){ return id===FENCE||OPAQUE[id]||id===18||id===19||id===42||id===135; }
+const STATION_BOX=(()=>{
+  const W=[7,7,7], LG=[10,7,10], ST=[26,26,26], IR=[76,76,76], CW=[42,42,42];
+  const legs=(a,b,h,t)=>[[a,0,a,a+b,h,a+b,t],[1-a-b,0,a,1-a,h,a+b,t],[a,0,1-a-b,a+b,h,1-a,t],[1-a-b,0,1-a-b,1-a,h,1-a,t]];
+  return {
+    // mesa: tablero grueso con el canto de herramientas, patas, travesaños y balda
+    bench:[[0,.75,0,1,1,1],...legs(.0625,.1875,.75,LG),
+      [.25,.5625,.09375,.75,.6875,.1875,W],[.25,.5625,.8125,.75,.6875,.90625,W],
+      [.125,.1875,.125,.875,.25,.875,W],
+      [.25,.25,.25,.5,.375,.375,[76,76,76]],[.5625,.25,.5,.75,.4375,.6875,[10,11,10]]],
+    // horno: zócalo, cuerpo con la boca, cornisa y chimenea
+    furnace:[[0,0,0,1,.125,1,ST],[.0625,.125,.0625,.9375,.75,.9375],[0,.75,0,1,.875,1,ST],
+      [.125,.875,.125,.875,.9375,.875,[3,3,3]],[.5625,.9375,.5625,.8125,1,.8125,[3,3,3]]],
+    // cofre: base, tapa algo más ancha (se ve la junta) y cierre
+    chest:[[.0625,0,.0625,.9375,.5625,.9375],[.03125,.5625,.03125,.96875,.875,.96875],
+      [.4375,.4375,0,.5625,.6875,.03125,[75,75,75]]],
+    // caldero: patas, fondo, cuatro paredes y el brebaje dentro
+    cauldron:[...legs(.0625,.1875,.1875,CW),[.0625,.1875,.0625,.9375,.3125,.9375,CW],
+      [.0625,.3125,.0625,.1875,1,.9375,CW],[.8125,.3125,.0625,.9375,1,.9375,CW],
+      [.1875,.3125,.0625,.8125,1,.1875,CW],[.1875,.3125,.8125,.8125,1,.9375,CW],
+      [.1875,.3125,.1875,.8125,.875,.8125,[43,42,42]],
+      [0,.8125,.4375,.0625,.9375,.5625,IR],[.9375,.8125,.4375,1,.9375,.5625,IR]]
+  };
+})();
+// caja que envuelve cada estación, para el contorno de selección
+const STATION_BB={}; for(const k in STATION_BOX){ const b=[1,1,1,0,0,0]; for(const q of STATION_BOX[k]) for(let j=0;j<3;j++){ b[j]=Math.min(b[j],q[j]); b[j+3]=Math.max(b[j+3],q[j+3]); } STATION_BB[k]=b; }
 function shapeBoxes(id,nb,coll){
   // nb(dx,dz) devuelve el bloque vecino; solo hace falta para las vallas
   const d=BLOCKS[id];
@@ -775,6 +800,11 @@ function shapeBoxes(id,nb,coll){
     case 'door': return DOORBOX[id];
     case 'bed': return [[0,0,0,1,.5625,1]];
     case 'farm': return [[0,0,0,1,.9375,1]];
+    // estaciones con forma; al chocar son un bloque entero. Elemento 7: texturas propias [arriba,lado,abajo]
+    case 'bench': return coll?FULLBOX:STATION_BOX.bench;
+    case 'furnace': return coll?FULLBOX:STATION_BOX.furnace;
+    case 'chest': return coll?FULLBOX:STATION_BOX.chest;
+    case 'cauldron': return coll?FULLBOX:STATION_BOX.cauldron;
     case 'fence':{
       const H=coll?1.5:1, b=coll?[[.375,0,.375,.625,H,.625]]:[[.375,0,.375,.625,1,.625]];
       const arms=[[1,0],[-1,0],[0,1],[0,-1]];
@@ -972,6 +1002,9 @@ function buildAtlas(){
   const flw=(P,C)=>(x,y,r)=>{ if((x===7||x===8)&&y>=8) return [60+r*20,128+r*20,58]; if(y>=10&&y<=11&&(x===6||x===9)) return [80,154,70]; if(y===12&&(x===5||x===10)) return [70,140,62];
     const dx2=x-7.5, dy2=y-5, d=dx2*dx2+dy2*dy2; if(d<2) return C; if(d<11){ const k=(dx2<0&&dy2<0)?1.12:(dx2>0&&dy2>0)?.82:1, n=(r-.5)*24; return [P[0]*k+n,P[1]*k+n,P[2]*k+n]; } return [0,0,0,0]; };
   tile(71,flw([246,206,52],[200,120,30])); tile(72,flw([84,128,236],[250,236,140])); tile(73,flw([246,244,236],[244,196,52])); tile(74,flw([160,88,214],[250,226,120]));
+  // metales para los detalles de las estaciones: latón y hierro oscuro
+  tile(75,(x,y,r)=>{ const n=(r-.5)*14, l=(x+y<10?24:0)-(x+y>22?30:0); return [226+n+l,184+n+l,72+n*.6+l*.5]; });
+  tile(76,(x,y,r)=>{ const n=(r-.5)*12, l=(x+y<10?20:0)-(x+y>22?18:0); return [70+n+l,74+n+l,82+n+l]; });
   tile(59,(x,y,r)=>{ const cr=(x>=7&&x<=8&&y>=3&&y<=11)||(y>=5&&y<=6&&x>=5&&x<=10);   // lápida: piedra gris con una cruz y musgo abajo
     if(cr) return [62+r*8,64+r*8,70+r*8]; const n=(r-.5)*22+(x===0||x===15||y===0?14:0); if(y>12&&hash2(x,y,59)>.45) return [86+n,118+n,70+n]; return [146+n,148+n,152+n]; });
   tile(45,(x,y,r)=>{ const dx=(x-7.5)/3.6, dy=(y-11.2)/4.4; if(dx*dx+dy*dy>1) return [0,0,0,0]; const n=(r-.5)*10, sh=(x<6&&y<10)?18:x>9?-22:0; return [240+n+sh,232+n+sh,212+n+sh]; });   // huevo
@@ -1478,7 +1511,7 @@ function addShape(out,x,y,z,id){
       const F=FACES[f], dx=F.d[0], dy=F.d[1], dz=F.d[2];
       const onEdge=(dx<0&&b[0]===0)||(dx>0&&b[3]===1)||(dy<0&&b[1]===0)||(dy>0&&b[4]===1)||(dz<0&&b[2]===0)||(dz>0&&b[5]===1);
       if(onEdge){ const k=LI(x+dx,y+dy,z+dz), n=k===-1?STONE:k===-2?AIR:lblk[k]; if(OPAQUE[n]) continue; }
-      const t=dy>0?def.tex[0]:dy<0?def.tex[2]:def.tex[1], tc=t%AT, tr=Math.floor(t/AT), base=out.p.length/3;
+      const TX=b[6]||def.tex, t=dy>0?TX[0]:dy<0?TX[2]:TX[1], tc=t%AT, tr=Math.floor(t/AT), base=out.p.length/3;
       for(let k=0;k<4;k++){
         const C=F.c[k]; cc[0]=C[0]?b[3]:b[0]; cc[1]=C[1]?b[4]:b[1]; cc[2]=C[2]?b[5]:b[2];
         out.p.push(x+cc[0],y+cc[1],z+cc[2]); out.s.push(F.sh); out.l.push(sk,tl);
@@ -6285,7 +6318,9 @@ function loop(now){
 
   // bloque apuntado
   const hit=raycast(world,ex,ey,ez,dir.x,dir.y,dir.z,REACH);
-  if(hit){ hl.visible=true; hl.position.set(hit.x+.5,hit.y+.5,hit.z+.5); } else hl.visible=false;
+  if(hit){ hl.visible=true; const sb=STATION_BB[BLOCKS[hit.id]&&BLOCKS[hit.id].shape];
+    if(sb){ hl.position.set(hit.x+(sb[0]+sb[3])/2,hit.y+(sb[1]+sb[4])/2,hit.z+(sb[2]+sb[5])/2); hl.scale.set(sb[3]-sb[0],sb[4]-sb[1],sb[5]-sb[2]); }
+    else { hl.position.set(hit.x+.5,hit.y+.5,hit.z+.5); hl.scale.set(1,1,1); } } else hl.visible=false;
 
   // minería: mantener pulsado, tiempo según dureza del bloque
   const key=hit?hit.x+','+hit.y+','+hit.z:'';
@@ -6308,7 +6343,7 @@ function loop(now){
     if(mineP>=1){ if(hit.y>0) breakBlock(hit,held); mineP=0; mineKey=''; }
   }else{ mineP=0; mineKey=''; }
   crack.visible=mineP>0&&!!hit;
-  if(crack.visible){ crack.position.copy(hl.position); crack.material.opacity=mineP*.55; }
+  if(crack.visible){ crack.position.copy(hl.position); crack.scale.copy(hl.scale); crack.material.opacity=mineP*.55; }
   $('cross').style.setProperty('--p',(mineP*100).toFixed(0));
 
   // si apuntas a una mesa u horno, el botón de colocar pasa a ser "Usar"
