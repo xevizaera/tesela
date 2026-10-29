@@ -779,8 +779,15 @@ const BLOCKS=[null,
   {name:'Flor amarilla', tex:[71,71,71], hard:.05, plant:true, drop:44},
   {name:'Flor azul', tex:[72,72,72], hard:.05, plant:true, drop:44},
   {name:'Margarita', tex:[73,73,73], hard:.05, plant:true, drop:44},
-  {name:'Flor violeta', tex:[74,74,74], hard:.05, plant:true, drop:44}
+  {name:'Flor violeta', tex:[74,74,74], hard:.05, plant:true, drop:44},
+  // luces de las mazmorras
+  {name:'Brasero', tex:[76,76,76], hard:1, mat:'stone', shape:'brazier'},
+  {name:'Orbe de luz', tex:[79,79,79], hard:.5, mat:'stone', shape:'orb'},
+  {name:'Orbe verde', tex:[80,80,80], hard:.5, mat:'stone', shape:'orb'},
+  {name:'Seta luminosa', tex:[81,82,82], hard:.3, mat:'leaf', shape:'mush'},
+  {name:'Cristal de luz', tex:[83,83,83], hard:1, mat:'stone', shape:'crys'}
 ];
+const BRAZIER=192, ORB_P=193, ORB_G=194, MUSH=195, ICELIGHT=196;
 // agua: la quieta (fuente) y tres niveles de agua que corre
 const WATERISH=new Uint8Array(256); for(const i of [9,85,86,87]) WATERISH[i]=1;
 const WLEVEL=new Uint8Array(256); WLEVEL[85]=1; WLEVEL[86]=2; WLEVEL[87]=3;
@@ -789,13 +796,22 @@ const OPAQUE=new Uint8Array(256); for(const i of [1,2,3,4,5,6,7,8,11,12,13,14,15
 const IS_LOG=new Uint8Array(256), IS_LEAF=new Uint8Array(256), IS_FLOWER=new Uint8Array(256);
 for(const i of [11,183,187]) IS_LOG[i]=1; for(const i of [12,184,185,186]) IS_LEAF[i]=1; for(const i of [44,188,189,190,191]) IS_FLOWER[i]=1;
 // SOLID: lo que frena al jugador. El vidrio frena pero deja pasar la luz.
-const SOLID=new Uint8Array(256); for(let i=0;i<256;i++) SOLID[i]=OPAQUE[i]; SOLID[40]=1; SOLID[168]=1; SOLID[175]=1; for(const i of [18,19,42,135]) SOLID[i]=1;
+const SOLID=new Uint8Array(256); for(let i=0;i<256;i++) SOLID[i]=OPAQUE[i]; SOLID[40]=1; SOLID[168]=1; SOLID[175]=1; for(const i of [18,19,42,135,192,196]) SOLID[i]=1;
 for(let i=58;i<=78;i++) if(i!==69&&i!==75&&i!==76&&i!==77) SOLID[i]=1;   // formas sólidas (losas, escaleras, vallas, puertas, cama, cultivo)
 // cajas de cada forma, en fracciones de bloque: [x0,y0,z0,x1,y1,z1]
 const FULLBOX=[[0,0,0,1,1,1]];
 const STAIR_TOP=[[0,.5,0,1,1,.5],[.5,.5,0,1,1,1],[0,.5,.5,1,1,1],[0,.5,0,.5,1,1]];
 const DOORBOX={70:[[0,0,0,1,1,.1875]],71:[[0,0,0,.1875,1,1]],72:[[0,0,0,.1875,1,1]],73:[[0,0,0,1,1,.1875]]};
 function fenceLink(id){ return id===FENCE||OPAQUE[id]||id===18||id===19||id===42||id===135; }
+// luces con forma: el elemento 8 a 1 hace que esa pieza brille por sí misma
+const LIGHT_BOX={
+  brazier:[[.3,0,.3,.7,.12,.7,[3,3,3]],[.42,.12,.42,.58,.38,.58,[76,76,76]],[.14,.38,.14,.86,.5,.86,[76,76,76]],[.2,.46,.2,.8,.52,.8,[77,77,77],1]],
+  orb:[[.38,0,.38,.62,.08,.62,[76,76,76]],[.47,.08,.47,.53,.3,.53,[76,76,76]],[.3,.32,.3,.7,.72,.7,null,1],[.36,.26,.36,.64,.78,.64,null,1],[.26,.38,.26,.74,.66,.74,null,1]],
+  mush:[[.42,0,.42,.58,.42,.58,[82,82,82]],[.18,.42,.18,.82,.62,.82,[81,81,81],1],[.3,.62,.3,.7,.72,.7,[81,81,81],1],
+    [.08,0,.62,.2,.18,.74,[82,82,82]],[.02,.18,.56,.26,.27,.8,[81,81,81],1]],
+  crys:[[.3,0,.35,.62,.62,.65,null,1],[.38,.62,.42,.54,.92,.58,null,1],[.6,0,.2,.8,.38,.42,null,1],[.14,0,.58,.32,.3,.78,null,1]]
+};
+const LIGHT_B=new Uint8Array(256); for(const i of [TORCH,LAMP,HEARTH,LANTERN,BRAZIER,ORB_P,ORB_G,MUSH,ICELIGHT]) LIGHT_B[i]=1;
 const STATION_BOX=(()=>{
   const W=[7,7,7], LG=[10,7,10], ST=[26,26,26], IR=[76,76,76], CW=[42,42,42];
   const legs=(a,b,h,t)=>[[a,0,a,a+b,h,a+b,t],[1-a-b,0,a,1-a,h,a+b,t],[a,0,1-a-b,a+b,h,1-a,t],[1-a-b,0,1-a-b,1-a,h,1-a,t]];
@@ -837,6 +853,10 @@ function shapeBoxes(id,nb,coll){
     case 'furnace': return coll?FULLBOX:STATION_BOX.furnace;
     case 'chest': return coll?FULLBOX:STATION_BOX.chest;
     case 'cauldron': return coll?FULLBOX:STATION_BOX.cauldron;
+    case 'brazier': return coll?FULLBOX:LIGHT_BOX.brazier;
+    case 'orb': return LIGHT_BOX.orb;
+    case 'mush': return LIGHT_BOX.mush;
+    case 'crys': return coll?FULLBOX:LIGHT_BOX.crys;
     case 'fence':{
       const H=coll?1.5:1, b=coll?[[.375,0,.375,.625,H,.625]]:[[.375,0,.375,.625,1,.625]];
       const arms=[[1,0],[-1,0],[0,1],[0,-1]];
@@ -1041,6 +1061,11 @@ function buildAtlas(){
     const edge=y<th+1.6||cx>5.4; return edge?[236,84+r*30,24]:[255,138+t*70+r*20,36+t*30]; });
   tile(78,(x,y,r)=>{ const cx=Math.abs(x-7.5), th=4+cx*2.1+hash2(x,9,781)*3.2; if(y<th||cx>5.6) return [0,0,0,0];
     const t=y/15; return cx<1.2+t*1.6&&y>th+2?[255,244,180+t*50]:[255,168+t*60+r*20,40+t*40]; });
+  const glowT=(c0,c1,sd)=>(x,y,r)=>{ const d=Math.hypot(x-7.5,y-7.5)/10.6+(pn(x,y,4,sd)-.5)*.35; const t=Math.max(0,Math.min(1,d)); return [c0[0]+(c1[0]-c0[0])*t+(r-.5)*14,c0[1]+(c1[1]-c0[1])*t+(r-.5)*14,c0[2]+(c1[2]-c0[2])*t+(r-.5)*14]; };
+  tile(79,glowT([250,225,255],[150,70,235],791)); tile(80,glowT([235,255,190],[80,200,70],801));
+  tile(81,(x,y,r)=>{ if((x*7+y*13)%11===0&&y<12) return [240,255,250]; return glowT([170,255,235],[40,170,170],811)(x,y,r); });
+  tile(82,(x,y,r)=>{ const n=(r-.5)*12; return [222+n,214+n,190+n]; });
+  tile(83,(x,y,r)=>{ const st=((x+y*2)%7===0)?40:0; return glowT([235,252,255],[80,190,245],831)(x,y,r).map((v,i)=>v+(i<2?st*.4:st*.2)); });
   tile(76,(x,y,r)=>{ const n=(r-.5)*12, l=(x+y<10?20:0)-(x+y>22?18:0); return [70+n+l,74+n+l,82+n+l]; });
   tile(59,(x,y,r)=>{ const cr=(x>=7&&x<=8&&y>=3&&y<=11)||(y>=5&&y<=6&&x>=5&&x<=10);   // lápida: piedra gris con una cruz y musgo abajo
     if(cr) return [62+r*8,64+r*8,70+r*8]; const n=(r-.5)*22+(x===0||x===15||y===0?14:0); if(y>12&&hash2(x,y,59)>.45) return [86+n,118+n,70+n]; return [146+n,148+n,152+n]; });
@@ -1458,7 +1483,7 @@ function buildLight(world,cx,cz){
     const x0=Math.max(0,bx), x1=Math.min(LW,bx+CS), z0=Math.max(0,bz), z1=Math.min(LW,bz+CS);
     for(let rz=z0;rz<z1;rz++)for(let rx=x0;rx<x1;rx++){
       const col=(rx-bx)+(rz-bz)*CS, rc=rx+rz*LW;
-      for(let y=0;y<=ct;y++){ const b=d[col+y*256]; if(b){ lblk[rc+y*LA]=b; if(b===TORCH||b===LAMP||b===HEARTH||b===LANTERN) torches.push(rc+y*LA); } }
+      for(let y=0;y<=ct;y++){ const b=d[col+y*256]; if(b){ lblk[rc+y*LA]=b; if(LIGHT_B[b]) torches.push(rc+y*LA); } }
     }
   }
   top=Math.min(top+1,WH-1); lTop=top;
@@ -1485,6 +1510,7 @@ function buildChunkGeometry(world,cx,cz){
     if(id===AIR) continue;
     if(id===TORCH){ addTorch(sol,x,y,z); continue; }
     if(id===HEARTH){ addShape(sol,x,y,z,id,HEARTH_BOX); addFlames(sol,x,y,z); continue; }
+    if(id===BRAZIER){ addShape(sol,x,y,z,id); addFlames(sol,x,y,z,.36); continue; }
     if(id===TALLGRASS||IS_FLOWER[id]||id===BUSH||id===EGG){ addCross(sol,x,y,z,BLOCKS[id].tex[0],id===TALLGRASS||id===BUSH); continue; }
     if(BLOCKS[id].shape){ if(BLOCKS[id].shape==='crop') addCross(sol,x,y,z,BLOCKS[id].tex[0]); else addShape(sol,x,y,z,id); continue; }
     const isW=WATERISH[id]===1, def=BLOCKS[id], out=isW?wat:sol;
@@ -1560,7 +1586,7 @@ function addShape(out,x,y,z,id,bx){
       const TX=b[6]||def.tex, t=dy>0?TX[0]:dy<0?TX[2]:TX[1], tc=t%AT, tr=Math.floor(t/AT), base=out.p.length/3;
       for(let k=0;k<4;k++){
         const C=F.c[k]; cc[0]=C[0]?b[3]:b[0]; cc[1]=C[1]?b[4]:b[1]; cc[2]=C[2]?b[5]:b[2];
-        out.p.push(x+cc[0],y+cc[1],z+cc[2]); out.s.push(F.sh); out.l.push(sk,tl);
+        out.p.push(x+cc[0],y+cc[1],z+cc[2]); out.s.push(b[7]?20+F.sh*.9:F.sh); out.l.push(sk,tl);
         const uv=FUV[f](cc), u=Math.min(1-e,Math.max(e,uv[0])), v=Math.min(1-e,Math.max(e,1-uv[1]));
         out.u.push((tc+u)/AT, 1-(tr+v)/AT);
       }
@@ -1573,11 +1599,11 @@ const HEARTH_BOX=(()=>{ const L=[11,11,11], S=[26,3,3], b=[[.12,0,.38,.88,.18,.6
   for(const q of [[0,0],[.41,0],[.82,0],[0,.41],[.82,.41],[0,.82],[.41,.82],[.82,.82]]) b.push([q[0],0,q[1],q[0]+.18,.12+((q[0]*7+q[1]*3)%1)*.05,q[1]+.18,S]);
   return b; })();
 const HEARTH_BB=[0,0,0,1,.9,1];
-function addFlames(out,x,y,z){
+function addFlames(out,x,y,z,oy){ oy=oy||0;
   const i=LI(x,y,z), sk=LUT[(i===-2?15:i<0?0:lsky[i])*4], tl=LUT[(i<0?0:ltor[i])*4], e=.02;
   for(const q of [[.785,.34,.12,.92,77],[2.356,.34,.12,.92,77],[0,.24,.18,.7,78],[1.571,.24,.18,.7,78]]){
     const c=Math.cos(q[0])*q[1], sn=Math.sin(q[0])*q[1], t=q[4], tc=t%AT, tr=Math.floor(t/AT), base=out.p.length/3;
-    out.p.push(x+.5-c,y+q[2],z+.5-sn, x+.5+c,y+q[2],z+.5+sn, x+.5-c,y+q[3],z+.5-sn, x+.5+c,y+q[3],z+.5+sn);
+    out.p.push(x+.5-c,y+q[2]+oy,z+.5-sn, x+.5+c,y+q[2]+oy,z+.5+sn, x+.5-c,y+q[3]+oy,z+.5-sn, x+.5+c,y+q[3]+oy,z+.5+sn);
     for(let k=0;k<4;k++){ out.s.push(20+((k&2)?4.95:.95)); out.l.push(sk,tl); out.u.push((tc+((k&1)?1-e:e))/AT, 1-(tr+((k&2)?e:1-e))/AT); }
     out.i.push(base,base+1,base+2, base+2,base+1,base+3, base,base+2,base+1, base+2,base+3,base+1);
   }
@@ -4959,7 +4985,7 @@ function spawnEnemy(){
 }
 function skyExposed(x,y,z){ for(let yy=y+2;yy<WH;yy++) if(OPAQUE[world.getBlock(x,yy,z)]) return false; return true; }
 function lightNear(x,y,z,r){
-  for(let dy=-r;dy<=r;dy++)for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++){ const b=world.getBlock(x+dx,y+dy,z+dz); if(b===TORCH||b===LAMP||b===HEARTH||b===LANTERN) return true; }
+  for(let dy=-r;dy<=r;dy++)for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++){ const b=world.getBlock(x+dx,y+dy,z+dz); if(LIGHT_B[b]) return true; }
   return false;
 }
 // en cuevas aparecen a cualquier hora, pero solo en la oscuridad: lejos de antorchas y sin cielo encima
@@ -6370,19 +6396,19 @@ let DSAVE=dunLoad();
 const DUN_THEMES=[
   {id:'cripta',name:'Cripta olvidada',em:'🗝',desc:'Ladrillo, huesos y cristales en la oscuridad.',boss:'boss',rooms:5,
     floor:[POLISHED,STONE,GRAVEL,BRICKS],path:[POLISHED,CHISELED],wall:[BRICKS,CHISELED],pil:[CHISELED,POLISHED],
-    tint:[.85,.55,1],fog:[.06,.03,.09],day:.22,mobs:['umbrio','umbrio','thrower'],glow:[0xffb060,0xff6a3a,0x6ff0ff],props:'crypt'},
+    tint:[.85,.55,1],fog:[.06,.03,.09],day:.22,mobs:['umbrio','umbrio','thrower'],glow:[0xffa040,0xc070ff,0x6ff0ff],props:'crypt'},
   {id:'bosque',name:'Bosque podrido',em:'🌳',desc:'Raíces, hojarasca y retoños hambrientos bajo las copas.',boss:'ent',rooms:5,
     floor:[GRASS,GRASS,DIRT,GRAVEL],path:[DIRT,GRAVEL],wall:[LOG,LEAVES],pil:[LOG,LOG],
-    tint:[.62,.92,.6],fog:[.03,.07,.04],day:.28,mobs:['sapling','umbrio','sapling','thrower'],glow:[0xd8ff6a,0xffb060,0x9aff8a],props:'forest'},
+    tint:[.62,.92,.6],fog:[.03,.07,.04],day:.28,mobs:['sapling','umbrio','sapling','thrower'],glow:[0xb8ff70,0x70ffe0,0x9aff8a],props:'forest'},
   {id:'arenas',name:'Templo de las arenas',em:'🦂',desc:'Columnas doradas, cactus y lanzaespinas al acecho.',boss:'scorp',rooms:6,
     floor:[SAND,SAND,CLAY,POLISHED],path:[POLISHED,TILE_Y],wall:[POLISHED,CHISELED],pil:[CHISELED,TILE_Y],
-    tint:[1.05,.82,.55],fog:[.12,.07,.03],day:.3,mobs:['thrower','umbrio','thrower','boarling'],glow:[0xffa040,0xff7030,0xffd070],props:'desert'},
+    tint:[1.05,.82,.55],fog:[.12,.07,.03],day:.3,mobs:['thrower','umbrio','thrower','boarling'],glow:[0xff9030,0xff7a28,0xffd070],props:'desert'},
   {id:'hielo',name:'Cavernas heladas',em:'❄️',desc:'Hielo, nieve y un frío que ralentiza los pasos.',boss:'golem',rooms:6,
     floor:[SNOW,ICE,SNOW,STONE],path:[ICE,POLISHED],wall:[ICE,POLISHED],pil:[ICE,ICE],
-    tint:[.62,.82,1.1],fog:[.03,.06,.1],day:.26,mobs:['umbrio','thrower','umbrio'],glow:[0x8ff4ff,0xffffff,0x6fb8ff],props:'ice'},
+    tint:[.62,.82,1.1],fog:[.03,.06,.1],day:.26,mobs:['umbrio','thrower','umbrio'],glow:[0x9ff6ff,0xd8ffff,0x6fb8ff],props:'ice'},
   {id:'madriguera',name:'Madriguera del Rey',em:'🐗',desc:'Túneles de tierra llenos de jabatos furiosos.',boss:'boarKing',rooms:6,
     floor:[DIRT,GRASS,GRAVEL,HAY],path:[PLANKS_D,DIRT],wall:[PLANKS_D,LOG],pil:[LOG,PLANKS_D],
-    tint:[1,.78,.58],fog:[.08,.05,.03],day:.26,mobs:['boarling','boarling','umbrio','thrower'],glow:[0xffb060,0xff8a3a,0xffd080],props:'den'}
+    tint:[1,.78,.58],fog:[.08,.05,.03],day:.26,mobs:['boarling','boarling','umbrio','thrower'],glow:[0xffb060,0xff7a30,0xffd080],props:'den'}
 ];
 const DUN_DIFF=[{name:'Normal',hp:1,dmg:1,pay:1,extra:0},{name:'Difícil',hp:1.6,dmg:1.45,pay:1.7,extra:1},{name:'Pesadilla',hp:2.4,dmg:2,pay:2.6,extra:2}];
 function dunClears(D,id){ const c=D.cl[id]; return Array.isArray(c)?c:[0,0,0]; }
@@ -6407,7 +6433,7 @@ function dunLayout(T,seed){
     const n=H(x,z,1), m=H(x,z,2), top=path?pick(T.path,n):pick(T.floor,n);
     const L=[]; for(let y=FY-4;y<FY;y++) L.push([y,STONE]); L.push([FY,top]);
     if(ro&&!path){ const R=rooms[ro.i];
-      if(ro.edge<1.15){ L.push([FY+1,T.wall[0]]); L.push([FY+2,m>.5?T.wall[1]:T.wall[0]]); }
+      if(ro.edge<1.15){ L.push([FY+1,T.wall[0]]); L.push([FY+2,m>.5?T.wall[1]:T.wall[0]]); if(T.props==='crypt'&&H(x,z,13)<.06){ L.push([FY+3,TORCH]); glows.push([x+.5,FY+3.8,z+.5,T.glow[0],1.1]); } }
       else if(ro.d>3.2&&H(x>>1,z>>1,3)>.82&&Math.abs(x+.5-R.x)>2.5) L.push([FY+1,pick(T.wall,m)]); }
     if(wallC&&!ro){ L.push([FY+1,T.wall[0]]); L.push([FY+2,m>.6?T.wall[1]:T.wall[0]]); }
     cols.set(x+','+z,L);
@@ -6421,11 +6447,16 @@ function dunLayout(T,seed){
   rooms.forEach((R,i)=>{
     // columnas con farol
     for(let k=0;k<4;k++){ const a=k*Math.PI/2+.78+i*.3, x=Math.floor(R.x+Math.cos(a)*R.r*.55), z=Math.floor(R.z+Math.sin(a)*R.r*.55); if(!free(x,z,2.6)) continue;
-      if(T.props==='forest'){ for(let y=1;y<=4;y++) put(x,z,FY+y,LOG); for(let dx=-1;dx<=1;dx++)for(let dz=-1;dz<=1;dz++) put(x+dx,z+dz,FY+5,LEAVES); put(x,z,FY+6,LEAVES); put(x+1,z,FY+3,LANTERN); glows.push([x+1.5,FY+3.6,z+.5,T.glow[0],1.6]); }
-      else { for(let y=1;y<=3;y++) put(x,z,FY+y,y===2?T.pil[1]:T.pil[0]); put(x,z,FY+4,LANTERN); glows.push([x+.5,FY+4.6,z+.5,T.glow[0],1.8]); } }
+      if(T.props==='forest'){ for(let y=1;y<=4;y++) put(x,z,FY+y,LOG); for(let dx=-1;dx<=1;dx++)for(let dz=-1;dz<=1;dz++) put(x+dx,z+dz,FY+5,LEAVES); put(x,z,FY+6,LEAVES); put(x+1,z,FY+3,ORB_G); glows.push([x+1.5,FY+3.5,z+.5,T.glow[0],1.7]); }
+      else { for(let y=1;y<=3;y++) put(x,z,FY+y,y===2?T.pil[1]:T.pil[0]);
+        const top={crypt:TORCH,desert:BRAZIER,ice:ICELIGHT,den:LANTERN}[T.props]; put(x,z,FY+4,top); glows.push([x+.5,FY+(top===TORCH?4.8:4.6),z+.5,T.glow[0],top===TORCH?1.2:1.8]); } }
     // braseros
     for(let k=0;k<3;k++){ const a=k*2.09+i, x=Math.floor(R.x+Math.cos(a)*(R.r-2.6)), z=Math.floor(R.z+Math.sin(a)*(R.r-2.6)); if(!free(x,z)) continue;
-      put(x,z,FY+1,T.props==='den'?HAY:POLISHED); put(x,z,FY+2,LANTERN); glows.push([x+.5,FY+2.7,z+.5,T.glow[1],2.2]); }
+      if(T.props==='crypt'){ put(x,z,FY+1,CHISELED); put(x,z,FY+2,ORB_P); glows.push([x+.5,FY+2.5,z+.5,T.glow[1],2.4]); }
+      else if(T.props==='forest'){ put(x,z,FY+1,MUSH); put(x+1,z,FY+1,MUSH); glows.push([x+1,FY+1.6,z+.5,T.glow[1],2.2]); }
+      else if(T.props==='desert'){ put(x,z,FY+1,BRAZIER); glows.push([x+.5,FY+1.9,z+.5,T.glow[1],2.2]); }
+      else if(T.props==='ice'){ put(x,z,FY+1,ICELIGHT); put(x,z+1,FY+1,ICELIGHT); glows.push([x+.5,FY+1.6,z+1,T.glow[1],2.2]); }
+      else { put(x,z,FY+1,HEARTH); glows.push([x+.5,FY+1.4,z+.5,T.glow[1],2.2]); } }
     // decoración propia de cada mazmorra
     for(let k=0;k<7;k++){ const a=k*.9+i*2.1+.4, d=R.r*(.3+H(i,k,8)*.5), x=Math.floor(R.x+Math.cos(a)*d), z=Math.floor(R.z+Math.sin(a)*d); if(!free(x,z,3)) continue;
       const v=H(k,i,9);
@@ -6714,6 +6745,7 @@ function applySettings(){
 });
 // el menú enseña un mundo real girando despacio: el de la partida guardada si existe
 function makeMenuWorld(){
+  if(world) world.chunks.forEach(ch=>world.disposeMesh(ch));      // quita del todo el mundo anterior (por ejemplo, una mazmorra)
   const s=loadSave();
   world=new World(scene,s?s.seed:20261008,atlasTex,4,1);
   if(s&&s.edits) for(const k in s.edits){ const a=s.edits[k], m=new Map(); for(let i=0;i+1<a.length;i+=2) m.set(a[i],a[i+1]); world.edits.set(k,m); }
