@@ -1004,6 +1004,11 @@ function buildAtlas(){
   tile(71,flw([246,206,52],[200,120,30])); tile(72,flw([84,128,236],[250,236,140])); tile(73,flw([246,244,236],[244,196,52])); tile(74,flw([160,88,214],[250,226,120]));
   // metales para los detalles de las estaciones: latón y hierro oscuro
   tile(75,(x,y,r)=>{ const n=(r-.5)*14, l=(x+y<10?24:0)-(x+y>22?30:0); return [226+n+l,184+n+l,72+n*.6+l*.5]; });
+  tile(77,(x,y,r)=>{ const cx=Math.abs(x-7.5), th=1+cx*1.55+hash2(x,5,771)*2.2; if(y<th||cx>6.6) return [0,0,0,0];
+    const t=y/15, core=cx<1.4+t*2.6&&y>th+3; if(core) return [255,236+r*19,150+t*70];
+    const edge=y<th+1.6||cx>5.4; return edge?[236,84+r*30,24]:[255,138+t*70+r*20,36+t*30]; });
+  tile(78,(x,y,r)=>{ const cx=Math.abs(x-7.5), th=4+cx*2.1+hash2(x,9,781)*3.2; if(y<th||cx>5.6) return [0,0,0,0];
+    const t=y/15; return cx<1.2+t*1.6&&y>th+2?[255,244,180+t*50]:[255,168+t*60+r*20,40+t*40]; });
   tile(76,(x,y,r)=>{ const n=(r-.5)*12, l=(x+y<10?20:0)-(x+y>22?18:0); return [70+n+l,74+n+l,82+n+l]; });
   tile(59,(x,y,r)=>{ const cr=(x>=7&&x<=8&&y>=3&&y<=11)||(y>=5&&y<=6&&x>=5&&x<=10);   // lápida: piedra gris con una cruz y musgo abajo
     if(cr) return [62+r*8,64+r*8,70+r*8]; const n=(r-.5)*22+(x===0||x===15||y===0?14:0); if(y>12&&hash2(x,y,59)>.45) return [86+n,118+n,70+n]; return [146+n,148+n,152+n]; });
@@ -1439,7 +1444,8 @@ function buildChunkGeometry(world,cx,cz){
     const id=lblk[(x+LP)+(z+LP)*LW+y*LA];
     if(id===AIR) continue;
     if(id===TORCH){ addTorch(sol,x,y,z); continue; }
-    if(id===TALLGRASS||IS_FLOWER[id]||id===BUSH||id===HEARTH||id===EGG){ addCross(sol,x,y,z,BLOCKS[id].tex[0],id===TALLGRASS||id===BUSH); continue; }
+    if(id===HEARTH){ addShape(sol,x,y,z,id,HEARTH_BOX); addFlames(sol,x,y,z); continue; }
+    if(id===TALLGRASS||IS_FLOWER[id]||id===BUSH||id===EGG){ addCross(sol,x,y,z,BLOCKS[id].tex[0],id===TALLGRASS||id===BUSH); continue; }
     if(BLOCKS[id].shape){ if(BLOCKS[id].shape==='crop') addCross(sol,x,y,z,BLOCKS[id].tex[0]); else addShape(sol,x,y,z,id); continue; }
     const isW=WATERISH[id]===1, def=BLOCKS[id], out=isW?wat:sol;
     let j=LI(x,y+1,z);
@@ -1502,10 +1508,10 @@ function addTorch(out,x,y,z){
 }
 // formas: cada caja con sus seis caras; las que tocan un bloque opaco no se dibujan
 const FUV=[(c)=>[c[2],c[1]],(c)=>[1-c[2],c[1]],(c)=>[c[0],1-c[2]],(c)=>[1-c[0],c[2]],(c)=>[1-c[0],c[1]],(c)=>[c[0],c[1]]];
-function addShape(out,x,y,z,id){
+function addShape(out,x,y,z,id,bx){
   const def=BLOCKS[id], i=LI(x,y,z), sk=LUT[(i===-2?15:lsky[i])*4], tl=LUT[(i<0?0:ltor[i])*4], e=.02;
   const nb=(dx,dz)=>{ const k=LI(x+dx,y,z+dz); return k<0?AIR:lblk[k]; };
-  const boxes=shapeBoxes(id,nb,false), cc=[0,0,0];
+  const boxes=bx||shapeBoxes(id,nb,false), cc=[0,0,0];
   for(const b of boxes){
     for(let f=0;f<6;f++){
       const F=FACES[f], dx=F.d[0], dy=F.d[1], dz=F.d[2];
@@ -1520,6 +1526,20 @@ function addShape(out,x,y,z,id){
       }
       out.i.push(base,base+1,base+2, base+2,base+1,base+3);
     }
+  }
+}
+// hoguera: dos troncos cruzados sobre un anillo de piedras, y llamas en planos que se agitan en el shader
+const HEARTH_BOX=(()=>{ const L=[11,11,11], S=[26,3,3], b=[[.12,0,.38,.88,.18,.62,L],[.38,.12,.12,.62,.3,.88,L]];
+  for(const q of [[0,0],[.41,0],[.82,0],[0,.41],[.82,.41],[0,.82],[.41,.82],[.82,.82]]) b.push([q[0],0,q[1],q[0]+.18,.12+((q[0]*7+q[1]*3)%1)*.05,q[1]+.18,S]);
+  return b; })();
+const HEARTH_BB=[0,0,0,1,.9,1];
+function addFlames(out,x,y,z){
+  const i=LI(x,y,z), sk=LUT[(i===-2?15:i<0?0:lsky[i])*4], tl=LUT[(i<0?0:ltor[i])*4], e=.02;
+  for(const q of [[.785,.34,.12,.92,77],[2.356,.34,.12,.92,77],[0,.24,.18,.7,78],[1.571,.24,.18,.7,78]]){
+    const c=Math.cos(q[0])*q[1], sn=Math.sin(q[0])*q[1], t=q[4], tc=t%AT, tr=Math.floor(t/AT), base=out.p.length/3;
+    out.p.push(x+.5-c,y+q[2],z+.5-sn, x+.5+c,y+q[2],z+.5+sn, x+.5-c,y+q[3],z+.5-sn, x+.5+c,y+q[3],z+.5+sn);
+    for(let k=0;k<4;k++){ out.s.push(20+((k&2)?4.95:.95)); out.l.push(sk,tl); out.u.push((tc+((k&1)?1-e:e))/AT, 1-(tr+((k&2)?e:1-e))/AT); }
+    out.i.push(base,base+1,base+2, base+2,base+1,base+3, base,base+2,base+1, base+2,base+3,base+1);
   }
 }
 // plantas: dos planos cruzados con la textura recortada
@@ -1551,7 +1571,8 @@ const VSH=`attribute float aShade; attribute vec2 aLight; uniform vec3 uTint; un
 varying vec2 vUv; varying vec3 vL; varying float vD; varying vec3 vW; varying float vFoam;
 float hh2(vec2 q){ return fract(sin(dot(q,vec2(127.1,311.7)))*43758.5453); }
 float vn2(vec2 q){ vec2 i=floor(q), f=fract(q); f=f*f*(3.0-2.0*f); return mix(mix(hh2(i),hh2(i+vec2(1.0,0.0)),f.x),mix(hh2(i+vec2(0.0,1.0)),hh2(i+vec2(1.0,1.0)),f.x),f.y); }
-void main(){ vUv=uv; float sh=aShade, w=0.0, foam=0.0, fol=0.0;
+void main(){ vUv=uv; float sh=aShade, w=0.0, foam=0.0, fol=0.0, fire=0.0;
+  if(sh>19.5){ fire=1.0; sh-=20.0; }
   if(sh>9.5){ fol=1.0; sh-=10.0; }
   if(sh>5.5){ foam=1.0; sh-=6.0; } else if(sh>3.5){ w=1.0; sh-=4.0; } else if(sh>1.5){ w=0.35; sh-=2.0; }
   vec3 p=position; vec4 wp=modelMatrix*vec4(p,1.0);
@@ -1567,6 +1588,8 @@ void main(){ vUv=uv; float sh=aShade, w=0.0, foam=0.0, fol=0.0;
     ft=mix(ft,ft*vec3(0.84,0.9,0.86),smoothstep(0.45,0.9,n2));                       // manchas más oscuras
     vL*=ft*(0.94+0.12*n3); }
   if(uWave>0.5) p.y+=sin(uTime*1.6+wp.x*0.9+wp.z*0.7)*0.035-0.03;
+  if(fire>0.5){ vL=vec3(1.3,1.16,1.0);                                    // llama: brilla sola y se agita por arriba
+    float ft=uTime*7.0+wp.x*5.1+wp.z*3.7; p.x+=(sin(ft)*0.06+sin(ft*2.7)*0.03)*w; p.z+=cos(ft*1.3)*0.06*w; p.y+=(sin(uTime*11.0+wp.x*7.0+wp.z*3.0)*0.09-0.03)*w; w=0.0; }
   if(w>0.0){ float t=uTime*1.7+wp.x*0.55+wp.z*0.35; p.x+=(sin(t)*0.06+sin(t*2.3+wp.z)*0.02)*w*uWind; p.z+=cos(t*0.8+wp.x*0.4)*0.045*w*uWind; }
   vFoam=foam; vW=(modelMatrix*vec4(p,1.0)).xyz;
   vec4 mv=modelViewMatrix*vec4(p,1.0); vD=-mv.z; gl_Position=projectionMatrix*mv; }`;
@@ -1895,6 +1918,11 @@ function icon(id){
   else if(d.ic==='fence'){ x.fillStyle='#a8784a'; x.fillRect(2,2,3,13); x.fillRect(11,2,3,13); x.fillStyle='#8a5a34'; x.fillRect(2,5,12,2); x.fillRect(2,10,12,2); }
   else if(d.ic==='door'){ x.drawImage(atlasCanvas,(39%AT)*TS,Math.floor(39/AT)*TS,TS,TS,3,0,10,16); x.fillStyle='#e8c25a'; x.fillRect(10,8,2,2); }
   else if(d.ic==='bed'){ x.fillStyle='#8a5a34'; x.fillRect(1,9,14,4); x.fillRect(1,13,2,2); x.fillRect(13,13,2,2); x.fillStyle='#b2343a'; x.fillRect(5,6,10,4); x.fillStyle='#ecece2'; x.fillRect(1,6,4,4); }
+  else if(d.shape&&STATION_BOX[d.shape]){                // vista de frente de sus piezas, de atrás hacia delante
+    for(const b of [...STATION_BOX[d.shape]].sort((p,q)=>q[2]-p[2])){ const TX=b[6]||d.tex, t=TX[1];
+      const sx=Math.round(b[0]*16), sy=Math.round((1-b[4])*16), w=Math.max(1,Math.round((b[3]-b[0])*16)), h=Math.max(1,Math.round((b[4]-b[1])*16));
+      x.drawImage(atlasCanvas,(t%AT)*TS+sx,Math.floor(t/AT)*TS+sy,w,h,sx,sy,w,h);
+      if(b[2]>.25){ x.fillStyle='rgba(0,0,0,.28)'; x.fillRect(sx,sy,w,h); } } }
   else if(d.tex){ const t=d.tex[1]; x.drawImage(atlasCanvas,(t%AT)*TS,Math.floor(t/AT)*TS,TS,TS,0,0,TS,TS); }
   else if(d.tool==='bow'){
     x.fillStyle=d.col||'#9a6a3c'; for(const q of [[4,1],[6,2],[8,3],[9,5],[10,7],[10,9],[9,11],[8,12],[6,13],[4,14]]) x.fillRect(q[0],q[1],2,2);
@@ -2626,6 +2654,20 @@ function makeToolModel(def){
   g.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(B.u),2));
   return new THREE.Mesh(g,hm(new THREE.MeshBasicMaterial({vertexColors:true,map:DET_HARD})));
 }
+let atlasTexHand=null;
+function stationMesh(def){
+  if(!atlasTexHand){ atlasTexHand=new THREE.CanvasTexture(atlasCanvas); atlasTexHand.magFilter=THREE.NearestFilter; atlasTexHand.minFilter=THREE.NearestFilter; atlasTexHand.generateMipmaps=false; }
+  const P=[],U=[],C=[],I=[], cc=[0,0,0], e=.02;
+  for(const b of STATION_BOX[def.shape]){ const TX=b[6]||def.tex;
+    for(let f=0;f<6;f++){ const F=FACES[f], t=F.d[1]>0?TX[0]:F.d[1]<0?TX[2]:TX[1], tc=t%AT, tr=Math.floor(t/AT), base=P.length/3;
+      for(let k=0;k<4;k++){ const Q=F.c[k]; cc[0]=Q[0]?b[3]:b[0]; cc[1]=Q[1]?b[4]:b[1]; cc[2]=Q[2]?b[5]:b[2];
+        P.push((cc[0]-.5)*.3,(cc[1]-.5)*.3,(cc[2]-.5)*.3); C.push(F.sh,F.sh,F.sh);
+        const uv=FUV[f](cc), u=Math.min(1-e,Math.max(e,uv[0])), v=Math.min(1-e,Math.max(e,1-uv[1])); U.push((tc+u)/AT,1-(tr+v)/AT); }
+      I.push(base,base+1,base+2, base+2,base+1,base+3); } }
+  const gm=new THREE.BufferGeometry(); gm.setAttribute('position',new THREE.BufferAttribute(new Float32Array(P),3)); gm.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(U),2));
+  gm.setAttribute('color',new THREE.BufferAttribute(new Float32Array(C),3)); gm.setIndex(I);
+  return new THREE.Mesh(gm,hm(new THREE.MeshBasicMaterial({map:atlasTexHand,vertexColors:true,alphaTest:.5})));
+}
 function makeHandItem(id){
   const g=new THREE.Group(), def=BLOCKS[id], flat=c=>hm(new THREE.MeshBasicMaterial({color:c}));
   const tm=def&&def.tool?makeToolModel(def):null;
@@ -2684,6 +2726,8 @@ function makeHandItem(id){
     abx(B,.05,.34,.05,0x8a5a34,0,-.01,0); abx(B,.052,.3,.018,0x6e4526,0,-.03,.017); abx(B,.06,.05,.06,0x3a2a1c,0,.16,0);
     abx(B,.075,.07,.075,0xff9a2a,0,.205,0); abx(B,.05,.06,.05,0xffd250,0,.245,0); abx(B,.025,.04,.025,0xfff2b0,0,.28,0);
     const m=extrudeMesh(B); g.add(m); g.rotation.set(.1,0,-.15); g.position.y=.02;
+  }else if(def.shape&&STATION_BOX[def.shape]){
+    g.add(stationMesh(def)); g.rotation.set(.18,.7,0);
   }else if(def.tex&&!(def.plant||def.hearth||def.shape==='crop')){
     const T=def.tex, m=[tileMat(T[1],.8),tileMat(T[1],.8),tileMat(T[0],1),tileMat(T[2],.55),tileMat(T[1],.68),tileMat(T[1],.68)];
     g.add(new THREE.Mesh(new THREE.BoxGeometry(.3,.3,.3),m)); g.rotation.set(.18,.7,0);
@@ -2820,6 +2864,8 @@ function chips(hit){
     pCol[i*3]=c[0]*j; pCol[i*3+1]=c[1]*j; pCol[i*3+2]=c[2]*j; pLife[i]=.35+Math.random()*.3;
   }
   pGeo.attributes.color.needsUpdate=true;
+  if(IS_LOG[hit.id]) for(let k=0;k<5;k++){ const lx=hit.x+Math.floor(Math.random()*5)-2, ly=hit.y+2+Math.floor(Math.random()*6), lz=hit.z+Math.floor(Math.random()*5)-2, fl=world.getBlock(lx,ly,lz);
+    if(IS_LEAF[fl]&&world.getBlock(lx,ly-1,lz)===AIR){ leafFall(lx,ly-.1,lz,fl,1+(Math.random()<.4)); if(Math.random()<.5) break; } }
 }
 function updateParticles(dt){
   let any=false;
@@ -3211,7 +3257,7 @@ function updateDecay(dt){
   for(let i=decayQ.length-1;i>=0;i--){
     const q=decayQ[i]; q.t-=dt; if(q.t>0) continue;
     decayQ.splice(i,1);
-    const lid=world.getBlock(q.x,q.y,q.z); if(IS_LEAF[lid]&&!hasLogNear(q.x,q.y,q.z)){ world.setBlock(q.x,q.y,q.z,AIR); flowAround(q.x,q.y,q.z); burst(q.x,q.y,q.z,lid); if(Math.random()<.15) addItem(STICK,1); if(q.f&&Math.random()<.06) addItem(APPLE,1); }
+    const lid=world.getBlock(q.x,q.y,q.z); if(IS_LEAF[lid]&&!hasLogNear(q.x,q.y,q.z)){ world.setBlock(q.x,q.y,q.z,AIR); flowAround(q.x,q.y,q.z); burst(q.x,q.y,q.z,lid); leafFall(q.x,q.y,q.z,lid,q.f?4:2); if(Math.random()<.15) addItem(STICK,1); if(q.f&&Math.random()<.06) addItem(APPLE,1); }
   }
 }
 /* ---------- botín de las estructuras: se rellena la primera vez que abres su cofre ---------- */
@@ -3968,6 +4014,8 @@ function updateShadows(){
   };
   for(const a of animals) put(a,a.sp.r*2.6*(a.sc||1)*(a.sp.fly?.9:1));
   for(const e of enemies) put(e,e.sp.r*2.8*(e.boss?1.6:1));
+  for(const m of merchants.values()) if(m.g) put(m,1.05);
+  if(!riding&&!dead) put({g:{visible:true},x:player.x,y:player.y,z:player.z,yaw:player.yaw},.95);
   for(let i=n;i<shadowPool.length;i++) shadowPool[i].visible=false;
 }
 /* ---------- DESCANSO: quieto junto a una hoguera, o a cubierto cerca de una cama o una luz, quedas Descansado ---------- */
@@ -3976,6 +4024,7 @@ const COMFORT=new Map([[BED,'cama'],[HEARTH,'hoguera'],[WORKBENCH,'mesa de traba
   [DOOR_X,'puerta'],[DOOR_Z,'puerta'],[DOOR_XO,'puerta'],[DOOR_ZO,'puerta'],[FLOWER,'flores'],[FLOWER_Y,'flores'],[FLOWER_B,'flores'],[FLOWER_W,'flores'],[FLOWER_P,'flores'],[STAIR_W,'asientos'],[STAIR_W+1,'asientos'],[STAIR_W+2,'asientos'],[STAIR_W+3,'asientos'],
   [FENCE,'vallas'],[BRICKS,'ladrillo'],[TORCH,'antorchas'],[CAULDRON,'caldero']]);
 let zoneT=0, curZone=-1;
+let hearths=[], hearthScanT=0;
 let rested=0, restT=0, restScanT=0, restOk=false, comfort=0, comfortList=[], hearthPos=null, restMax=0;
 function scanRest(){
   const px=Math.floor(player.x), py=Math.floor(player.y), pz=Math.floor(player.z), found=new Set(); let fire=null, light=false;
@@ -4003,14 +4052,14 @@ function updateRest(dt){
   }
   if(rested>0) rested=Math.max(0,rested-dt);
   // brasas y humo sobre la hoguera más cercana
-  if(hearthPos&&Math.random()<dt*9){ const h=hearthPos, smoke=Math.random()<.4;
-    ambSpawn(5,h[0]+.3+Math.random()*.4,h[1]+.5,h[2]+.3+Math.random()*.4,(Math.random()-.5)*.3,smoke?.9:1.6+Math.random(),(Math.random()-.5)*.3,smoke?[.5,.5,.5]:[1,.55+Math.random()*.3,.15],smoke?2.2:1.1); }
+  for(const h of hearths){ if(Math.random()<dt*5) ambSpawn(5,h[0]+.3+Math.random()*.4,h[1]+.5,h[2]+.3+Math.random()*.4,(Math.random()-.5)*.3,1.6+Math.random(),(Math.random()-.5)*.3,[1,.55+Math.random()*.3,.15],1.1);
+    if(Math.random()<dt*3.2) smokeSpawn(h[0]+.4+Math.random()*.2,h[1]+.95,h[2]+.4+Math.random()*.2); }
   const el=$('rest');
   const txt=restT>0&&restT<4?'Descansando… '+Math.ceil(4-restT):rested>0?'☾ Descansado '+Math.floor(rested/60)+':'+String(Math.floor(rested%60)).padStart(2,'0')+' · comodidad '+comfort:'';
   if(el.textContent!==txt){ el.textContent=txt; el.style.display=txt?'block':'none'; }
 }
 /* ---------- PARTÍCULAS DE AMBIENTE: hojas que caen, luciérnagas de noche, polvo en cuevas y salpicaduras ---------- */
-const AMB_N=240, ambPos=new Float32Array(AMB_N*3).fill(-999), ambCol=new Float32Array(AMB_N*3), amb=[];
+const AMB_N=340, ambPos=new Float32Array(AMB_N*3).fill(-999), ambCol=new Float32Array(AMB_N*3), amb=[];
 for(let i=0;i<AMB_N;i++) amb.push({life:0,t:0,vx:0,vy:0,vz:0,ph:0,c:[1,1,1]});
 const ambGeo=new THREE.BufferGeometry(); ambGeo.setAttribute('position',new THREE.BufferAttribute(ambPos,3)); ambGeo.setAttribute('color',new THREE.BufferAttribute(ambCol,3));
 const ambPts=new THREE.Points(ambGeo,new THREE.PointsMaterial({size:.17,vertexColors:true,transparent:true,opacity:.95,depthWrite:false})); ambPts.frustumCulled=false; scene.add(ambPts);
@@ -4019,13 +4068,38 @@ const FF_N=40, ffPos=new Float32Array(FF_N*3).fill(-999), ffCol=new Float32Array
 for(let i=0;i<FF_N;i++) ff.push({life:0,vx:0,vy:0,vz:0,ph:0});
 const ffGeo=new THREE.BufferGeometry(); ffGeo.setAttribute('position',new THREE.BufferAttribute(ffPos,3)); ffGeo.setAttribute('color',new THREE.BufferAttribute(ffCol,3));
 const ffPts=new THREE.Points(ffGeo,new THREE.PointsMaterial({size:.3,vertexColors:true,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false})); ffPts.frustumCulled=false; scene.add(ffPts);
-const ambCount=[0,0,0,0,0,0];      // 1 hoja · 2 luciérnaga · 3 polvo · 4 salpicadura
+const ambCount=[0,0,0,0,0,0,0,0];      // 1 hoja · 2 luciérnaga · 3 polvo · 4 salpicadura
 let ambNext=0, ambUnderT=0, ambUnder=false, ambWasW=false, ambVy=0;
 function ambSpawn(t,x,y,z,vx,vy,vz,c,life){
   for(let k=0;k<AMB_N;k++){ const i=(ambNext+k)%AMB_N, a=amb[i]; if(a.life>0) continue;
     ambNext=(i+1)%AMB_N; a.t=t; a.life=life; a.vx=vx; a.vy=vy; a.vz=vz; a.ph=Math.random()*6.28; a.c=c; ambCount[t]++;
     ambPos[i*3]=x; ambPos[i*3+1]=y; ambPos[i*3+2]=z; return; }
 }
+// humo: bolas grises grandes y translúcidas que suben despacio y se las lleva el viento
+const SMK_N=48, smkPos=new Float32Array(SMK_N*3).fill(-999), smkCol=new Float32Array(SMK_N*3), smk=[];
+for(let i=0;i<SMK_N;i++) smk.push({life:0,max:1,vx:0,vy:0,vz:0});
+const smkGeo=new THREE.BufferGeometry(); smkGeo.setAttribute('position',new THREE.BufferAttribute(smkPos,3)); smkGeo.setAttribute('color',new THREE.BufferAttribute(smkCol,3));
+const smkPts=new THREE.Points(smkGeo,new THREE.PointsMaterial({size:.7,vertexColors:true,transparent:true,opacity:.42,depthWrite:false,map:(()=>{ const c=document.createElement('canvas'); c.width=c.height=32; const x=c.getContext('2d'), g=x.createRadialGradient(16,16,1,16,16,15); g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(.5,'rgba(255,255,255,.55)'); g.addColorStop(1,'rgba(255,255,255,0)'); x.fillStyle=g; x.fillRect(0,0,32,32); return new THREE.CanvasTexture(c); })()})); smkPts.frustumCulled=false; scene.add(smkPts);
+let smkNext=0;
+function smokeSpawn(x,y,z){ const i=smkNext, a=smk[i]; smkNext=(smkNext+1)%SMK_N;
+  a.life=a.max=2.8+Math.random()*1.4; a.vx=(Math.random()-.5)*.2; a.vy=.7+Math.random()*.35; a.vz=(Math.random()-.5)*.2; smkPos[i*3]=x; smkPos[i*3+1]=y; smkPos[i*3+2]=z; }
+function updateSmoke(dt){
+  const k=.35+.65*dayLight, wnd=.25+wx.w*.9;
+  for(let i=0;i<SMK_N;i++){ const a=smk[i], j=i*3; if(a.life<=0) continue; a.life-=dt;
+    if(a.life<=0){ smkPos[j+1]=-999; continue; }
+    smkPos[j]+=(a.vx+wnd*.6)*dt; smkPos[j+1]+=a.vy*dt; smkPos[j+2]+=(a.vz+wnd*.25)*dt; a.vy*=Math.pow(.8,dt);
+    const f=(.55+.25*(a.life/a.max))*k*Math.min(1,a.life*1.2,(a.max-a.life)*3); smkCol[j]=smkCol[j+1]=smkCol[j+2]=f; }
+  smkGeo.attributes.position.needsUpdate=true; smkGeo.attributes.color.needsUpdate=true;
+}
+// hojas que caen: color según el tipo de hoja
+function leafCol(fl){ const g=.75+Math.random()*.4;
+  return fl===AUTUMN_LEAVES?[.85*g,.42*g,.14*g]:fl===BIRCH_LEAVES?[.5*g,.7*g,.28*g]:fl===PINE_LEAVES?[.2*g,.42*g,.3*g]:[.36*g,.62*g,.26*g]; }
+function leafFall(x,y,z,fl,n){ for(let k=0;k<n;k++) ambSpawn(1,x+Math.random(),y+Math.random()*.8,z+Math.random(),0,-.45-Math.random()*.4,0,leafCol(fl),5+Math.random()*4); }
+// polvo: al caer de un salto, al correr y al aterrizar los bichos
+function groundCol(x,y,z){ const b=world.getBlock(Math.floor(x),Math.floor(y-.05),Math.floor(z)), c=BCOL[b]||[.6,.5,.4]; return [c[0]*.55+.36,c[1]*.55+.33,c[2]*.55+.28]; }
+function dustAt(x,y,z,n,r){ if(Math.abs(x-player.x)>26||Math.abs(z-player.z)>26) return; const c=groundCol(x,y,z);
+  for(let k=0;k<n;k++){ const an=k/n*6.28+Math.random()*.5, sp=1+Math.random()*1.4;
+    ambSpawn(6,x+Math.cos(an)*r*.4,y+.08,z+Math.sin(an)*r*.4,Math.cos(an)*sp,.25+Math.random()*.5,Math.sin(an)*sp,c,.5+Math.random()*.35); } }
 function splashAt(x,y,z){ for(let k=0;k<26;k++){ const an=Math.random()*6.28, sp=1+Math.random()*2.2; ambSpawn(4,x+Math.cos(an)*.3,y,z+Math.sin(an)*.3,Math.cos(an)*sp,3+Math.random()*3.5,Math.sin(an)*sp,[.85,.93,1],1.1); } }
 function updateAmbient(dt){
   if(!player) return;
@@ -4059,7 +4133,16 @@ function updateAmbient(dt){
   }
   // salpicadura al caer al agua
   const inW=!!WATERISH[world.getBlock(Math.floor(px),Math.floor(py+.15),Math.floor(pz))];
-  if(inW&&!ambWasW&&ambVy<-3.5){ splashAt(px,Math.floor(py+.15)+.95,pz); sfx('splash'); }
+  const hs=Math.hypot(player.vx,player.vz), wy=Math.floor(py+.15)+.95;
+  if(inW&&!ambWasW&&ambVy<-3.5){ splashAt(px,wy,pz); sfx('splash'); }
+  else if(inW&&!ambWasW&&(ambVy<-.6||hs>1.2)){ for(let q=0;q<9;q++){ const an=Math.random()*6.28, sp=.6+Math.random()*1.2; ambSpawn(4,px+Math.cos(an)*.3,wy,pz+Math.sin(an)*.3,Math.cos(an)*sp,1.6+Math.random()*1.6,Math.sin(an)*sp,[.85,.93,1],.8); } }
+  if(inW&&hs>1.4&&!WATERISH[world.getBlock(Math.floor(px),Math.floor(py+1.5),Math.floor(pz))]&&Math.random()<dt*14){
+    const an=Math.random()*6.28; ambSpawn(4,px+Math.cos(an)*.35,wy,pz+Math.sin(an)*.35,Math.cos(an)*.6+player.vx*.15,1.2+Math.random()*1.2,Math.sin(an)*.6+player.vz*.15,[.85,.93,1],.6); }
+  if(player.onGround&&!inW&&hs>5.2&&Math.random()<dt*7) dustAt(px-player.vx*.06,py,pz-player.vz*.06,1,.3);
+  hearthScanT-=dt; if(hearthScanT<=0){ hearthScanT=1.5; const bx=Math.floor(px), by=Math.floor(py), bz=Math.floor(pz), L=[];
+    for(let dy=-3;dy<=5;dy++)for(let dz=-12;dz<=12;dz++)for(let dx=-12;dx<=12;dx++) if(world.getBlock(bx+dx,by+dy,bz+dz)===HEARTH) L.push([bx+dx,by+dy,bz+dz,dx*dx+dz*dz]);
+    hearths=L.sort((a,b)=>a[3]-b[3]).slice(0,4); }
+  updateSmoke(dt);
   ambWasW=inW; ambVy=player.vy;
   const k=.3+.7*dayLight;
   for(let i=0;i<AMB_N;i++){
@@ -4070,10 +4153,11 @@ function updateAmbient(dt){
     if(a.t===1){ ambPos[j]+=Math.sin(a.ph*2.2)*dt*.6+wx.w*dt*.8; ambPos[j+2]+=Math.cos(a.ph*1.7)*dt*.4; ambPos[j+1]+=a.vy*dt;
       if(SOLID[world.getBlock(Math.floor(ambPos[j]),Math.floor(ambPos[j+1]),Math.floor(ambPos[j+2]))]){ a.vy=0; if(a.life>1.2) a.life=1.2; } }
     else if(a.t===3){ ambPos[j]+=a.vx*dt; ambPos[j+1]+=a.vy*dt; ambPos[j+2]+=a.vz*dt; }
+    else if(a.t===6){ const fr=Math.pow(.02,dt); a.vx*=fr; a.vz*=fr; a.vy=a.vy*fr+.15*dt; ambPos[j]+=a.vx*dt; ambPos[j+1]+=a.vy*dt; ambPos[j+2]+=a.vz*dt; }
     else if(a.t===5){ ambPos[j]+=a.vx*dt; ambPos[j+1]+=a.vy*dt; ambPos[j+2]+=a.vz*dt; a.vx*=.98; a.vz*=.98; }
     else { a.vy-=14*dt; ambPos[j]+=a.vx*dt; ambPos[j+1]+=a.vy*dt; ambPos[j+2]+=a.vz*dt; }
     // color: las luciérnagas parpadean y brillan de noche; lo demás se oscurece con la noche
-    let f=a.t===3?.5:a.t===5?1:k;
+    let f=a.t===3?.5:a.t===5?1:a.t===6?k*.95:k;
     const fade=Math.min(1,a.life*1.5); f*=fade;
     ambCol[j]=a.c[0]*f; ambCol[j+1]=a.c[1]*f; ambCol[j+2]=a.c[2]*f;
   }
@@ -4159,7 +4243,8 @@ function landMove(a,vx,vz,dt,speed){
   const nz=a.z+vz*dt; if(!boxHits(a.x,a.y,nz,sp.r,sp.h)) a.z=nz; else blocked=true;
   const ny=a.y+a.vy*dt;
   if(!boxHits(a.x,ny,a.z,sp.r,sp.h)){ a.y=ny; a.ground=false; }
-  else{ if(a.vy<0){ a.ground=true; const tp=aabbTop(a.x-sp.r,ny,a.z-sp.r,a.x+sp.r,ny+sp.h,a.z+sp.r); if(tp!==null&&tp<=a.y+.001) a.y=tp; } a.vy=0; }
+  else{ if(a.vy<0){ if(!a.ground&&a.vy<-6.5) dustAt(a.x,a.y,a.z,7,sp.r*2+.6); a.ground=true; const tp=aabbTop(a.x-sp.r,ny,a.z-sp.r,a.x+sp.r,ny+sp.h,a.z+sp.r); if(tp!==null&&tp<=a.y+.001) a.y=tp; } a.vy=0; }
+  if(a.ground&&vx*vx+vz*vz>20&&Math.random()<dt*5) dustAt(a.x-vx*.05,a.y,a.z-vz*.05,1,sp.r);
   if(blocked&&a.ground&&speed>0){
     if(!boxHits(a.x+Math.sin(a.yaw)*.6,a.y+1.05,a.z+Math.cos(a.yaw)*.6,sp.r,sp.h)){ a.vy=7.6; a.ground=false; }
     else if(!a.hostile&&!a.noTurn) a.yaw+=Math.PI/2*(Math.random()<.5?1:-1);
@@ -5611,7 +5696,7 @@ function updateSurvival(dt){
   // daño de caída: se mide desde el punto más alto del salto o la caída
   if(player.wasWater) peakY=player.y;
   if(!player.onGround){ if(player.y>peakY) peakY=player.y; }
-  else{ const fall=peakY-player.y, safe=riding?5.6:3.6; peakY=player.y; if(fall>safe&&DIFF[diff].fall){ hurtPlayer(Math.floor(fall-safe+.6),0,0); hurtCause('fall','Daño por caída.',8); } }
+  else{ const fall=peakY-player.y, safe=riding?5.6:3.6; peakY=player.y; if(fall>1.6&&!player.wasWater) dustAt(player.x,player.y,player.z,fall>3.6?12:7,.9); if(fall>safe&&DIFF[diff].fall){ hurtPlayer(Math.floor(fall-safe+.6),0,0); hurtCause('fall','Daño por caída.',8); } }
   // unos 30 segundos antes de que caiga la noche (la noche empieza hacia dayT 0,499)
   if(dayT>.486&&dayT<.497&&!duskWarned&&arenaIdx<0){ duskWarned=true; toast(diff>0?'Está anocheciendo: pronto saldrán las sombras errantes. Busca refugio o enciende antorchas.':'Está anocheciendo.'); sfx('tick'); }
   if(dayT<.4) duskWarned=false;
@@ -6330,7 +6415,7 @@ function loop(now){
 
   // bloque apuntado
   const hit=raycast(world,ex,ey,ez,dir.x,dir.y,dir.z,REACH);
-  if(hit){ hl.visible=true; const sb=STATION_BB[BLOCKS[hit.id]&&BLOCKS[hit.id].shape];
+  if(hit){ hl.visible=true; const sb=hit.id===HEARTH?HEARTH_BB:STATION_BB[BLOCKS[hit.id]&&BLOCKS[hit.id].shape];
     if(sb){ hl.position.set(hit.x+(sb[0]+sb[3])/2,hit.y+(sb[1]+sb[4])/2,hit.z+(sb[2]+sb[5])/2); hl.scale.set(sb[3]-sb[0],sb[4]-sb[1],sb[5]-sb[2]); }
     else { hl.position.set(hit.x+.5,hit.y+.5,hit.z+.5); hl.scale.set(1,1,1); } } else hl.visible=false;
 
