@@ -492,6 +492,7 @@ body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width
     <tr><th>Cámara en primera o tercera persona</th><td><kbd>V</kbd> (también en Ajustes)</td></tr>
     <tr><th>Mirar</th><td>Ratón. Haz clic en el juego para capturarlo.</td></tr>
     <tr><th>Picar y atacar</th><td>Mantén el clic izquierdo</td></tr>
+    <tr><th>Golpe cargado (espadas, dagas, lanzas y hachas de guerra)</th><td>Mantén el clic izquierdo y suelta. Cargado del todo golpea a todos los que tengas delante</td></tr>
     <tr><th>Colocar, usar, comer, equipar</th><td>Clic derecho</td></tr>
     <tr><th>Elegir objeto</th><td><kbd>1</kbd> a <kbd>9</kbd> o rueda del ratón</td></tr>
     <tr><th>Mochila</th><td><kbd>E</kbd></td></tr>
@@ -2122,8 +2123,11 @@ function updatePlayerModel(dt,show,camD){
   plM.up.rotation.x=sneak?.32:0;
   plM.arms[0].rotation.set(-lw*.8,0,0);
   let ra=lw*.8, rz=0;
-  if(plAct.m){ const u=1-plAct.hp; ra=-(.7+u*2.3); rz=-.28-u*.2; } else if(plAct.sw>0){ ra=-.5-plAct.sw*1.5; rz=-.25; } else if(id) ra=Math.min(ra,0)-.25;
+  if(plAct.chg>0){ ra=-(1.2+plAct.chg*1.6); rz=-.35; }
+  else if(plAct.m){ const u=1-plAct.hp; ra=-(.7+u*2.3); rz=-.28-u*.2; } else if(plAct.sw>0){ ra=-.5-plAct.sw*1.5; rz=-.25; } else if(id) ra=Math.min(ra,0)-.25;
   plM.arms[1].rotation.set(ra,0,rz);
+  if(!plM.aura){ plM.aura=auraMk(); plM.aura.position.set(0,.35,.1); plM.hold.add(plM.aura); }
+  plM.aura.visible=plAct.chg>0; if(plM.aura.visible){ plM.aura.material.color.copy(wpnCol(BLOCKS[id])); plM.aura.material.opacity=.4+plAct.chg*.6; plM.aura.scale.setScalar(.3+plAct.chg*.9); }
   plM.head.rotation.x=Math.max(-.7,Math.min(.6,-player.pitch*.8))-(sneak?.25:0);
 }
 const _hv=new THREE.Vector3();
@@ -5541,6 +5545,46 @@ function findTarget(ex,ey,ez,maxD){
   return best;
 }
 // golpe cuerpo a cuerpo: la lanza atraviesa al siguiente de la fila; el hacha de guerra barre en abanico
+/* ---------- ATAQUE CARGADO: con un arma (espada, dagas, lanza, hacha de guerra) mantén pulsado para cargar ---------- */
+const WPN_T={sword:1,dagger:1,spear:1,waraxe:1};
+let atkMul=1, atkKb=1, chg=0, chgHold=0, chgWas=false, chgFull=false, slashT=0;
+const auraTex=(()=>{ const c=document.createElement('canvas'); c.width=c.height=64; const x=c.getContext('2d'), g=x.createRadialGradient(32,32,1,32,32,31);
+  g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(.25,'rgba(255,255,255,.7)'); g.addColorStop(.6,'rgba(255,255,255,.18)'); g.addColorStop(1,'rgba(255,255,255,0)'); x.fillStyle=g; x.fillRect(0,0,64,64); return new THREE.CanvasTexture(c); })();
+const auraMk=()=>{ const m=new THREE.SpriteMaterial({map:auraTex,color:0xffffff,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}); const sp=new THREE.Sprite(m); sp.visible=false; return sp; };
+const handAuras=[[-.03,.1,-.02],[-.08,.25,-.08],[-.12,.39,-.13]].map(q=>{ const a=auraMk(); a.position.set(q[0],q[1],q[2]); hand.add(a); return a; });
+const slashSpr=auraMk(); scene.add(slashSpr);
+function wpnCol(h){ return new THREE.Color(h&&h.hc?h.hc:[0xd8c49a,0xe8eef4,0xffffff,0x9ff4ff][((h&&h.tier)||1)-1]||0xffffff); }
+function chargedStrike(held,c,ex,ey,ez,reach){
+  const full=c>=.999; atkMul=full?2.6:1.3+c*1.1; atkKb=full?2.2:1.5;
+  const t=findTarget(ex,ey,ez,reach+.6); let n=0;
+  if(t){ attackEntity(t,held); n++; }
+  if(full) for(const list of [animals,enemies]) for(const a of [...list]){
+    if(a===t||a.tame||a.ridden||a.hp<=0) continue;
+    const dx=a.x-player.x, dz=a.z-player.z, d=Math.hypot(dx,dz); if(d>reach+.9||Math.abs(a.y-player.y)>2.2) continue;
+    if((dx*dir.x+dz*dir.z)/(d||1)/(Math.hypot(dir.x,dir.z)||1)<.35) continue;
+    attackEntity(a,held,true); n++; }
+  atkMul=1; atkKb=1;
+  // estela del golpe: arco de chispas del color del arma y un destello
+  const col=wpnCol(held), fl=Math.hypot(dir.x,dir.z)||1, fx=dir.x/fl, fz=dir.z/fl, rx=fz, rz=-fx;
+  for(let k=0;k<(full?26:14);k++){ const a=(k/(full?25:13)-.5)*2.2, i=pNext, rr=1.3+Math.random()*.3; pNext=(pNext+1)%PN;
+    pPos[i*3]=player.x+fx*Math.cos(a)*rr+rx*Math.sin(a)*rr; pPos[i*3+1]=ey-.35+Math.sin(a)*.25; pPos[i*3+2]=player.z+fz*Math.cos(a)*rr+rz*Math.sin(a)*rr;
+    pVel[i*3]=fx*2+(Math.random()-.5); pVel[i*3+1]=2+Math.random()*2; pVel[i*3+2]=fz*2+(Math.random()-.5);
+    const j=.85+Math.random()*.3; pCol[i*3]=Math.min(1,col.r*j+.15); pCol[i*3+1]=Math.min(1,col.g*j+.15); pCol[i*3+2]=Math.min(1,col.b*j+.15); pLife[i]=.25+Math.random()*.2; }
+  pGeo.attributes.color.needsUpdate=true;
+  const tp=t?[t.x,t.y+t.sp.h*.5,t.z]:[player.x+fx*1.7,ey-.25,player.z+fz*1.7];
+  slashSpr.position.set(tp[0],tp[1],tp[2]); slashSpr.material.color.copy(col); slashSpr.visible=true; slashT=full?.32:.2; slashSpr.userData.s=full?3.2:2;
+  sfx('swing'); if(n) sfx('hit'); if(full) sfx('crash'); rumble(full?.7:.4,full?170:90);
+  placeSwing=.26; atkCd=(held&&held.cd)||.42;
+}
+function updateCharge(dt,tgt,hit,held,ex,ey,ez,reach){
+  const wpn=held&&WPN_T[held.tool], block=hit&&!tgt;
+  if(wpn&&!settings.tipChg&&started){ settings.tipChg=true; try{ localStorage.setItem(SET_KEY,JSON.stringify(settings)); }catch(_){} toast('Consejo: con un arma, pulsa para golpear o mantén pulsado para cargar un golpe más fuerte.'); }
+  if(invOpen||dead||mapOpen||!wpn){ chg=0; chgHold=0; chgWas=inp.mining; chgFull=false; return false; }
+  if(inp.mining&&!block){ chgHold+=dt; chg=Math.max(0,Math.min(1,(chgHold-.25)/.85)); if(chg>=1&&!chgFull){ chgFull=true; sfx('tick'); rumble(.25,40); } }
+  else if(inp.mining){ chgHold=0; chg=0; chgFull=false; }
+  if(!inp.mining&&chgWas){ if(chg>=.3) chargedStrike(held,chg,ex,ey,ez,reach); chgHold=0; chg=0; chgFull=false; }
+  chgWas=inp.mining; return true;
+}
 function meleeHit(tgt,held,ex,ey,ez,reach){
   attackEntity(tgt,held);
   if(!held) return;
@@ -5568,7 +5612,7 @@ function attackEntity(a,held,noWear){
   if(a.hostile&&held){ if(held.poison) a.poisonT=4; if(held.slow) a.slowT=3; }
   if(wk>1&&!a.wkTip){ a.wkTip=true; toast('¡Punto débil! Le haces más daño.'); }
   if(melee&&!noWear&&inv[selected]&&BLOCKS[inv[selected].id]===held) wearHeld(['sword','spear','waraxe','dagger'].includes(held.tool)?1:2);
-  dmgKind=wk>1?'weak':null; damageEntity(a,dmg*wk,dir.x,dir.z,false,melee&&held.kb||1);
+  dmgKind=wk>1?'weak':null; damageEntity(a,dmg*wk*atkMul,dir.x,dir.z,false,(melee&&held.kb||1)*atkKb);
 }
 // daño a un animal o enemigo, venga de un golpe o de un disparo. Devuelve true si muere
 function damageEntity(a,dmg,dx,dz,ranged,kbm){
@@ -6559,7 +6603,9 @@ function loop(now){
   atkCd-=dt;
   const reach=(held&&held.reach)||3.4;
   const tgt=(inp.mining||inp.attack)?findTarget(ex,ey,ez,Math.min(reach,hit?hit.t:9)):null;
-  if(tgt&&atkCd<=0){ atkCd=(held&&held.cd)||.42; placeSwing=.2; meleeHit(tgt,held,ex,ey,ez,reach); }
+  const pressEdge=(inp.mining&&!chgWas)||inp.attack;
+  const isW=updateCharge(dt,tgt,hit,held,ex,ey,ez,reach);
+  if(tgt&&atkCd<=0&&(!isW||pressEdge)){ atkCd=(held&&held.cd)||.42; placeSwing=.2; meleeHit(tgt,held,ex,ey,ez,reach); }
   inp.attack=false;
   if(inp.mining&&hit&&!tgt){
     const def=BLOCKS[hit.id];
@@ -6574,7 +6620,7 @@ function loop(now){
   }else{ mineP=0; mineKey=''; }
   crack.visible=mineP>0&&!!hit;
   if(crack.visible){ crack.position.copy(hl.position); crack.scale.copy(hl.scale); crack.material.opacity=mineP*.55; }
-  $('cross').style.setProperty('--p',(mineP*100).toFixed(0));
+  $('cross').style.setProperty('--p',((chg>0?chg:mineP)*100).toFixed(0));
 
   // si apuntas a una mesa u horno, el botón de colocar pasa a ser "Usar"
   const useT=!!hit&&(hit.id===GRAVE||hit.id===WORKBENCH||hit.id===FURNACE||hit.id===CAULDRON||hit.id===CHEST||hit.id===BED||BLOCKS[hit.id].shape==='door');
@@ -6660,12 +6706,18 @@ function loop(now){
   if(placeSwing>0){ placeSwing-=dt; sw=Math.max(sw,Math.sin(Math.max(0,placeSwing)/.2*Math.PI)); }
   plAct.m=hit0; plAct.hp=hp0; plAct.sw=sw;
   updatePlayerModel(dt,settings.cam===1&&!photoModeHidden(),tpD);
-  if(hit0){ const up=1-hp0, kk=hitKick/.12;
+  if(chg>0){ hit0=0; plAct.m=0; plAct.chg=chg; } else plAct.chg=0;
+  { const col=chg>0?wpnCol(held):null, pul=chgFull?.85+.15*Math.sin(now/60):1;
+    const on=chg>0&&settings.cam!==1; handAuras.forEach((a,k)=>{ a.visible=on; if(on){ a.material.color.copy(col); a.material.opacity=(.3+chg*.6)*pul; a.scale.setScalar((.1+chg*.22)*pul*(1-k*.12)); } }); }
+  if(slashT>0){ slashT-=dt; const k=Math.max(0,slashT)/.3; slashSpr.material.opacity=k; slashSpr.scale.setScalar(slashSpr.userData.s*(1.4-k*.6)); if(slashT<=0) slashSpr.visible=false; }
+  if(chg>0){ const c=chg, j=chgFull?Math.sin(now/35)*.006:0;
+    hand.position.set(.34-c*.05+j,-.31+c*.07,-.6); hand.rotation.set(c*.5,c*.12,c*.22); }
+  else if(hit0){ const up=1-hp0, kk=hitKick/.12;
     hand.position.set(.36+Math.cos(bob)*.012-hp0*.05,-.32+up*.06-hp0*.1-kk*.015,-.6-hp0*.1+up*.03);
     hand.rotation.set(up*.45-hp0*1.15+kk*.12,up*.12,-up*.18+hp0*.22); }
   else { hand.position.set(.36+Math.cos(bob)*.012,-.32+Math.abs(Math.sin(bob))*.014-sw*.07,-.6-sw*.06);
     hand.rotation.set(-sw*.9,0,0); }
-  const hk=.32+.68*dayLight; for(const m of handMats) m.color.copy(m.userData.base).multiply(litTint).multiplyScalar(hk);
+  const hk=(.32+.68*dayLight)*(1+chg*.55); for(const m of handMats) m.color.copy(m.userData.base).multiply(litTint).multiplyScalar(hk);
   pts.material.color.setScalar(.4+.6*dayLight);
   { const hid=inv[selected]?inv[selected].id:0, want=(hid===TORCH||hid===LAMP||hid===LANTERN)?1:0;     // la antorcha o lámpara en la mano alumbra a tu alrededor
     world.U.uPlI.value+=(want-world.U.uPlI.value)*Math.min(1,dt*6); world.U.uPl.value.set(player.x,player.y+1.3,player.z); }
