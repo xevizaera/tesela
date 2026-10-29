@@ -170,6 +170,15 @@ body.photo #hud>*:not(#photoX){display:none!important} body.photo #photoX{displa
 #bossBar.on{display:block}
 #bossSay{display:none;position:absolute;left:50%;top:calc(66px + var(--st));transform:translateX(-50%);max-width:min(520px,80vw);text-align:center;font-family:Georgia,serif;font-style:italic;font-size:15px;color:#f1e6ff;text-shadow:0 1px 3px #000,0 0 8px #000;pointer-events:none}
 #bossSay.on{display:block}
+#dunHub,#dunRes{z-index:55}
+#dunHub .panel{max-height:100%;overflow:auto}
+#dunHud{display:none}
+#dunHud.on{display:block}
+#dhZone{position:absolute;left:50%;transform:translateX(-50%);white-space:nowrap;top:calc(6px + var(--st));font-size:13px;background:rgba(10,8,16,.6);padding:4px 10px;border-radius:6px;border:1px solid rgba(176,92,255,.55);pointer-events:none}
+#dhMobs{position:absolute;left:50%;top:calc(36px + var(--st));transform:translateX(-50%);font-size:13px;background:rgba(40,10,30,.65);padding:4px 10px;border-radius:6px;border:1px solid #a04a7a;pointer-events:none;white-space:nowrap}
+#dhCoins{position:absolute;right:calc(12px + var(--sr));top:calc(62px + var(--st));font-size:14px;font-weight:700;color:#e8c25a;background:rgba(10,8,16,.6);padding:4px 10px;border-radius:6px;pointer-events:none}
+body.dun #compass,body.dun #goal,body.dun #fdBar,body.dun #xpBar,body.dun #bMap,body.dun #bInv,body.dun #bSneak,body.dun #cross,body.dun #dot,body.dun #dayLbl,body.dun #pets,body.dun #tame{display:none!important}
+body.dun #pSave,body.dun #pPhoto,body.dun #pBook{display:none!important}
 body:not(.bossfight) #bossSay{top:calc(40px + var(--st))}
 body.saying #hint{opacity:0!important}
 #bossBar div{height:8px;margin-top:3px;background:rgba(0,0,0,.55);border:1px solid var(--b1,#8d5bd6);border-radius:4px;overflow:hidden}
@@ -339,6 +348,9 @@ body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width
 <body>
 <canvas id="c"></canvas>
 
+<div id="dunHub" class="ov"><div class="panel wide"><div class="skTop"><h2>Tesela Dungeons</h2><span id="dhT" style="font-weight:700;color:#e8c25a"></span><button id="dhX" class="mini" aria-label="Cerrar">✕</button></div>
+  <p style="margin:6px 0 0;font-size:13px;opacity:.85">Modo aparte de tus mundos. Consigue teselas en las mazmorras y gástalas aquí en armas, armaduras y pociones.</p><div id="dhBody"></div></div></div>
+<div id="dunRes" class="ov"><div class="panel" style="text-align:center;max-width:420px"><h2 id="drTitle"></h2><p id="drText" style="line-height:1.5"></p><button id="drBtn" class="mbtn pri">Volver al campamento</button></div></div>
 <div id="story" role="dialog" aria-label="Prólogo"><button id="stSkip" type="button">Saltar</button><img id="stImg" alt=""><div id="stTxt"></div><div id="stHint">TOCA PARA CONTINUAR</div></div>
 <div id="hud"><div id="hitDir"></div><button id="photoX" aria-label="Salir del modo foto">✕</button>
   <div id="uw"></div>
@@ -352,6 +364,7 @@ body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width
   <div id="tame" role="status"></div>
   <div id="bossBar" role="status"><b>Guardián sombrío</b><div><i id="bossFill"></i></div></div>
   <div id="bossSay" role="status"></div>
+  <div id="dunHud"><div id="dhZone"></div><div id="dhMobs"></div><div id="dhCoins"></div></div>
   <div id="bname"></div>
   <div id="xpBar" aria-label="Experiencia"><span id="xpLvl">Nivel 1</span><i id="xpFill"></i></div>
   <div id="hotbar"></div>
@@ -403,6 +416,7 @@ body.menubg #card h1,body.menubg #card > p:first-of-type{position:absolute;width
     <p>Tala, excava, fabrica y sobrevive a la noche en un mundo de bloques sin fin.</p>
     <button id="cont" class="mbtn pri" style="display:none">Continuar partida</button>
     <button id="slotsBtn" class="mbtn">Partidas</button>
+    <button id="dunBtn" class="mbtn">Tesela Dungeons</button>
     <button id="setBtn" class="mbtn">Ajustes</button>
     <button id="ctlBtn" class="mbtn">Controles</button>
     <button id="installBtn" class="mbtn pri" style="display:none">Instalar como app</button>
@@ -1070,6 +1084,7 @@ class WorldGenerator{
   constructor(seed){ this.seed=seed|0; this.origin=null; }
   zoneAt(x,z){ if(!this.origin||inArenaRegion(x,z)) return 0; const d=Math.hypot(x-this.origin[0],z-this.origin[1]); return d<ZONE_D[0]?0:d<ZONE_D[1]?1:d<ZONE_D[2]?2:3; }
   heightAt(x,z){
+    if(this.dun) return DUN_FY;
     const s=this.seed;
     const c=fbm(x*.004,z*.004,s,3);              // continentes / relieve grande
     const d=fbm(x*.02,z*.02,s+999,4);            // detalle
@@ -1091,7 +1106,7 @@ class WorldGenerator{
   }
   // cuevas: túneles donde se cruzan dos superficies de ruido 3D
   isCave(x,y,z){
-    if(y<2) return false;
+    if(y<2||this.dun) return false;
     const s=this.seed, a=vnoise3(x*.045,y*.075,z*.045,s+8000)-.5;
     if(a>.06||a<-.06) return false;
     const b=vnoise3(x*.045,y*.075,z*.045,s+9000)-.5;
@@ -1120,7 +1135,13 @@ class WorldGenerator{
     }
     return data;
   }
+  genDun(cx,cz){
+    const data=new Uint8Array(CS*CS*WH), C=this.dun.cols;
+    for(let z=0;z<CS;z++)for(let x=0;x<CS;x++){ const L=C.get((cx*CS+x)+','+(cz*CS+z)); if(!L) continue; for(const q of L) if(q[0]>=0&&q[0]<WH) data[x+z*CS+q[0]*256]=q[1]; }
+    return data;
+  }
   generate(cx,cz){
+    if(this.dun) return this.genDun(cx,cz);
     if(inArenaRegion(cx*CS,cz*CS)) return this.genArena(cx,cz);
     const data=new Uint8Array(CS*CS*WH), s=this.seed;
     for(let z=0;z<CS;z++)for(let x=0;x<CS;x++){
@@ -1197,6 +1218,7 @@ class WorldGenerator{
   }
   // estructuras: como mucho una por chunk y siempre dentro de él, así no se cortan entre chunks
   structAt(cx,cz){
+    if(this.dun) return null;
     if(inArenaRegion(cx*CS,cz*CS)) return null;
     const fp=this.finalPortal(); if(fp&&fp.cx===cx&&fp.cz===cz) return fp;
     const s=this.seed, r=hash2(cx,cz,s+31337);
@@ -1859,6 +1881,7 @@ function joyMove(e){
 canvas.addEventListener('pointerdown',e=>{
   if(!started) return;
   if(e.pointerType==='mouse'){
+    if(DUN){ if(e.button===0) inp.mining=true; if(e.button===2) inp.place=true; return; }
     if(lockOK&&document.pointerLockElement!==canvas&&canvas.requestPointerLock){
       try{ const r=canvas.requestPointerLock(); if(r&&r.catch) r.catch(()=>{ lockOK=false; }); }catch(_){ lockOK=false; }
       return;   // este clic solo captura el ratón
@@ -1888,6 +1911,7 @@ function pointerEnd(e){
   if(e.pointerId===jumpPid){ jumpPid=null; jumpHeld=false; refreshKeys(); $('bJump').classList.remove('down'); }
 }
 addEventListener('pointerup',pointerEnd); addEventListener('pointercancel',pointerEnd);
+addEventListener('pointermove',e=>{ if(e.pointerType==='mouse') dunMouse={x:e.clientX/innerWidth*2-1,y:-(e.clientY/innerHeight)*2+1}; });
 let jumpPid=null;
 // El botón de picar también sirve para mirar: se puede apuntar mientras se mantiene pulsado
 // Solo empieza a picar si el dedo se queda quieto un instante: si arrastras, cuenta como mirar y no pica
@@ -2120,7 +2144,7 @@ function updatePlayerModel(dt,show,camD){
   const lw=Math.sin(plWalk)*amp;
   if(riding){ plM.legs[0].rotation.set(-1.35,0,-.25); plM.legs[1].rotation.set(-1.35,0,.25); }
   else { plM.legs[0].rotation.set(lw,0,0); plM.legs[1].rotation.set(-lw,0,0); }
-  plM.up.rotation.x=sneak?.32:0;
+  plM.up.rotation.x=sneak?.32:dunRollT>0?.9:0;
   plM.arms[0].rotation.set(-lw*.8,0,0);
   let ra=lw*.8, rz=0;
   if(plAct.chg>0){ ra=-(1.2+plAct.chg*1.6); rz=-.35; }
@@ -2536,7 +2560,7 @@ function recCat(id){ const d=BLOCKS[id];
 function invChanged(){ try{ for(const q of inv) if(q) bookItems.add(q.id); for(const q of armor) if(q) bookItems.add(q.id); }catch(_){} renderHotbar(); if(invOpen) renderInv(); if(statsReady) renderStats(); }
 var statsReady=false;
 let invStation=0;
-function openInv(station){ if(!started) return; invStation=station||0; invOpen=true; invPick=null; scanStations(); if(invStation&&invStation!==CAULDRON) nearSt[invStation]=true; $('inv').classList.add('on'); renderInv(); sfx('tick'); try{ if(document.exitPointerLock) document.exitPointerLock(); }catch(_){} }
+function openInv(station){ if(!started||DUN) return; invStation=station||0; invOpen=true; invPick=null; scanStations(); if(invStation&&invStation!==CAULDRON) nearSt[invStation]=true; $('inv').classList.add('on'); renderInv(); sfx('tick'); try{ if(document.exitPointerLock) document.exitPointerLock(); }catch(_){} }
 function closeInv(){ invOpen=false; invPick=null; invStation=0; hideTip(); drag=null; $('ghost').style.display='none'; $('inv').classList.remove('on'); relock(); }
 function toggleInv(){ if(invOpen) closeInv(); else openInv(); }
 $('bInv').addEventListener('pointerdown',e=>{ e.preventDefault(); toggleInv(); });
@@ -2622,7 +2646,7 @@ function renderBook(){
       row('',em,'<b>'+BOSSNAME[b.k]+'</b>'+(w?'<span class="bkdone">✓ Derrotado</span>':'')+'<span><b>Dónde:</b> '+b.where+'</span><span><b>Ataques:</b> '+b.how+'</span><span><b>Punto débil:</b> '+(w?b.weak:'Lo descubrirás al vencerle.')+'</span><span><b>Premio:</b> '+(w?b.drop:'???')+'</span>'); }
   }
 }
-function openBook(){ if(!started) return; bookNew=false; $('bkBtn').classList.remove('pri'); renderBook(); $('book').classList.add('on'); $('book').querySelector('.panel').scrollTop=0; sfx('tick'); try{ if(document.exitPointerLock) document.exitPointerLock(); }catch(_){} }
+function openBook(){ if(DUN) return; if(!started) return; bookNew=false; $('bkBtn').classList.remove('pri'); renderBook(); $('book').classList.add('on'); $('book').querySelector('.panel').scrollTop=0; sfx('tick'); try{ if(document.exitPointerLock) document.exitPointerLock(); }catch(_){} }
 function closeBook(){ $('book').classList.remove('on'); relock(); }
 $('bkBtn').addEventListener('click',openBook); $('pBook').addEventListener('click',openBook);
 $('bkX').addEventListener('click',closeBook); $('bkDone').addEventListener('click',closeBook);
@@ -5200,7 +5224,7 @@ function bossReward(a){
 }
 function updateEnemies(dt){
   enemyT-=dt;
-  if(enemyT<=0){ const D=DIFF[diff]; enemyT=4/(D.spawn||1); const emax=ENEMY_MAX+D.emax+world.gen.zoneAt(player.x,player.z); if(D.spawn>0&&enemies.length<emax&&!dead&&arenaIdx<0){ if(sunLight<.4) spawnEnemy(); if(enemies.length<emax&&Math.random()<.6) spawnCaveEnemy(); } }
+  if(enemyT<=0){ const D=DIFF[diff]; enemyT=4/(D.spawn||1); const emax=ENEMY_MAX+D.emax+world.gen.zoneAt(player.x,player.z); if(D.spawn>0&&enemies.length<emax&&!dead&&arenaIdx<0&&!DUN){ if(sunLight<.4) spawnEnemy(); if(enemies.length<emax&&Math.random()<.6) spawnCaveEnemy(); } }
   updateShots(dt); updatePShots(dt); checkGuards(dt); updateRootFx(dt);
   for(let i=enemies.length-1;i>=0;i--){
     const a=enemies[i], dx=player.x-a.x, dz=player.z-a.z, dy=player.y-a.y, d2=dx*dx+dz*dz;
@@ -5487,7 +5511,7 @@ function renderSkills(){
     row.appendChild(ic); row.appendChild(tx); row.appendChild(b); L.appendChild(row);
   }
 }
-function openSkills(){ if(!started) return; closeInv(); renderSkills(); $('skills').classList.add('on'); try{ if(document.exitPointerLock) document.exitPointerLock(); }catch(_){} }
+function openSkills(){ if(DUN) return; if(!started) return; closeInv(); renderSkills(); $('skills').classList.add('on'); try{ if(document.exitPointerLock) document.exitPointerLock(); }catch(_){} }
 function closeSkills(){ $('skills').classList.remove('on'); relock(); }
 const MAX_LVL=50;
 const xpNeed=l=>20+(l-1)*15;                         // experiencia para pasar del nivel l al siguiente
@@ -5498,6 +5522,7 @@ const dmgMul=()=>1+.03*(plvl-1);                     // pega un 3 % más fuerte 
 const XP_BLOCK={183:1,187:1,108:.5,1:.5,2:.5,3:1,4:.5,5:.5,6:.5,11:1,13:3,14:5,15:5,16:8,17:12,31:1,39:1};
 function craftXp(id){ const d=BLOCKS[id]; if(d.tool||d.armor||d.pet) return 3+(d.tier||({le:1,cu:2,fe:2,au:3,cr:3,sh:4})[d.metal]||2)*2; if(id===CAKE||id===GOLD_APPLE) return 4; return 1; }
 function gainXp(n){
+  if(DUN) return;
   if(!n||plvl>=MAX_LVL) return;
   if(rested>0) n*=1.5;
   pxp+=n; let up=false;
@@ -5631,17 +5656,17 @@ function damageEntity(a,dmg,dx,dz,ranged,kbm){
   if(a.ko) a.eff=Math.max(0,(a.eff===undefined?1:a.eff)-.1);    // pegarle dormido empeora la doma
   else if(!a.hostile){ if(a.sp.aggro) a.angry=20; else { a.state='flee'; a.t=4; a.yaw=Math.atan2(a.x-player.x,a.z-player.z); } a.trust=false; }
   if(a.hp<=0){
-    removeEntity(a);
+    removeEntity(a); if(DUN) dunKill(a);
     if(a.boss) stats.bosses++; else if(a.hostile) stats.kills++; else stats.hunt++;
     if(a.boss){ if(a.skey) slain.add(a.skey);
-      if(a.kind==='boss'){ addItem(CORE,1); addItem(SHARD,10); addItem(CRYSTAL,5); addItem(GOLD_APPLE,2); gainXp(150); flags.boss=true; cryptPt=null;
+      if(DUN){} else if(a.kind==='boss'){ addItem(CORE,1); addItem(SHARD,10); addItem(CRYSTAL,5); addItem(GOLD_APPLE,2); gainXp(150); flags.boss=true; cryptPt=null;
         toast('¡Has derrotado al Guardián sombrío! Con su núcleo puedes fabricar la Espada del Guardián.'); bossSay(BOSS_SAY.boss[1]); }
       else bossReward(a);
       sfx('victory'); rumble(1,500);
       for(let k=0;k<14;k++) burst(Math.floor(a.x+(Math.random()-.5)*2),Math.floor(a.y+Math.random()*3),Math.floor(a.z+(Math.random()-.5)*2),99); saveGame(); }
     else if(a.kind==='sapling'){ addItem(LOG,2); gainXp(10); }
     else if(a.kind==='boarling'){ addItem(RAW_MEAT,2); if(Math.random()<.6) addItem(LEATHER,1); gainXp(10); }
-    else if(a.hostile){ if(Math.random()<.6) addItem(SHARD,1); gainXp((a.kind==='thrower'?12:10)*(1+.5*(a.zone||0))*(a.elite?2:1)); }
+    else if(a.hostile&&!DUN){ if(Math.random()<.6) addItem(SHARD,1); gainXp((a.kind==='thrower'?12:10)*(1+.5*(a.zone||0))*(a.elite?2:1)); }
     else{ gainXp(a.sp.active?8:3); if(a.sp.meat&&addItem(RAW_MEAT,a.sc<1?1:a.sp.meat)>0) toast('Inventario lleno'); if(a.sp!==SPECIES.bird&&a.sp!==SPECIES.dog&&a.sp!==SPECIES.chicken&&Math.random()<.7) addItem(LEATHER,1); if(a.sp===SPECIES.chicken) addItem(FEATHER,1+(Math.random()<.5?1:0)); }
     return true;
   }
@@ -5754,6 +5779,7 @@ function hurtPlayer(n,dx,dz){
   const fx=$('dmg'); fx.style.transition='none'; fx.style.opacity='.55'; setTimeout(()=>{ fx.style.transition='opacity .5s'; fx.style.opacity='0'; },60);
   if(dx||dz) showHitDir(dx,dz);
   if(dx||dz){ const l=Math.hypot(dx,dz)||1; player.vx+=dx/l*8; player.vz+=dz/l*8; player.vy=5; player.onGround=false; }
+  if(hp<=0&&DUN){ dead=true; dunFinish(false); return; }
   if(hp<=0){ dead=true; stats.deaths++; dismount(); closeInv(); closeMap(); closeShop(); lastGrave=diff>0?makeGrave(diff>=2):null;
     $('deadP').textContent=lastGrave?(diff>=2?'Todo lo que llevabas, armadura incluida, se ha quedado en una tumba donde caíste. Vuelve a por ello: está marcada en el mapa con ✝.':'Conservas la barra rápida y la armadura; el resto de la mochila se ha quedado en una tumba donde caíste (✝ en el mapa).'):'Conservas todo lo que llevabas. Vuelves a tu base o, si no tienes, al punto donde empezaste.';
     { const sk=streakDays(); $('deadS').textContent='Día '+dayNum+' · '+playTime()+' jugados · '+stats.kills+' enemigos derrotados · '+sk+' día'+(sk===1?'':'s')+' sin caer (récord: '+Math.max(stats.rec||0,sk)+').'; stats.rec=Math.max(stats.rec||0,sk); stats.life0=dayNum; }
@@ -5813,7 +5839,7 @@ function drinkHeld(){
   const s=inv[selected]; if(!s) return; const d=BLOCKS[s.id]; if(!d.potion) return;
   if(d.potion==='heal'){ if(hp>=maxHp()){ toast('Ya tienes la vida llena.'); return; } hp=Math.min(maxHp(),hp+8); }
   else{ effects[d.potion]=Math.max(effects[d.potion],d.dur); toast(FXNAME[d.potion]+' durante '+(d.dur>=60?Math.round(d.dur/60)+' min':d.dur+' s')+'.'); }
-  s.n--; if(!s.n) inv[selected]=null; addItem(FLASK,1);
+  s.n--; if(!s.n) inv[selected]=null; if(!DUN) addItem(FLASK,1);
   invChanged(); renderStats(); sfx('drink'); placeSwing=.2;
 }
 function updateEffects(dt){
@@ -5836,7 +5862,7 @@ function eatHeld(){
 function updateSurvival(dt){
   if(dead) return;
   invuln-=dt;
-  hungerAcc+=dt*(Math.hypot(player.vx,player.vz)>5?2.2:1)*DIFF[diff].hunger;
+  if(!DUN) hungerAcc+=dt*(Math.hypot(player.vx,player.vz)>5?2.2:1)*DIFF[diff].hunger;
   if(hungerAcc>=30){ hungerAcc=0; if(hunger>0){ hunger--; renderStats(); } }
   regenAcc+=dt;
   if(regenAcc>=[4,3,2.2,1.6][rk('regen')]*(rested>0?.5:1)){
@@ -5994,7 +6020,7 @@ function updateMapText(){
     $('mapSet').textContent='Marcar mi base aquí';
   }
 }
-function openMap(){ if(!started||dead||paused) return; closeInv(); mapOpen=true; $('map').classList.add('on'); drawMap(); sfx('tick'); try{ if(document.exitPointerLock) document.exitPointerLock(); }catch(_){} }
+function openMap(){ if(DUN) return; if(!started||dead||paused) return; closeInv(); mapOpen=true; $('map').classList.add('on'); drawMap(); sfx('tick'); try{ if(document.exitPointerLock) document.exitPointerLock(); }catch(_){} }
 function closeMap(){ mapOpen=false; $('map').classList.remove('on'); pinSel=-1; try{ pinPanel(''); $('pinName').blur(); }catch(_){} relock(); }
 $('bMap').addEventListener('pointerdown',e=>{ e.preventDefault(); if(mapOpen) closeMap(); else openMap(); });
 $('mapClose').addEventListener('click',closeMap);
@@ -6124,6 +6150,7 @@ async function storeInit(){
 function packEd(m){ const b=new Uint8Array(m.size*3); let i=0; m.forEach((id,idx)=>{ b[i++]=idx&255; b[i++]=idx>>8; b[i++]=id; }); let t=''; for(let j=0;j<b.length;j+=8190) t+=String.fromCharCode.apply(null,b.subarray(j,j+8190)); return btoa(t); }
 function unpackEd(v){ const m=new Map(); if(typeof v==='string'){ const t=atob(v); for(let i=0;i+2<t.length;i+=3) m.set(t.charCodeAt(i)|(t.charCodeAt(i+1)<<8),t.charCodeAt(i+2)); } else if(Array.isArray(v)) for(let i=0;i+1<v.length;i+=2) m.set(v[i],v[i+1]); return m; }
 function saveGame(){
+  if(DUN) return false;
   if(!started||!world||!player) return false;
   try{
     const ch={}; chests.forEach((c,k)=>{ if(c.some(Boolean)) ch[k]=c.map(s=>s?(s.d?[s.id,s.n,s.d]:[s.id,s.n]):0); });
@@ -6141,8 +6168,8 @@ function loadSave(n){ try{ return validSave(JSON.parse(storeGet(slotKey(n||lastS
 document.addEventListener('visibilitychange',()=>{ if(document.hidden) saveGame(); });
 addEventListener('pagehide',saveGame);
 
-function startGame(seed,save,slot){
-  curSeed=seed; curSlot=slot||1;
+function startGame(seed,save,slot,dun){
+  curSeed=seed; if(!dun) curSlot=slot||1;
   if(world) world.chunks.forEach(ch=>world.disposeMesh(ch));
   while(animals.length) removeEntity(animals[0]); while(enemies.length) removeEntity(enemies[0]);
   while(shots.length){ scene.remove(shots[0].m); shots.shift(); }
@@ -6151,17 +6178,20 @@ function startGame(seed,save,slot){
   if(save&&save.chests) for(const k in save.chests) chests.set(k,save.chests[k].map(s=>(s&&BLOCKS[s[0]])?{id:s[0],n:s[1],d:s[2]||0}:null));
   const R=settings.dist;
   world=new World(scene,seed,atlasTex,R,isTouch?1:2);
+  if(dun) world.gen.dun=dun;
   if(save&&save.edits){ for(const k in save.edits) world.edits.set(k,unpackEd(save.edits[k])); }
   scene.fog=new THREE.Fog(SKY,R*CS*.55,R*CS*.98);
   world.U.uNear.value=R*CS*.55; world.U.uFar.value=R*CS*.98; dayT=.04;
   player=new Player(world); player.autoJump=isTouch;
-  let sx=8, sz=8;
+  let sx=8, sz=8; const G=world.gen;
+  if(!dun){
   // punto de aparición: tierra firme, sin cueva debajo y, si es posible, en bosque para tener madera cerca
-  const G=world.gen, okSpot=(x,z)=>{ const hh=G.heightAt(x,z); return hh>SEA+1&&hh<40&&!G.isCave(x,hh,z)&&!G.isCave(x,hh-1,z); };
+  const okSpot=(x,z)=>{ const hh=G.heightAt(x,z); return hh>SEA+1&&hh<40&&!G.isCave(x,hh,z)&&!G.isCave(x,hh-1,z); };
   let found=false;
   for(let r=0;r<260&&!found;r++) for(const q of [[r,0],[-r,0],[0,r],[0,-r]]){ const x=8+q[0]*6, z=8+q[1]*6; if(G.biomeAt(x,z)===0&&okSpot(x,z)){ sx=x; sz=z; found=true; break; } }
   if(!found) for(let r=0;r<400;r++){ if(okSpot(8+r*3,8)){ sx=8+r*3; break; } }
   G.origin=[sx,sz];
+  } else { sx=0; sz=0; G.origin=null; }
   player.x=sx+.5; player.z=sz+.5; player.y=world.gen.heightAt(sx,sz)+1.01;
   world.update(player.x,player.z,13);
   while(player.collides(player.x,player.y,player.z)&&player.y<WH) player.y+=1;
@@ -6308,6 +6338,245 @@ function storyNext(){ if(storyTy){ clearInterval(storyTy); storyTy=null; $('stTx
 $('story').addEventListener('click',e=>{ if(e.target.id==='stSkip') return; storyNext(); });
 $('stSkip').addEventListener('click',e=>{ e.stopPropagation(); storyEnd(); });
 addEventListener('keydown',e=>{ if(!storyOn) return; e.stopImmediatePropagation(); if(e.key==='Escape') storyEnd(); else if(e.key===' '||e.key==='Enter'){ e.preventDefault(); storyNext(); } },true);
+/* ================= TESELA DUNGEONS: modo mazmorra aparte, con cámara alta y su propio equipo ================= */
+const DUN_FY=30, DUN_KEY='tesela-dungeons-v1';
+const DUN_CAM=[5.5,17,12.5], DUN_YAW=Math.atan2(DUN_CAM[0],DUN_CAM[2]);
+let DUN=null, dunFace=Math.PI, dunRollT=0, dunRollCd=0, dunRollV=[0,0], dunJumpWas=false, dunMouse=null, dunGlows=[], dunStatsBak=null, dunCamP=null;
+const DUN_SHOP=[
+  ['Espadas',[[36,30],[93,50],[37,120],[56,320]]],
+  ['Dagas',[[133,60],[179,140],[134,340]]],
+  ['Lanzas',[[180,60],[129,140],[130,340]]],
+  ['Hachas de guerra',[[181,80],[131,180],[182,400]]],
+  ['Arcos',[[101,150],[102,350]]],
+  ['Armadura de cobre',[[47,40],[48,70],[49,40]]],
+  ['Armadura de hierro',[[112,90],[113,160],[114,90]]],
+  ['Armadura de cristal',[[95,220],[96,380],[97,220]]]
+];
+const DUN_POT=12, DUN_ARR=8;
+function dunLoad(){ let d=null; try{ d=JSON.parse(localStorage.getItem(DUN_KEY)||'null'); }catch(_){}
+  if(!d||typeof d!=='object') d={};
+  return { t:d.t|0, own:Array.isArray(d.own)?d.own.filter(i=>BLOCKS[i]):[35,100,109,110,111], w:BLOCKS[d.w]?d.w:35, b:BLOCKS[d.b]?d.b:100,
+    pot:d.pot===undefined?3:d.pot|0, arr:d.arr===undefined?24:d.arr|0, clears:d.clears|0, runs:d.runs|0 }; }
+function dunSave(D){ try{ localStorage.setItem(DUN_KEY,JSON.stringify(D)); }catch(_){} }
+let DSAVE=dunLoad();
+
+// ---------- trazado de la Cripta olvidada: cinco zonas en línea unidas por pasillos ----------
+function dunLayout(){
+  const rooms=[{x:0,z:0,r:8},{x:3,z:-30,r:11},{x:-5,z:-63,r:12},{x:4,z:-98,r:13},{x:0,z:-137,r:15}];
+  const H=(a,b,c)=>hash2(a*31+c*7,b*17+c,4411);
+  const rr=(R,i,ang)=>R.r+1.3*Math.sin(3*ang+i*1.7)+.8*Math.sin(5*ang+i*.9);
+  const inRoom=(x,z)=>{ for(let i=0;i<rooms.length;i++){ const R=rooms[i], dx=x+.5-R.x, dz=z+.5-R.z, d=Math.hypot(dx,dz); if(d<rr(R,i,Math.atan2(dz,dx))) return {i,d,edge:rr(R,i,Math.atan2(dz,dx))-d}; } return null; };
+  const segD=(px,pz,ax,az,bx,bz)=>{ const vx=bx-ax, vz=bz-az, t=Math.max(0,Math.min(1,((px-ax)*vx+(pz-az)*vz)/(vx*vx+vz*vz))); return Math.hypot(px-(ax+vx*t),pz-(az+vz*t)); };
+  const segs=[]; for(let i=0;i<rooms.length-1;i++) segs.push([rooms[i].x,rooms[i].z,rooms[i+1].x,rooms[i+1].z]);
+  const corr=(x,z)=>{ let m=99; for(const s of segs) m=Math.min(m,segD(x+.5,z+.5,s[0],s[1],s[2],s[3])); return m; };
+  const cols=new Map(), set=(x,z,list)=>cols.set(x+','+z,list), FY=DUN_FY;
+  const gates=rooms.map(()=>({inn:[],out:[]})), glows=[], props=[];
+  for(let x=-30;x<=30;x++) for(let z=-160;z<=16;z++){
+    const ro=inRoom(x,z), cd=corr(x,z), path=cd<=2.2, wallC=!path&&cd<=3.3;
+    if(!ro&&!path&&!wallC) continue;
+    const n=H(x,z,1), m=H(x,z,2);
+    let top=path?(n>.5?POLISHED:CHISELED):n>.86?BRICKS:n>.62?GRAVEL:n>.34?STONE:POLISHED;
+    const L=[]; for(let y=FY-4;y<FY;y++) L.push([y,STONE]); L.push([FY,top]);
+    if(ro&&!path){
+      const R=rooms[ro.i];
+      if(ro.edge<1.15){ L.push([FY+1,BRICKS]); L.push([FY+2,m>.5?CHISELED:BRICKS]); }                       // muro bajo del borde
+      else if(ro.d>3.2&&H(x>>1,z>>1,3)>.8&&Math.abs((x+.5-R.x))>2.5){ L.push([FY+1,m>.5?POLISHED:BRICKS]); } // escalones y restos
+    }
+    if(wallC&&!ro){ L.push([FY+1,BRICKS]); L.push([FY+2,m>.6?CHISELED:BRICKS]); }
+    set(x,z,L);
+  }
+  // puertas: donde el pasillo cruza el muro de cada sala
+  for(let i=0;i<rooms.length;i++){ const R=rooms[i];
+    for(const [k,o] of [['inn',i-1],['out',i+1]]){ if(o<0||o>=rooms.length) continue; const O=rooms[o];
+      const ang=Math.atan2(O.z-R.z,O.x-R.x), e=rr(R,i,ang)-.6, gx=R.x+Math.cos(ang)*e, gz=R.z+Math.sin(ang)*e, px=-Math.sin(ang), pz=Math.cos(ang);
+      const seen=new Set(); for(let t=-2.6;t<=2.6;t+=.5){ const x=Math.floor(gx+px*t), z=Math.floor(gz+pz*t), key=x+','+z; if(seen.has(key)) continue; seen.add(key); if(corr(x,z)<=2.2) gates[i][k].push([x,z]); } } }
+  // columnas con farol, braseros, cristales, huesos y cofres
+  const put=(x,z,y,id)=>{ const c=cols.get(x+','+z); if(c) c.push([y,id]); };
+  rooms.forEach((R,i)=>{
+    for(let k=0;k<4;k++){ const a=k*Math.PI/2+.78+i*.3, x=Math.floor(R.x+Math.cos(a)*R.r*.55), z=Math.floor(R.z+Math.sin(a)*R.r*.55);
+      for(let y=1;y<=3;y++) put(x,z,FY+y,y===1||y===3?CHISELED:POLISHED); put(x,z,FY+4,LANTERN); glows.push([x+.5,FY+4.6,z+.5,0xffb060,1.8]); }
+    for(let k=0;k<5;k++){ const a=k*1.256+i, x=Math.floor(R.x+Math.cos(a)*(R.r-2.6)), z=Math.floor(R.z+Math.sin(a)*(R.r-2.6));
+      if(corr(x,z)<3) continue; put(x,z,FY+1,POLISHED); put(x,z,FY+2,LANTERN); glows.push([x+.5,FY+2.7,z+.5,0xff6a3a,2.2]); }
+    for(let k=0;k<2;k++){ const a=k*3.1+i*2.2+.5, x=Math.floor(R.x+Math.cos(a)*(R.r-3.5)), z=Math.floor(R.z+Math.sin(a)*(R.r-3.5));
+      if(corr(x,z)<3) continue; put(x,z,FY+1,CRYSTAL_ORE); put(x+1,z,FY+1,CRYSTAL_ORE); put(x,z,FY+2,CRYSTAL_ORE); glows.push([x+1,FY+2.2,z+.5,0x6ff0ff,2.4]); }
+    for(let k=0;k<4;k++){ const x=Math.floor(R.x+(H(i,k,5)-.5)*R.r*1.2), z=Math.floor(R.z+(H(k,i,6)-.5)*R.r*1.2); if(corr(x,z)>3&&inRoom(x,z)&&inRoom(x,z).edge>2) put(x,z,FY+1,BONE); }
+  });
+  // portal de salida al fondo de la última sala
+  const B=rooms[rooms.length-1], pz=B.z-B.r+3;
+  for(let y=1;y<=5;y++){ put(B.x-3,pz,FY+y,CHISELED); put(B.x+3,pz,FY+y,CHISELED); } for(let x=-3;x<=3;x++) put(B.x+x,pz,FY+6,CHISELED);
+  return {rooms,cols,gates,glows,exit:[B.x+.5,pz+.5],rr,inRoom};
+}
+const DUN_WAVES=[[],[['umbrio','umbrio','umbrio']],[['umbrio','umbrio','thrower','umbrio'],['umbrio','umbrio','thrower']],
+  [['umbrio','umbrio','thrower','thrower','umbrio*'],['umbrio','umbrio','umbrio','umbrio*']],[['boss']]];
+
+// ---------- entrar y salir ----------
+function startDungeon(){
+  DSAVE=dunLoad(); const L=dunLayout();
+  dunStatsBak=JSON.parse(JSON.stringify(stats));
+  startGame(777,null,0,L);
+  DUN={L,room:0,state:L.rooms.map((_,i)=>({started:i===0,cleared:i===0,wave:0,mobs:[]})),earned:0,kills:0,t0:gameT,won:false,chests:[]};
+  inv.fill(null); armor.fill(null);
+  inv[0]={id:DSAVE.w,n:1,d:0}; if(DSAVE.b) inv[1]={id:DSAVE.b,n:1,d:0};
+  if(DSAVE.pot>0) inv[2]={id:P_HEAL,n:DSAVE.pot,d:0}; if(DSAVE.arr>0) inv[3]={id:ARROW,n:DSAVE.arr,d:0};
+  for(let s=0;s<3;s++){ let best=0,bp=-1; for(const id of DSAVE.own){ const d=BLOCKS[id]; if(d&&d.armor&&d.armor.slot===s&&d.armor.pts>bp){ bp=d.armor.pts; best=id; } } if(best) armor[s]={id:best,n:1,d:0}; }
+  hp=maxHp(); hunger=20; player.autoJump=true; dayT=.75; selectSlot(0); invChanged(); renderStats();
+  player.x=.5; player.z=.5; player.y=DUN_FY+1.01; dunFace=Math.PI+DUN_YAW; dunCamP=null;
+  for(const g of L.glows){ const s=auraMk(); s.visible=true; s.position.set(g[0],g[1],g[2]); s.material.color.setHex(g[3]); s.material.opacity=.85; s.scale.setScalar(g[4]); scene.add(s); dunGlows.push(s); }
+  // las puertas de salida de cada zona empiezan cerradas
+  L.gates.forEach((g,i)=>{ if(i>0) dunGate(g.out,true); });
+  dunExitFx(false);
+  document.body.classList.add('dun'); $('dunHud').classList.add('on');
+  dunLabels(true);
+  const hint=$('hint'); hint.textContent=isTouch?'Muévete con el joystick. Atacar pega donde miras (mantén para cargar) y Rodar esquiva. Llega al final de la cripta.':'Muévete con WASD y apunta con el ratón. Clic para atacar (mantén para cargar), Espacio para rodar y clic derecho para usar.'; hint.style.opacity='1';
+  clearTimeout(toastT); toastT=setTimeout(()=>{ hint.style.opacity='0'; },9000);
+  DSAVE.runs++; dunSave(DSAVE); dunHudText();
+}
+function dunLabels(on){
+  const j=$('bJump'), last=j.lastChild; if(last&&last.nodeType===3) last.textContent=on?'Rodar':'Saltar'; j.setAttribute('aria-label',on?'Rodar':'Saltar');
+}
+function dunCleanup(){
+  if(!DUN) return;
+  for(const s of dunGlows) scene.remove(s); dunGlows=[]; if(dunExitG){ scene.remove(dunExitG); dunExitG=null; }
+  // lo que te queda de pociones y flechas vuelve a tu equipo de mazmorras
+  DSAVE.pot=countItem(P_HEAL); DSAVE.arr=countItem(ARROW); dunSave(DSAVE);
+  if(dunStatsBak) Object.assign(stats,dunStatsBak); dunStatsBak=null;
+  DUN=null; document.body.classList.remove('dun'); $('dunHud').classList.remove('on'); $('dunRes').classList.remove('on'); dunLabels(false);
+}
+function dunToHub(){ $('dunRes').classList.remove('on'); $('pExit').click(); setTimeout(openDunHub,50); }
+
+// ---------- en cada fotograma ----------
+function dunPreMove(){ player.yaw=DUN_YAW; player.pitch=-.2;
+  const jumpEdge=inp.jump&&!dunJumpWas; dunJumpWas=inp.jump; inp.jump=false;
+  if(jumpEdge&&dunRollCd<=0&&!dead){ let mx=player.vx, mz=player.vz; const l=Math.hypot(mx,mz);
+    if(l<.5){ mx=-Math.sin(dunFace); mz=-Math.cos(dunFace); } else { mx/=l; mz/=l; }
+    dunRollV=[mx*11.5,mz*11.5]; dunRollT=.3; dunRollCd=.85; invuln=Math.max(invuln,.38); sfx('swing'); dustAt(player.x,player.y,player.z,6,.5); }
+}
+function dunPostMove(dt){
+  dunRollCd-=dt;
+  if(dunRollT>0){ dunRollT-=dt; for(const ax of [0,1]){ const n=ax?player.z+dunRollV[1]*dt:player.x+dunRollV[0]*dt;
+      if(ax){ if(!player.collides(player.x,player.y,n)) player.z=n; } else if(!player.collides(n,player.y,player.z)) player.x=n; }
+    dunFace=Math.atan2(-dunRollV[0],-dunRollV[1]); }
+  else if(Math.hypot(player.vx,player.vz)>.6&&chg<=0){ const t=Math.atan2(-player.vx,-player.vz); let d=t-dunFace; while(d>Math.PI) d-=6.283; while(d<-Math.PI) d+=6.283; dunFace+=d*Math.min(1,dt*14); }
+  player.yaw=dunFace;
+  // caída al vacío: vuelves al centro de la zona
+  if(player.y<DUN_FY-7&&!dead){ const R=DUN.L.rooms[DUN.room]; player.x=R.x+.5; player.z=R.z+.5; player.y=DUN_FY+1.01; player.vy=0; hurtPlayer(3,0,0); toast('Has caído al vacío.'); }
+}
+// orienta el golpe: con ratón, hacia el puntero; en el móvil, hacia el enemigo más cercano que tengas delante
+const _dv=new THREE.Vector3(), _dv2=new THREE.Vector3();
+function dunAim(range){
+  if(dunMouse&&!isTouch){ _dv.set(dunMouse.x,dunMouse.y,.5).unproject(camera).sub(camera.position).normalize();
+    const t=(player.y+1-camera.position.y)/_dv.y; if(t>0){ const gx=camera.position.x+_dv.x*t, gz=camera.position.z+_dv.z*t; dunFace=Math.atan2(-(gx-player.x),-(gz-player.z)); } }
+  else { let best=null, bs=-1; const fx=-Math.sin(dunFace), fz=-Math.cos(dunFace);
+    for(const a of enemies){ const dx=a.x-player.x, dz=a.z-player.z, d=Math.hypot(dx,dz); if(d>range||Math.abs(a.y-player.y)>3) continue;
+      const c=(dx*fx+dz*fz)/(d||1), sc=(c>.5?2:c>-.2&&d<2.6?1:0)-d*.02; if(sc>bs&&(c>.5||(c>-.2&&d<2.6))){ bs=sc; best=a; } }
+    if(best) dunFace=Math.atan2(-(best.x-player.x),-(best.z-player.z)); }
+  player.yaw=dunFace;
+}
+function dunCamera(dt){
+  const tx=player.x, ty=player.y, tz=player.z;
+  if(!dunCamP) dunCamP=[tx,ty,tz]; const k=Math.min(1,dt*7); dunCamP[0]+=(tx-dunCamP[0])*k; dunCamP[1]+=(ty-dunCamP[1])*k; dunCamP[2]+=(tz-dunCamP[2])*k;
+  camera.position.set(dunCamP[0]+DUN_CAM[0],dunCamP[1]+DUN_CAM[1],dunCamP[2]+DUN_CAM[2]); camera.lookAt(dunCamP[0],dunCamP[1]+.5,dunCamP[2]-.5);
+  if(camera.fov!==36){ camera.fov=36; camera.updateProjectionMatrix(); }
+}
+function dunLight(){
+  const U=world.U; U.uDay.value=.22; SKYU.uTint.value.set(.85,.55,1); litTint.setRGB(.85,.6,1); dayLight=.5; sunLight=.1;
+  for(const k of ['uZen','uHor','uLow','uGlow']) if(SKYU[k]&&SKYU[k].value.setRGB) SKYU[k].value.setRGB(.06,.03,.09);
+  if(SKYU.uGlowA) SKYU.uGlowA.value=0; if(SKYU.uHalo) SKYU.uHalo.value=0; skyDome.visible=false;
+  if(scene.fog){ scene.fog.color.setRGB(.06,.03,.09); scene.fog.near=20; scene.fog.far=46; } U.uNear.value=20; U.uFar.value=46;
+  wx.w=0; wxPts.visible=false;
+}
+function dunGate(list,close){ for(const [x,z] of list) for(let y=1;y<=3;y++){ world.setBlock(x,DUN_FY+y,z,close?CHISELED:AIR); if(!close&&y===2) burst(x,DUN_FY+y,z,CHISELED); } }
+let dunExitG=null;
+function dunExitFx(on){
+  if(!dunExitG){ dunExitG=auraMk(); scene.add(dunExitG); }
+  const e=DUN.L.exit; dunExitG.position.set(e[0],DUN_FY+3.4,e[1]); dunExitG.material.color.setHex(on?0xc07aff:0x553366); dunExitG.material.opacity=on?.95:.4; dunExitG.scale.setScalar(on?6:3); dunExitG.visible=true;
+}
+function dunSpawnWave(i){
+  const S=DUN.state[i], R=DUN.L.rooms[i], list=DUN_WAVES[i][S.wave]||[]; S.mobs=[];
+  list.forEach((k,j)=>{ const elite=k.endsWith('*'), kind=elite?k.slice(0,-1):k;
+    let x=R.x, z=R.z; for(let t=0;t<12;t++){ const a=Math.random()*6.283, d=R.r*(.35+Math.random()*.35); x=R.x+Math.cos(a)*d; z=R.z+Math.sin(a)*d; if(Math.hypot(x-player.x,z-player.z)>4.5) break; }
+    if(kind==='boss'){ x=R.x; z=R.z-R.r*.45; }
+    const e=makeEnemy(kind,x,DUN_FY+1.01,z); e.aggro=true; e.dun=true;
+    if(elite&&!e.elite){ e.elite=true; e.hp*=1.6; e.zm*=1.25; e.maxhp=e.hp; }
+    if(e.boss){ e.hp=e.maxhp=Math.round(e.hp*.32); e.guard=true; bossSay('Custodio lo que nadie quiso recordar.'); }
+    S.mobs.push(e); for(let q=0;q<5;q++) burst(Math.floor(x),DUN_FY+1+(q%2),Math.floor(z),99); });
+  if(list.length){ sfx('growl'); }
+}
+function dunKill(a){
+  if(!DUN||!a.dun) return;
+  const v=a.boss?60:a.elite?8:3; DUN.earned+=v; DUN.kills++; dunHudText();
+}
+function dunUpdate(dt){
+  const L=DUN.L, st=DUN.state;
+  // en qué zona estás
+  for(let i=0;i<L.rooms.length;i++){ const R=L.rooms[i], d=Math.hypot(player.x-R.x,player.z-R.z);
+    if(d<R.r-2.2&&!st[i].started&&!dead){ st[i].started=true; DUN.room=i; dunGate(L.gates[i].inn,true); dunGate(L.gates[i].out,true); dunSpawnWave(i);
+      toast(i===L.rooms.length-1?'La sala del guardián. Las puertas se cierran.':'Zona '+(i+1)+' de '+L.rooms.length+': las puertas se cierran.'); sfx('door'); dunHudText(); }
+    if(d<R.r) DUN.room=i; }
+  // zona en marcha: siguiente oleada o despejada
+  const i=DUN.room, S=st[i];
+  if(S.started&&!S.cleared){ S.mobs=S.mobs.filter(e=>enemies.includes(e));
+    if(!S.mobs.length){ S.wave++;
+      if(S.wave<DUN_WAVES[i].length){ dunSpawnWave(i); toast('¡Otra oleada!'); }
+      else { S.cleared=true; dunGate(L.gates[i].inn,false); dunGate(L.gates[i].out,false); sfx('door');
+        if(i===L.rooms.length-1){ dunExitFx(true); toast('¡Has vencido al guardián! El portal del fondo se ha abierto.'); }
+        else toast('Zona despejada. Hay un cofre esperándote.');
+        const R=L.rooms[i], cx=Math.floor(R.x+(i%2?2:-2)), cz=Math.floor(R.z+1); world.setBlock(cx,DUN_FY+1,cz,CHEST); DUN.chests.push([cx,cz]); } }
+    dunHudText(); }
+  // cofres: se abren al acercarte
+  for(let k=DUN.chests.length-1;k>=0;k--){ const c=DUN.chests[k]; if(Math.hypot(player.x-(c[0]+.5),player.z-(c[1]+.5))<1.7){
+      DUN.chests.splice(k,1); world.setBlock(c[0],DUN_FY+1,c[1],AIR); burst(c[0],DUN_FY+1,c[1],CHEST); sfx('chest');
+      const t=15+Math.floor(Math.random()*16); DUN.earned+=t; let extra='';
+      if(Math.random()<.6){ addItem(P_HEAL,1); extra=' y una poción'; } else { addItem(ARROW,8); extra=' y 8 flechas'; }
+      toast('Cofre: +'+t+' teselas'+extra+'.'); dunHudText(); } }
+  // salida
+  const e=L.exit; if(st[L.rooms.length-1].cleared&&!DUN.won&&Math.abs(player.x-e[0])<2.2&&Math.abs(player.z-(e[1]+.6))<1.2) dunFinish(true);
+  if(dunExitG&&dunExitG.visible){ dunExitG.material.rotation+=dt*.6; }
+}
+function dunHudText(){ if(!DUN) return; const i=DUN.room, S=DUN.state[i], n=S.started&&!S.cleared?S.mobs.filter(e=>enemies.includes(e)).length:0;
+  $('dhZone').textContent='Cripta olvidada · Zona '+(i+1)+' de '+DUN.L.rooms.length;
+  $('dhMobs').textContent=S.started&&!S.cleared?'Enemigos: '+n+(DUN_WAVES[i].length>1?' · oleada '+(S.wave+1)+' de '+DUN_WAVES[i].length:''):S.cleared&&i>0?'Zona despejada':'';
+  $('dhMobs').style.display=$('dhMobs').textContent?'block':'none';
+  $('dhCoins').textContent='◆ '+(DSAVE.t+DUN.earned); }
+function dunFinish(win){
+  if(!DUN||DUN.won) return; DUN.won=true;
+  const first=win&&DSAVE.clears===0, bonus=win?50+(first?100:0):0, keep=win?DUN.earned:Math.floor(DUN.earned/2), got=keep+bonus;
+  DSAVE.t+=got; if(win) DSAVE.clears++; DSAVE.pot=countItem(P_HEAL); DSAVE.arr=countItem(ARROW); dunSave(DSAVE);
+  const secs=Math.round(gameT-DUN.t0);
+  $('drTitle').textContent=win?'¡Cripta completada!':'Has caído en la cripta';
+  $('drText').innerHTML=(win?'Has llegado al final de la Cripta olvidada.':'Te quedas con la mitad de las teselas que llevabas.')+'<br><br>'+
+    'Enemigos derrotados: <b>'+DUN.kills+'</b> · Tiempo: <b>'+Math.floor(secs/60)+':'+String(secs%60).padStart(2,'0')+'</b><br>'+
+    'Teselas conseguidas: <b>'+keep+'</b>'+(win?' + <b>'+bonus+'</b> por completarla'+(first?' (primera vez)':''):' de '+DUN.earned)+'<br>Total: <b>◆ '+DSAVE.t+'</b>';
+  $('dunRes').classList.add('on'); paused=true; sfx(win?'victory':'hurt');
+  try{ if(document.exitPointerLock) document.exitPointerLock(); }catch(_){}
+}
+
+// ---------- campamento: tienda y equipo ----------
+function openDunHub(){ DSAVE=dunLoad(); renderDunHub(); $('dunHub').classList.add('on'); }
+function closeDunHub(){ $('dunHub').classList.remove('on'); }
+function renderDunHub(){
+  const D=DSAVE, B=$('dhBody'); B.innerHTML=''; $('dhT').textContent='◆ '+D.t+' teselas';
+  const sec=t=>{ const h=document.createElement('div'); h.className='ptitle'; h.style.margin='14px 0 4px'; h.textContent=t; B.appendChild(h); };
+  const row=(id,txt,btn,on,fn,pri)=>{ const r=document.createElement('div'); r.className='skrow'+(on?'':' done');
+    r.innerHTML='<div class="skic">'+(id?'<img alt="" src="'+icon(id).url+'">':'🗝')+'</div><div class="sktx"><b></b><span></span></div>';
+    r.querySelector('b').textContent=id?BLOCKS[id].name:txt[0]; r.querySelector('span').textContent=id?txt:txt[1];
+    if(btn){ const b=document.createElement('button'); b.className='mini'+(pri?' pri':''); b.textContent=btn; b.disabled=!on; b.addEventListener('click',fn); r.appendChild(b); }
+    B.appendChild(r); };
+  sec('Mazmorra');
+  row(0,['Cripta olvidada','5 zonas · al final espera un guardián · '+(D.clears?'completada '+D.clears+(D.clears===1?' vez':' veces'):'aún sin completar')],'Entrar',true,()=>{ closeDunHub(); initAudio(); startDungeon(); },true);
+  sec('Tu equipo');
+  const wpn=D.own.filter(i=>BLOCKS[i]&&WPN_T[BLOCKS[i].tool]), bows=D.own.filter(i=>BLOCKS[i]&&BLOCKS[i].tool==='bow');
+  for(const id of wpn) row(id,id===D.w?'Equipada':'Arma cuerpo a cuerpo',id===D.w?'':'Equipar',id!==D.w,()=>{ D.w=id; dunSave(D); renderDunHub(); });
+  for(const id of bows) row(id,id===D.b?'Equipado':'Arco',id===D.b?'':'Equipar',id!==D.b,()=>{ D.b=id; dunSave(D); renderDunHub(); });
+  const arm=[0,1,2].map(s=>{ let best=0,bp=-1; for(const id of D.own){ const d=BLOCKS[id]; if(d&&d.armor&&d.armor.slot===s&&d.armor.pts>bp){ bp=d.armor.pts; best=id; } } return best; }).filter(Boolean);
+  for(const id of arm) row(id,'Armadura puesta (la mejor que tienes)','',true,null);
+  row(P_HEAL,'Llevas '+D.pot+' · '+DUN_POT+' teselas cada una','Comprar',D.t>=DUN_POT,()=>{ D.t-=DUN_POT; D.pot++; dunSave(D); sfx('craft'); renderDunHub(); },true);
+  row(ARROW,'Llevas '+D.arr+' · 16 por '+DUN_ARR+' teselas','Comprar 16',D.t>=DUN_ARR,()=>{ D.t-=DUN_ARR; D.arr+=16; dunSave(D); sfx('craft'); renderDunHub(); },true);
+  for(const [cat,list] of DUN_SHOP){ const left=list.filter(q=>!D.own.includes(q[0])); if(!left.length) continue; sec('Tienda · '+cat);
+    for(const [id,p] of left){ const d=BLOCKS[id], info=d.armor?'Protección '+d.armor.pts:d.dmg?'Daño '+d.dmg:d.tier?'Nivel '+d.tier:'';
+      row(id,p+' teselas'+(info?' · '+info:''),'Comprar · '+p,D.t>=p,()=>{ if(D.t<p) return; D.t-=p; D.own.push(id); if(WPN_T[d.tool]) D.w=id; if(d.tool==='bow') D.b=id; dunSave(D); sfx('craft'); toast('Has comprado: '+d.name+'.'); renderDunHub(); },D.t>=p); } }
+}
+
 function openPause(){ if(!started||dead||storyOn) return; closeInv(); closeMap(); muteWeather(); paused=true; $('pause').classList.add('on'); savedText(saveGame()); $('pDay').textContent='Día '+dayNum+' · '+playTime()+' jugados · nivel '+plvl+' · dificultad '+DNAME[diff]; try{ if(document.exitPointerLock) document.exitPointerLock(); }catch(_){} }
 function closePause(){ paused=false; $('pause').classList.remove('on'); last=performance.now(); relock(); }
 function togglePause(){ if(paused) closePause(); else openPause(); }
@@ -6318,18 +6587,21 @@ let photoMode=false;
 function photoModeHidden(){ return false; }
 function setPhoto(on){ photoMode=on; document.body.classList.toggle('photo',on); hand.visible=!on; if(on){ closePause(); $('hint').style.opacity='0'; } }
 $('pPhoto').addEventListener('click',()=>setPhoto(true));
+$('dunBtn').addEventListener('click',openDunHub); $('dhX').addEventListener('click',closeDunHub);
+$('dunHub').addEventListener('pointerdown',e=>{ if(e.target===$('dunHub')) closeDunHub(); });
+$('drBtn').addEventListener('click',()=>{ paused=false; dunToHub(); });
 $('photoX').addEventListener('pointerdown',e=>{ e.preventDefault(); e.stopPropagation(); setPhoto(false); });
 $('pSet').addEventListener('click',()=>{ $('btnEditRow').style.display=isTouch?'flex':'none'; $('set').classList.add('on'); });
 $('pSave').addEventListener('click',()=>{ const ok=saveGame(); savedText(ok); if(ok){ sfx('craft'); toast('Partida guardada.'); } });
 // salir del juego: guarda, vuelve al menú e intenta cerrar la ventana (solo funciona en la app instalada; en una pestaña del navegador se cierra a mano)
-$('pQuit').addEventListener('click',()=>{ const ok=saveGame(); if(!ok){ savedText(false); return; } $('pExit').click(); $('bye').classList.add('on'); try{ window.close(); }catch(_){} });
+$('pQuit').addEventListener('click',()=>{ const ok=saveGame(); if(!ok&&!DUN){ savedText(false); return; } $('pExit').click(); $('bye').classList.add('on'); try{ window.close(); }catch(_){} });
 $('byeBack').addEventListener('click',()=>{ $('bye').classList.remove('on'); });
 $('pExit').addEventListener('click',()=>{
-  saveGame(); mcx=player.x; mcz=player.z;
+  const wasDun=!!DUN; saveGame(); dunCleanup(); mcx=player.x; mcz=player.z;
   started=false; paused=false; closeInv(); muteWeather(); wx.w=0; wx.on=false; wxPts.visible=false;
   $('pause').classList.remove('on'); $('dead').classList.remove('on'); $('hud').classList.remove('on'); $('menu').style.display='flex';
   while(animals.length) removeEntity(animals[0]); while(enemies.length) removeEntity(enemies[0]);
-  refreshMenu();
+  refreshMenu(); if(wasDun) makeMenuWorld();
 });
 const EDIT_IDS=['bJump','bPlace','bMine','bSneak'];
 function applyBtnLayout(){
@@ -6564,21 +6836,27 @@ function loop(now){
   if(paused) return;
   if(mapOpen&&Math.floor(now/500)!==Math.floor((now-dt*1000)/500)) updateMapText();
   if(invOpen||dead||mapOpen){ inp.kf=inp.ks=inp.jx=inp.jy=inp.px=inp.py=0; inp.attack=false; inp.jump=false; inp.mining=false; inp.place=false; inp.lookX=inp.lookY=0; }
-  updateDecay(dt); updateGoals(dt); gameT+=dt; updateCrops(dt); updateFlow(dt);
-  saveT+=dt; if(saveT>15){ saveT=0; saveGame(); }
+  if(!DUN){ updateDecay(dt); updateGoals(dt); updateCrops(dt); updateFlow(dt); saveT+=dt; if(saveT>15){ saveT=0; saveGame(); } } else dayT=.75;
+  gameT+=dt;
 
   // cámara
+  if(DUN){ inp.lookX=inp.lookY=0; }
   player.yaw-=inp.lookX*settings.sens; player.pitch-=inp.lookY*settings.sens*(settings.invertY?-1:1); inp.lookX=inp.lookY=0;
   const lim=Math.PI/2-.01; if(player.pitch>lim) player.pitch=lim; if(player.pitch<-lim) player.pitch=-lim;
 
+  if(DUN) dunPreMove();
   player.update(dt,inp);
+  if(DUN) dunPostMove(dt);
   world.update(player.x,player.z,0);
 
   sneakEye+=((inp.sneak&&!riding?-.28:0)-sneakEye)*Math.min(1,dt*12);
   let ex=player.x, ey=player.y+EYE+(riding?.85:0)+sneakEye, ez=player.z;
   camera.rotation.set(player.pitch,player.yaw,0); camera.getWorldDirection(dir);
-  const tp=settings.cam===1;
-  if(tp){
+  const tp=settings.cam===1&&!DUN;
+  if(DUN){
+    if(inp.attack||(inp.mining&&!chgWas)||(!inp.mining&&chgWas)) dunAim(4.2);
+    dunCamera(dt); dir.set(-Math.sin(dunFace),0,-Math.cos(dunFace)); ex=player.x; ey=player.y+1.1; ez=player.z;
+  } else if(tp){
     // por encima del hombro derecho: el punto de mira sigue en el centro y no lo tapa el personaje
     const rx=Math.cos(player.yaw), rz=-Math.sin(player.yaw); let sx=ex+rx*.55, sy=ey+.28, sz=ez+rz*.55;
     for(let t=.1;t<=1.001;t+=.1) if(camSolid(ex+(sx-ex)*t,ey+(sy-ey)*t,ez+(sz-ez)*t)){ const f=Math.max(0,t-.2); sx=ex+(sx-ex)*f; sy=ey+(sy-ey)*f; sz=ez+(sz-ez)*f; break; }
@@ -6591,7 +6869,7 @@ function loop(now){
   { const c=camera.position; $('uw').style.display=WATERISH[world.getBlock(Math.floor(c.x),Math.floor(c.y),Math.floor(c.z))]?'block':'none'; }
 
   // bloque apuntado
-  const hit=raycast(world,ex,ey,ez,dir.x,dir.y,dir.z,REACH);
+  const hit=DUN?null:raycast(world,ex,ey,ez,dir.x,dir.y,dir.z,REACH);
   if(hit){ hl.visible=true; const sb=hit.id===HEARTH?HEARTH_BB:STATION_BB[BLOCKS[hit.id]&&BLOCKS[hit.id].shape];
     if(sb){ hl.position.set(hit.x+(sb[0]+sb[3])/2,hit.y+(sb[1]+sb[4])/2,hit.z+(sb[2]+sb[5])/2); hl.scale.set(sb[3]-sb[0],sb[4]-sb[1],sb[5]-sb[2]); }
     else { hl.position.set(hit.x+.5,hit.y+.5,hit.z+.5); hl.scale.set(1,1,1); } } else hl.visible=false;
@@ -6630,18 +6908,19 @@ function loop(now){
   const ranged=!!(held&&held.rng);
   const fishW=held&&held.rod&&!fishing?findWater(ex,ey,ez):null;
   const merch=merchants.size&&arenaIdx<0?aimMerchant(ex,ey,ez,Math.min(4.5,hit?hit.t+.4:4.5)):null;
-  const mode=merch?'Comerciar':held&&held.rod&&(fishing||fishW)?(fishing?'Recoger':'Pescar'):animAct?animAct:(riding&&!useT&&!(held&&(held.food||held.heal||held.potion||held.rng||held.armor)))?'Bajar':ranged&&!useT?'Disparar':useT?useLabel(hit.id):tillT?'Arar':plantT?'Plantar':(held&&held.potion)?'Beber':(held&&(held.food||held.heal))?(held.food?'Comer':'Curarse'):(held&&held.armor)?'Equipar':'Colocar';
+  const mode=DUN?(ranged?'Disparar':held&&held.potion?'Beber':'Usar'):merch?'Comerciar':held&&held.rod&&(fishing||fishW)?(fishing?'Recoger':'Pescar'):animAct?animAct:(riding&&!useT&&!(held&&(held.food||held.heal||held.potion||held.rng||held.armor)))?'Bajar':ranged&&!useT?'Disparar':useT?useLabel(hit.id):tillT?'Arar':plantT?'Plantar':(held&&held.potion)?'Beber':(held&&(held.food||held.heal))?(held.food?'Comer':'Curarse'):(held&&held.armor)?'Equipar':'Colocar';
   const aimF=findTarget(ex,ey,ez,Math.min(reach,hit?hit.t:9)), aimC=aimF&&aimF.hostile?'foe':(animAct||useT||merch)?'use':'';
   if(aimC!==lastAim){ lastAim=aimC; $('dot').className=aimC; }
   if(mode!==lastUse){ lastUse=mode; $('placeLbl').textContent=mode; $('bPlace').classList.toggle('use',mode!=='Colocar'); $('bPlace').setAttribute('aria-label',mode); }
-  const mMode=aimF?'Atacar':(hit&&BLOCKS[hit.id]&&BLOCKS[hit.id].mat==='wood')?'Talar':'Picar';
+  const mMode=DUN||aimF?'Atacar':(hit&&BLOCKS[hit.id]&&BLOCKS[hit.id].mat==='wood')?'Talar':'Picar';
   if(mMode!==lastMine){ lastMine=mMode; $('mineLbl').textContent=mMode; $('bMine').setAttribute('aria-label',mMode); }
 
   // colocar
   placeCd-=dt;
   if(inp.place){
     inp.place=false;
-    if(mode==='Comerciar'){ openShop(merch); }
+    if(DUN){ if(mode==='Disparar'){ dunAim(16); dir.set(-Math.sin(dunFace),0,-Math.cos(dunFace)); fireHeld(ex,ey,ez); } else if(mode==='Beber') drinkHeld(); }
+    else if(mode==='Comerciar'){ openShop(merch); }
     else if(mode==='Pescar'){ castRod(fishW); }
     else if(mode==='Recoger'){ reelIn(); }
     else if(mode==='Bajar'){ dismount(); }
@@ -6677,16 +6956,16 @@ function loop(now){
   }
 
   updateSky(dt,ex,ey,ez);
-  if(arenaIdx<0) updateWeather(dt,ex,ey,ez); else { wx.w=0; wxPts.visible=false; }
+  if(DUN) dunLight(); else if(arenaIdx<0) updateWeather(dt,ex,ey,ez); else { wx.w=0; wxPts.visible=false; }
   updateCompass();
-  updateAnimals(dt); updateMerchants(dt); updateAch(dt);
+  if(!DUN){ updateAnimals(dt); updateMerchants(dt); updateAch(dt); } else dunUpdate(dt);
   updateEnemies(dt);
-  updatePortals(dt); updateArena(dt); updateExplore(dt); updateBook(dt); updateFeedback(dt); updateFishing(dt);
+  if(!DUN){ updatePortals(dt); updateArena(dt); updateExplore(dt); updateBook(dt); updateFishing(dt); } updateFeedback(dt);
   updateShadows();
   updateAmbient(dt);
-  updateRest(dt);
+  if(!DUN) updateRest(dt);
   updateEffects(dt);
-  zoneT-=dt; if(zoneT<=0){ zoneT=1; const z=world.gen.zoneAt(player.x,player.z);
+  if(!DUN) zoneT-=dt; if(zoneT<=0){ zoneT=1; const z=world.gen.zoneAt(player.x,player.z);
     if(z!==curZone){ if(curZone>=0) toast(z>curZone?'Entras en las '+ZONES[z]+': enemigos más fuertes, pero más minerales raros y mejor botín.':'Vuelves a las '+ZONES[z]+'.'); curZone=z; } }
   petT-=dt; if(petT<=0){ petT=.5; petStatus(); }
   tameT-=dt; if(tameT<=0){ tameT=.12; tameHud(ex,ey,ez,hit?hit.t:99); }
@@ -6705,10 +6984,10 @@ function loop(now){
   updateParticles(dt);
   if(placeSwing>0){ placeSwing-=dt; sw=Math.max(sw,Math.sin(Math.max(0,placeSwing)/.2*Math.PI)); }
   plAct.m=hit0; plAct.hp=hp0; plAct.sw=sw;
-  updatePlayerModel(dt,settings.cam===1&&!photoModeHidden(),tpD);
+  updatePlayerModel(dt,(settings.cam===1||!!DUN)&&!photoModeHidden(),DUN?99:tpD);
   if(chg>0){ hit0=0; plAct.m=0; plAct.chg=chg; } else plAct.chg=0;
   { const col=chg>0?wpnCol(held):null, pul=chgFull?.85+.15*Math.sin(now/60):1;
-    const on=chg>0&&settings.cam!==1; handAuras.forEach((a,k)=>{ a.visible=on; if(on){ a.material.color.copy(col); a.material.opacity=(.3+chg*.6)*pul; a.scale.setScalar((.1+chg*.22)*pul*(1-k*.12)); } }); }
+    const on=chg>0&&settings.cam!==1&&!DUN; handAuras.forEach((a,k)=>{ a.visible=on; if(on){ a.material.color.copy(col); a.material.opacity=(.3+chg*.6)*pul; a.scale.setScalar((.1+chg*.22)*pul*(1-k*.12)); } }); }
   if(slashT>0){ slashT-=dt; const k=Math.max(0,slashT)/.3; slashSpr.material.opacity=k; slashSpr.scale.setScalar(slashSpr.userData.s*(1.4-k*.6)); if(slashT<=0) slashSpr.visible=false; }
   if(chg>0){ const c=chg, j=chgFull?Math.sin(now/35)*.006:0;
     hand.position.set(.34-c*.05+j,-.31+c*.07,-.6); hand.rotation.set(c*.5,c*.12,c*.22); }
@@ -6726,7 +7005,7 @@ function loop(now){
 
   if(invOpen) renderChar(dt);
   renderer.render(scene,camera);
-  if(settings.cam!==1){ renderer.autoClear=false; renderer.clearDepth(); renderer.render(handScene,handCam); renderer.autoClear=true; }
+  if(settings.cam!==1&&!DUN){ renderer.autoClear=false; renderer.clearDepth(); renderer.render(handScene,handCam); renderer.autoClear=true; }
 
   fpsN++; fpsT+=dt;
   if(fpsT>=.5){ fps=Math.round(fpsN/fpsT); fpsN=0; fpsT=0;
