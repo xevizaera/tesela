@@ -2720,7 +2720,7 @@ setHand=function(id){
   handItems[id].visible=true;
 };
 setHand(inv[selected]?inv[selected].id:0);
-let swingPh=0, placeSwing=0, bob=0;
+let swingPh=0, placeSwing=0, bob=0, hitKick=0;
 
 /* ---------- UI: personaje en la mochila, con armadura y objeto en la mano ---------- */
 // usa un renderizador propio y pequeño, que solo trabaja mientras la mochila está abierta
@@ -2792,7 +2792,7 @@ function renderChar(dt){
 }
 
 // partículas al romper: un único objeto Points con un fondo fijo de partículas reutilizables
-const PN=72, pPos=new Float32Array(PN*3), pCol=new Float32Array(PN*3), pVel=new Float32Array(PN*3), pLife=new Float32Array(PN);
+const PN=180, pPos=new Float32Array(PN*3), pCol=new Float32Array(PN*3), pVel=new Float32Array(PN*3), pLife=new Float32Array(PN);
 for(let i=0;i<PN;i++) pPos[i*3+1]=-999;
 const pGeo=new THREE.BufferGeometry();
 pGeo.setAttribute('position',new THREE.BufferAttribute(pPos,3)); pGeo.setAttribute('color',new THREE.BufferAttribute(pCol,3));
@@ -2801,11 +2801,23 @@ const BCOL={183:[.86,.85,.8],184:[.45,.62,.24],185:[.15,.33,.24],186:[.82,.42,.1
 let pNext=0;
 function burst(x,y,z,id){
   const c=BCOL[id]||BCOL[3];
-  for(let n=0;n<14;n++){
+  for(let n=0;n<22;n++){
     const i=pNext; pNext=(pNext+1)%PN; const k=.75+Math.random()*.4;
     pPos[i*3]=x+.15+Math.random()*.7; pPos[i*3+1]=y+.15+Math.random()*.7; pPos[i*3+2]=z+.15+Math.random()*.7;
     pVel[i*3]=(Math.random()-.5)*3; pVel[i*3+1]=1+Math.random()*3; pVel[i*3+2]=(Math.random()-.5)*3;
     pCol[i*3]=c[0]*k; pCol[i*3+1]=c[1]*k; pCol[i*3+2]=c[2]*k; pLife[i]=.5+Math.random()*.3;
+  }
+  pGeo.attributes.color.needsUpdate=true;
+}
+// astillas en cada golpe: salen de la cara golpeada, con el color del bloque
+function chips(hit){
+  const c=BCOL[hit.id]||BCOL[3], n=IS_LOG[hit.id]||BLOCKS[hit.id].mat==='wood'?6:4;
+  const fx=hit.x+.5+hit.nx*.52, fy=hit.y+.5+hit.ny*.52, fz=hit.z+.5+hit.nz*.52;
+  for(let k=0;k<n;k++){
+    const i=pNext, j=.7+Math.random()*.5; pNext=(pNext+1)%PN;
+    pPos[i*3]=fx+(hit.nx?0:(Math.random()-.5)*.5); pPos[i*3+1]=fy+(hit.ny?0:(Math.random()-.5)*.5); pPos[i*3+2]=fz+(hit.nz?0:(Math.random()-.5)*.5);
+    pVel[i*3]=hit.nx*(1.5+Math.random()*2)+(Math.random()-.5)*2.4; pVel[i*3+1]=hit.ny*2+1.6+Math.random()*2.4; pVel[i*3+2]=hit.nz*(1.5+Math.random()*2)+(Math.random()-.5)*2.4;
+    pCol[i*3]=c[0]*j; pCol[i*3+1]=c[1]*j; pCol[i*3+2]=c[2]*j; pLife[i]=.35+Math.random()*.3;
   }
   pGeo.attributes.color.needsUpdate=true;
 }
@@ -6420,12 +6432,19 @@ function loop(now){
   const bob0=Math.floor(bob/Math.PI);
   bob+=dt*(player.onGround?Math.hypot(player.vx,player.vz):0)*1.9;
   if(Math.floor(bob/Math.PI)!==bob0) sfx('step',WATERISH[world.getBlock(Math.floor(player.x),Math.floor(player.y+.2),Math.floor(player.z))]?'water':world.getBlock(Math.floor(player.x),Math.floor(player.y-.05),Math.floor(player.z)));
-  let sw=0;
-  if(inp.mining&&hit){ const s0=Math.floor(swingPh/Math.PI+.5); swingPh+=dt*10; if(Math.floor(swingPh/Math.PI+.5)!==s0) sfx('dig',hit.id); sw=Math.abs(Math.sin(swingPh)); } else swingPh=0;
+  let sw=0, hp0=0, hit0=0;
+  if(inp.mining&&hit){ const s0=Math.floor(swingPh/Math.PI+.5); swingPh+=dt*10;
+    if(Math.floor(swingPh/Math.PI+.5)!==s0){ sfx('dig',hit.id); chips(hit); hitKick=.12; }
+    const u=((swingPh/Math.PI+.5)%1+1)%1;          // 0 = impacto; se levanta y luego baja con fuerza
+    hp0=u<.55?1-(u/.55)*(u/.55)*(3-2*u/.55):Math.pow((u-.55)/.45,2.2); hit0=1; } else swingPh=0;
+  hitKick=Math.max(0,hitKick-dt);
   updateParticles(dt);
   if(placeSwing>0){ placeSwing-=dt; sw=Math.max(sw,Math.sin(Math.max(0,placeSwing)/.2*Math.PI)); }
-  hand.position.set(.36+Math.cos(bob)*.012,-.32+Math.abs(Math.sin(bob))*.014-sw*.07,-.6-sw*.06);
-  hand.rotation.set(-sw*.9,0,0);
+  if(hit0){ const up=1-hp0, kk=hitKick/.12;
+    hand.position.set(.36+Math.cos(bob)*.012-hp0*.05,-.32+up*.06-hp0*.1-kk*.015,-.6-hp0*.1+up*.03);
+    hand.rotation.set(up*.45-hp0*1.15+kk*.12,up*.12,-up*.18+hp0*.22); }
+  else { hand.position.set(.36+Math.cos(bob)*.012,-.32+Math.abs(Math.sin(bob))*.014-sw*.07,-.6-sw*.06);
+    hand.rotation.set(-sw*.9,0,0); }
   const hk=.32+.68*dayLight; for(const m of handMats) m.color.copy(m.userData.base).multiply(litTint).multiplyScalar(hk);
   pts.material.color.setScalar(.4+.6*dayLight);
   { const hid=inv[selected]?inv[selected].id:0, want=(hid===TORCH||hid===LAMP||hid===LANTERN)?1:0;     // la antorcha o lámpara en la mano alumbra a tu alrededor
