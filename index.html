@@ -5668,8 +5668,8 @@ function damageEntity(a,dmg,dx,dz,ranged,kbm){
       else bossReward(a);
       sfx('victory'); rumble(1,500);
       for(let k=0;k<14;k++) burst(Math.floor(a.x+(Math.random()-.5)*2),Math.floor(a.y+Math.random()*3),Math.floor(a.z+(Math.random()-.5)*2),99); saveGame(); }
-    else if(a.kind==='sapling'){ addItem(LOG,2); gainXp(10); }
-    else if(a.kind==='boarling'){ addItem(RAW_MEAT,2); if(Math.random()<.6) addItem(LEATHER,1); gainXp(10); }
+    else if(a.kind==='sapling'&&!DUN){ addItem(LOG,2); gainXp(10); }
+    else if(a.kind==='boarling'&&!DUN){ addItem(RAW_MEAT,2); if(Math.random()<.6) addItem(LEATHER,1); gainXp(10); }
     else if(a.hostile&&!DUN){ if(Math.random()<.6) addItem(SHARD,1); gainXp((a.kind==='thrower'?12:10)*(1+.5*(a.zone||0))*(a.elite?2:1)); }
     else{ gainXp(a.sp.active?8:3); if(a.sp.meat&&addItem(RAW_MEAT,a.sc<1?1:a.sp.meat)>0) toast('Inventario lleno'); if(a.sp!==SPECIES.bird&&a.sp!==SPECIES.dog&&a.sp!==SPECIES.chicken&&Math.random()<.7) addItem(LEATHER,1); if(a.sp===SPECIES.chicken) addItem(FEATHER,1+(Math.random()<.5?1:0)); }
     return true;
@@ -6360,65 +6360,107 @@ const DUN_POT=12, DUN_ARR=8;
 function dunLoad(){ let d=null; try{ d=JSON.parse(localStorage.getItem(DUN_KEY)||'null'); }catch(_){}
   if(!d||typeof d!=='object') d={};
   return { t:d.t|0, own:Array.isArray(d.own)?d.own.filter(i=>BLOCKS[i]):[35,100,109,110,111], w:BLOCKS[d.w]?d.w:35, b:BLOCKS[d.b]?d.b:100,
-    pot:d.pot===undefined?3:d.pot|0, arr:d.arr===undefined?24:d.arr|0, clears:d.clears|0, runs:d.runs|0 }; }
+    pot:d.pot===undefined?3:d.pot|0, arr:d.arr===undefined?24:d.arr|0, clears:d.clears|0, runs:d.runs|0,
+    cl:d.cl&&typeof d.cl==='object'?d.cl:(d.clears?{cripta:[d.clears|0,0,0]}:{}) }; }
 function dunSave(D){ try{ localStorage.setItem(DUN_KEY,JSON.stringify(D)); }catch(_){} }
 let DSAVE=dunLoad();
 
 // ---------- trazado de la Cripta olvidada: cinco zonas en línea unidas por pasillos ----------
-function dunLayout(){
-  const rooms=[{x:0,z:0,r:8},{x:3,z:-30,r:11},{x:-5,z:-63,r:12},{x:4,z:-98,r:13},{x:0,z:-137,r:15}];
-  const H=(a,b,c)=>hash2(a*31+c*7,b*17+c,4411);
+// ---------- las mazmorras: cada una con su ambiente, sus enemigos y su guardián ----------
+const DUN_THEMES=[
+  {id:'cripta',name:'Cripta olvidada',em:'🗝',desc:'Ladrillo, huesos y cristales en la oscuridad.',boss:'boss',rooms:5,
+    floor:[POLISHED,STONE,GRAVEL,BRICKS],path:[POLISHED,CHISELED],wall:[BRICKS,CHISELED],pil:[CHISELED,POLISHED],
+    tint:[.85,.55,1],fog:[.06,.03,.09],day:.22,mobs:['umbrio','umbrio','thrower'],glow:[0xffb060,0xff6a3a,0x6ff0ff],props:'crypt'},
+  {id:'bosque',name:'Bosque podrido',em:'🌳',desc:'Raíces, hojarasca y retoños hambrientos bajo las copas.',boss:'ent',rooms:5,
+    floor:[GRASS,GRASS,DIRT,GRAVEL],path:[DIRT,GRAVEL],wall:[LOG,LEAVES],pil:[LOG,LOG],
+    tint:[.62,.92,.6],fog:[.03,.07,.04],day:.28,mobs:['sapling','umbrio','sapling','thrower'],glow:[0xd8ff6a,0xffb060,0x9aff8a],props:'forest'},
+  {id:'arenas',name:'Templo de las arenas',em:'🦂',desc:'Columnas doradas, cactus y lanzaespinas al acecho.',boss:'scorp',rooms:6,
+    floor:[SAND,SAND,CLAY,POLISHED],path:[POLISHED,TILE_Y],wall:[POLISHED,CHISELED],pil:[CHISELED,TILE_Y],
+    tint:[1.05,.82,.55],fog:[.12,.07,.03],day:.3,mobs:['thrower','umbrio','thrower','boarling'],glow:[0xffa040,0xff7030,0xffd070],props:'desert'},
+  {id:'hielo',name:'Cavernas heladas',em:'❄️',desc:'Hielo, nieve y un frío que ralentiza los pasos.',boss:'golem',rooms:6,
+    floor:[SNOW,ICE,SNOW,STONE],path:[ICE,POLISHED],wall:[ICE,POLISHED],pil:[ICE,ICE],
+    tint:[.62,.82,1.1],fog:[.03,.06,.1],day:.26,mobs:['umbrio','thrower','umbrio'],glow:[0x8ff4ff,0xffffff,0x6fb8ff],props:'ice'},
+  {id:'madriguera',name:'Madriguera del Rey',em:'🐗',desc:'Túneles de tierra llenos de jabatos furiosos.',boss:'boarKing',rooms:6,
+    floor:[DIRT,GRASS,GRAVEL,HAY],path:[PLANKS_D,DIRT],wall:[PLANKS_D,LOG],pil:[LOG,PLANKS_D],
+    tint:[1,.78,.58],fog:[.08,.05,.03],day:.26,mobs:['boarling','boarling','umbrio','thrower'],glow:[0xffb060,0xff8a3a,0xffd080],props:'den'}
+];
+const DUN_DIFF=[{name:'Normal',hp:1,dmg:1,pay:1,extra:0},{name:'Difícil',hp:1.6,dmg:1.45,pay:1.7,extra:1},{name:'Pesadilla',hp:2.4,dmg:2,pay:2.6,extra:2}];
+function dunClears(D,id){ const c=D.cl[id]; return Array.isArray(c)?c:[0,0,0]; }
+function dunUnlocked(D,k){ return k===0||dunClears(D,DUN_THEMES[k-1].id)[0]>0; }
+
+// ---------- trazado: zonas en línea con posiciones y tamaños al azar en cada partida ----------
+function dunLayout(T,seed){
+  const rnd=rng(seed), rooms=[{x:0,z:0,r:8}];
+  let x=0, z=0; for(let i=1;i<T.rooms;i++){ const last=i===T.rooms-1, r=last?15:9+Math.floor(rnd()*5); z-=rooms[i-1].r+r+8+Math.floor(rnd()*8); x=Math.max(-14,Math.min(14,x+Math.floor((rnd()-.5)*18))); rooms.push({x,z,r}); }
+  const H=(a,b,c)=>hash2(a*31+c*7,b*17+c,seed&65535);
   const rr=(R,i,ang)=>R.r+1.3*Math.sin(3*ang+i*1.7)+.8*Math.sin(5*ang+i*.9);
-  const inRoom=(x,z)=>{ for(let i=0;i<rooms.length;i++){ const R=rooms[i], dx=x+.5-R.x, dz=z+.5-R.z, d=Math.hypot(dx,dz); if(d<rr(R,i,Math.atan2(dz,dx))) return {i,d,edge:rr(R,i,Math.atan2(dz,dx))-d}; } return null; };
+  const inRoom=(x,z)=>{ for(let i=0;i<rooms.length;i++){ const R=rooms[i], dx=x+.5-R.x, dz=z+.5-R.z, d=Math.hypot(dx,dz); if(d<rr(R,i,Math.atan2(dz,dx))+.01) return {i,d,edge:rr(R,i,Math.atan2(dz,dx))-d}; } return null; };
   const segD=(px,pz,ax,az,bx,bz)=>{ const vx=bx-ax, vz=bz-az, t=Math.max(0,Math.min(1,((px-ax)*vx+(pz-az)*vz)/(vx*vx+vz*vz))); return Math.hypot(px-(ax+vx*t),pz-(az+vz*t)); };
   const segs=[]; for(let i=0;i<rooms.length-1;i++) segs.push([rooms[i].x,rooms[i].z,rooms[i+1].x,rooms[i+1].z]);
   const corr=(x,z)=>{ let m=99; for(const s of segs) m=Math.min(m,segD(x+.5,z+.5,s[0],s[1],s[2],s[3])); return m; };
-  const cols=new Map(), set=(x,z,list)=>cols.set(x+','+z,list), FY=DUN_FY;
-  const gates=rooms.map(()=>({inn:[],out:[]})), glows=[], props=[];
-  for(let x=-30;x<=30;x++) for(let z=-160;z<=16;z++){
+  const cols=new Map(), FY=DUN_FY, pick=(a,n)=>a[Math.floor(n*a.length)%a.length];
+  const gates=rooms.map(()=>({inn:[],out:[]})), glows=[];
+  const zmin=rooms[rooms.length-1].z-rooms[rooms.length-1].r-6;
+  for(let x=-34;x<=34;x++) for(let z=zmin;z<=16;z++){
     const ro=inRoom(x,z), cd=corr(x,z), path=cd<=2.2, wallC=!path&&cd<=3.3;
     if(!ro&&!path&&!wallC) continue;
-    const n=H(x,z,1), m=H(x,z,2);
-    let top=path?(n>.5?POLISHED:CHISELED):n>.86?BRICKS:n>.62?GRAVEL:n>.34?STONE:POLISHED;
+    const n=H(x,z,1), m=H(x,z,2), top=path?pick(T.path,n):pick(T.floor,n);
     const L=[]; for(let y=FY-4;y<FY;y++) L.push([y,STONE]); L.push([FY,top]);
-    if(ro&&!path){
-      const R=rooms[ro.i];
-      if(ro.edge<1.15){ L.push([FY+1,BRICKS]); L.push([FY+2,m>.5?CHISELED:BRICKS]); }                       // muro bajo del borde
-      else if(ro.d>3.2&&H(x>>1,z>>1,3)>.8&&Math.abs((x+.5-R.x))>2.5){ L.push([FY+1,m>.5?POLISHED:BRICKS]); } // escalones y restos
-    }
-    if(wallC&&!ro){ L.push([FY+1,BRICKS]); L.push([FY+2,m>.6?CHISELED:BRICKS]); }
-    set(x,z,L);
+    if(ro&&!path){ const R=rooms[ro.i];
+      if(ro.edge<1.15){ L.push([FY+1,T.wall[0]]); L.push([FY+2,m>.5?T.wall[1]:T.wall[0]]); }
+      else if(ro.d>3.2&&H(x>>1,z>>1,3)>.82&&Math.abs(x+.5-R.x)>2.5) L.push([FY+1,pick(T.wall,m)]); }
+    if(wallC&&!ro){ L.push([FY+1,T.wall[0]]); L.push([FY+2,m>.6?T.wall[1]:T.wall[0]]); }
+    cols.set(x+','+z,L);
   }
-  // puertas: donde el pasillo cruza el muro de cada sala
   for(let i=0;i<rooms.length;i++){ const R=rooms[i];
     for(const [k,o] of [['inn',i-1],['out',i+1]]){ if(o<0||o>=rooms.length) continue; const O=rooms[o];
       const ang=Math.atan2(O.z-R.z,O.x-R.x), e=rr(R,i,ang)-.6, gx=R.x+Math.cos(ang)*e, gz=R.z+Math.sin(ang)*e, px=-Math.sin(ang), pz=Math.cos(ang);
       const seen=new Set(); for(let t=-2.6;t<=2.6;t+=.5){ const x=Math.floor(gx+px*t), z=Math.floor(gz+pz*t), key=x+','+z; if(seen.has(key)) continue; seen.add(key); if(corr(x,z)<=2.2) gates[i][k].push([x,z]); } } }
-  // columnas con farol, braseros, cristales, huesos y cofres
   const put=(x,z,y,id)=>{ const c=cols.get(x+','+z); if(c) c.push([y,id]); };
+  const free=(x,z,m)=>corr(x,z)>(m||3)&&inRoom(x,z)&&inRoom(x,z).edge>1.6;
   rooms.forEach((R,i)=>{
-    for(let k=0;k<4;k++){ const a=k*Math.PI/2+.78+i*.3, x=Math.floor(R.x+Math.cos(a)*R.r*.55), z=Math.floor(R.z+Math.sin(a)*R.r*.55);
-      for(let y=1;y<=3;y++) put(x,z,FY+y,y===1||y===3?CHISELED:POLISHED); put(x,z,FY+4,LANTERN); glows.push([x+.5,FY+4.6,z+.5,0xffb060,1.8]); }
-    for(let k=0;k<5;k++){ const a=k*1.256+i, x=Math.floor(R.x+Math.cos(a)*(R.r-2.6)), z=Math.floor(R.z+Math.sin(a)*(R.r-2.6));
-      if(corr(x,z)<3) continue; put(x,z,FY+1,POLISHED); put(x,z,FY+2,LANTERN); glows.push([x+.5,FY+2.7,z+.5,0xff6a3a,2.2]); }
-    for(let k=0;k<2;k++){ const a=k*3.1+i*2.2+.5, x=Math.floor(R.x+Math.cos(a)*(R.r-3.5)), z=Math.floor(R.z+Math.sin(a)*(R.r-3.5));
-      if(corr(x,z)<3) continue; put(x,z,FY+1,CRYSTAL_ORE); put(x+1,z,FY+1,CRYSTAL_ORE); put(x,z,FY+2,CRYSTAL_ORE); glows.push([x+1,FY+2.2,z+.5,0x6ff0ff,2.4]); }
-    for(let k=0;k<4;k++){ const x=Math.floor(R.x+(H(i,k,5)-.5)*R.r*1.2), z=Math.floor(R.z+(H(k,i,6)-.5)*R.r*1.2); if(corr(x,z)>3&&inRoom(x,z)&&inRoom(x,z).edge>2) put(x,z,FY+1,BONE); }
+    // columnas con farol
+    for(let k=0;k<4;k++){ const a=k*Math.PI/2+.78+i*.3, x=Math.floor(R.x+Math.cos(a)*R.r*.55), z=Math.floor(R.z+Math.sin(a)*R.r*.55); if(!free(x,z,2.6)) continue;
+      if(T.props==='forest'){ for(let y=1;y<=4;y++) put(x,z,FY+y,LOG); for(let dx=-1;dx<=1;dx++)for(let dz=-1;dz<=1;dz++) put(x+dx,z+dz,FY+5,LEAVES); put(x,z,FY+6,LEAVES); put(x+1,z,FY+3,LANTERN); glows.push([x+1.5,FY+3.6,z+.5,T.glow[0],1.6]); }
+      else { for(let y=1;y<=3;y++) put(x,z,FY+y,y===2?T.pil[1]:T.pil[0]); put(x,z,FY+4,LANTERN); glows.push([x+.5,FY+4.6,z+.5,T.glow[0],1.8]); } }
+    // braseros
+    for(let k=0;k<3;k++){ const a=k*2.09+i, x=Math.floor(R.x+Math.cos(a)*(R.r-2.6)), z=Math.floor(R.z+Math.sin(a)*(R.r-2.6)); if(!free(x,z)) continue;
+      put(x,z,FY+1,T.props==='den'?HAY:POLISHED); put(x,z,FY+2,LANTERN); glows.push([x+.5,FY+2.7,z+.5,T.glow[1],2.2]); }
+    // decoración propia de cada mazmorra
+    for(let k=0;k<7;k++){ const a=k*.9+i*2.1+.4, d=R.r*(.3+H(i,k,8)*.5), x=Math.floor(R.x+Math.cos(a)*d), z=Math.floor(R.z+Math.sin(a)*d); if(!free(x,z,3)) continue;
+      const v=H(k,i,9);
+      if(T.props==='crypt'){ if(k<2){ put(x,z,FY+1,CRYSTAL_ORE); put(x+1,z,FY+1,CRYSTAL_ORE); put(x,z,FY+2,CRYSTAL_ORE); glows.push([x+1,FY+2.2,z+.5,T.glow[2],2.4]); } else put(x,z,FY+1,BONE); }
+      else if(T.props==='forest'){ put(x,z,FY+1,v<.4?BUSH:v<.75?TALLGRASS:FLOWER); if(k===0){ glows.push([x+.5,FY+1.8,z+.5,T.glow[2],2]); } }
+      else if(T.props==='desert'){ if(v<.45){ put(x,z,FY+1,CACTUS); put(x,z,FY+2,CACTUS); } else if(v<.7) put(x,z,FY+1,BONE); else { put(x,z,FY+1,GOLD_ORE); glows.push([x+.5,FY+1.8,z+.5,T.glow[2],1.6]); } }
+      else if(T.props==='ice'){ if(v<.5){ for(let y=1;y<=1+Math.floor(v*6);y++) put(x,z,FY+y,ICE); } else { put(x,z,FY+1,CRYSTAL_ORE); glows.push([x+.5,FY+2,z+.5,T.glow[0],2.2]); } }
+      else if(T.props==='den'){ if(v<.4){ put(x,z,FY+1,HAY); put(x+1,z,FY+1,HAY); } else if(v<.7) put(x,z,FY+1,FENCE); else put(x,z,FY+1,BONE); }
+    }
+    if(T.props==='forest'||T.props==='den') for(let k=0;k<26;k++){ const x=Math.floor(R.x+(H(i,k,11)-.5)*R.r*1.8), z=Math.floor(R.z+(H(k,i,12)-.5)*R.r*1.8);
+      const c=cols.get(x+','+z); if(c&&c.length===5&&free(x,z,2.4)) put(x,z,FY+1,TALLGRASS); }
   });
-  // portal de salida al fondo de la última sala
   const B=rooms[rooms.length-1], pz=B.z-B.r+3;
-  for(let y=1;y<=5;y++){ put(B.x-3,pz,FY+y,CHISELED); put(B.x+3,pz,FY+y,CHISELED); } for(let x=-3;x<=3;x++) put(B.x+x,pz,FY+6,CHISELED);
+  for(let y=1;y<=5;y++){ put(B.x-3,pz,FY+y,T.pil[0]); put(B.x+3,pz,FY+y,T.pil[0]); } for(let x=-3;x<=3;x++) put(B.x+x,pz,FY+6,T.pil[0]);
   return {rooms,cols,gates,glows,exit:[B.x+.5,pz+.5],rr,inRoom};
 }
-const DUN_WAVES=[[],[['umbrio','umbrio','umbrio']],[['umbrio','umbrio','thrower','umbrio'],['umbrio','umbrio','thrower']],
-  [['umbrio','umbrio','thrower','thrower','umbrio*'],['umbrio','umbrio','umbrio','umbrio*']],[['boss']]];
+// oleadas: más y más fuertes según avanzas y según la dificultad
+function dunWaves(T,diff,seed){
+  const rnd=rng(seed^0x5bd1), W=[[]], n=T.rooms;
+  for(let i=1;i<n;i++){
+    if(i===n-1){ W.push([[T.boss]]); continue; }
+    const waves=1+(i>=2?1:0)+(i>=3&&diff>=1?1:0), list=[];
+    for(let w=0;w<waves;w++){ const sz=2+Math.min(4,i)+diff+(w?-1:0), m=[];
+      for(let k=0;k<sz;k++){ let kind=T.mobs[Math.floor(rnd()*T.mobs.length)]; if(rnd()<.08+i*.04+diff*.08) kind+='*'; m.push(kind); }
+      list.push(m); }
+    W.push(list); }
+  return W;
+}
 
 // ---------- entrar y salir ----------
-function startDungeon(){
-  DSAVE=dunLoad(); const L=dunLayout();
+function startDungeon(k,diff){
+  k=k||0; diff=diff||0; DSAVE=dunLoad(); const T=DUN_THEMES[k], seed=(Math.random()*1e9)|0, L=dunLayout(T,seed);
   dunStatsBak=JSON.parse(JSON.stringify(stats));
-  startGame(777,null,0,L);
-  DUN={L,room:0,state:L.rooms.map((_,i)=>({started:i===0,cleared:i===0,wave:0,mobs:[]})),earned:0,kills:0,t0:gameT,won:false,chests:[]};
+  startGame(777+k,null,0,L);
+  DUN={k,T,diff,L,waves:dunWaves(T,diff,seed),room:0,state:L.rooms.map((_,i)=>({started:i===0,cleared:i===0,wave:0,mobs:[]})),earned:0,kills:0,t0:gameT,won:false,chests:[]};
   inv.fill(null); armor.fill(null);
   inv[0]={id:DSAVE.w,n:1,d:0}; if(DSAVE.b) inv[1]={id:DSAVE.b,n:1,d:0};
   if(DSAVE.pot>0) inv[2]={id:P_HEAL,n:DSAVE.pot,d:0}; if(DSAVE.arr>0) inv[3]={id:ARROW,n:DSAVE.arr,d:0};
@@ -6426,12 +6468,11 @@ function startDungeon(){
   hp=maxHp(); hunger=20; player.autoJump=true; dayT=.75; selectSlot(0); invChanged(); renderStats();
   player.x=.5; player.z=.5; player.y=DUN_FY+1.01; dunFace=Math.PI+DUN_YAW; dunCamP=null;
   for(const g of L.glows){ const s=auraMk(); s.visible=true; s.position.set(g[0],g[1],g[2]); s.material.color.setHex(g[3]); s.material.opacity=.85; s.scale.setScalar(g[4]); scene.add(s); dunGlows.push(s); }
-  // las puertas de salida de cada zona empiezan cerradas
   L.gates.forEach((g,i)=>{ if(i>0) dunGate(g.out,true); });
   dunExitFx(false);
   document.body.classList.add('dun'); $('dunHud').classList.add('on');
   dunLabels(true);
-  const hint=$('hint'); hint.textContent=isTouch?'Muévete con el joystick. Atacar pega donde miras (mantén para cargar) y Rodar esquiva. Llega al final de la cripta.':'Muévete con WASD y apunta con el ratón. Clic para atacar (mantén para cargar), Espacio para rodar y clic derecho para usar.'; hint.style.opacity='1';
+  const hint=$('hint'); hint.textContent=T.name+' · '+DUN_DIFF[diff].name+'. '+(isTouch?'Muévete con el joystick. Atacar pega donde miras (mantén para cargar) y Rodar esquiva.':'WASD para moverte y el ratón para apuntar. Clic ataca (mantén para cargar), Espacio rueda y clic derecho usa.'); hint.style.opacity='1';
   clearTimeout(toastT); toastT=setTimeout(()=>{ hint.style.opacity='0'; },9000);
   DSAVE.runs++; dunSave(DSAVE); dunHudText();
 }
@@ -6485,10 +6526,10 @@ function dunCamera(dt){
   if(camera.fov!==36){ camera.fov=36; camera.updateProjectionMatrix(); }
 }
 function dunLight(){
-  const U=world.U; U.uDay.value=.22; SKYU.uTint.value.set(.85,.55,1); litTint.setRGB(.85,.6,1); dayLight=.5; sunLight=.1;
-  for(const k of ['uZen','uHor','uLow','uGlow']) if(SKYU[k]&&SKYU[k].value.setRGB) SKYU[k].value.setRGB(.06,.03,.09);
+  const U=world.U, T=DUN.T; U.uDay.value=T.day; SKYU.uTint.value.set(T.tint[0],T.tint[1],T.tint[2]); litTint.setRGB(Math.min(1,T.tint[0]),Math.min(1,T.tint[1]*1.05),Math.min(1,T.tint[2])); dayLight=.5; sunLight=.1;
+  for(const k of ['uZen','uHor','uLow','uGlow']) if(SKYU[k]&&SKYU[k].value.setRGB) SKYU[k].value.setRGB(T.fog[0],T.fog[1],T.fog[2]);
   if(SKYU.uGlowA) SKYU.uGlowA.value=0; if(SKYU.uHalo) SKYU.uHalo.value=0; skyDome.visible=false;
-  if(scene.fog){ scene.fog.color.setRGB(.06,.03,.09); scene.fog.near=20; scene.fog.far=46; } U.uNear.value=20; U.uFar.value=46;
+  if(scene.fog){ scene.fog.color.setRGB(T.fog[0],T.fog[1],T.fog[2]); scene.fog.near=20; scene.fog.far=46; } U.uNear.value=20; U.uFar.value=46;
   wx.w=0; wxPts.visible=false;
 }
 function dunGate(list,close){
@@ -6501,79 +6542,86 @@ function dunExitFx(on){
   const e=DUN.L.exit; dunExitG.position.set(e[0],DUN_FY+3.4,e[1]); dunExitG.material.color.setHex(on?0xc07aff:0x553366); dunExitG.material.opacity=on?.95:.4; dunExitG.scale.setScalar(on?6:3); dunExitG.visible=true;
 }
 function dunSpawnWave(i){
-  const S=DUN.state[i], R=DUN.L.rooms[i], list=DUN_WAVES[i][S.wave]||[]; S.mobs=[];
-  list.forEach((k,j)=>{ const elite=k.endsWith('*'), kind=elite?k.slice(0,-1):k;
+  const S=DUN.state[i], R=DUN.L.rooms[i], list=DUN.waves[i][S.wave]||[], D=DUN_DIFF[DUN.diff]; S.mobs=[];
+  list.forEach(k=>{ const elite=k.endsWith('*'), kind=elite?k.slice(0,-1):k;
     let x=R.x, z=R.z; for(let t=0;t<12;t++){ const a=Math.random()*6.283, d=R.r*(.35+Math.random()*.35); x=R.x+Math.cos(a)*d; z=R.z+Math.sin(a)*d; if(Math.hypot(x-player.x,z-player.z)>4.5) break; }
-    if(kind==='boss'){ x=R.x; z=R.z-R.r*.45; }
+    if(BOSSNAME[kind]){ x=R.x; z=R.z-R.r*.45; }
     const e=makeEnemy(kind,x,DUN_FY+1.01,z); e.aggro=true; e.dun=true;
-    if(elite&&!e.elite){ e.elite=true; e.hp*=1.6; e.zm*=1.25; e.maxhp=e.hp; }
-    if(e.boss){ e.hp=e.maxhp=Math.round(e.hp*.32); e.guard=true; bossSay('Custodio lo que nadie quiso recordar.'); }
+    if(elite&&!e.elite){ e.elite=true; e.hp*=1.6; e.zm*=1.25; }
+    e.hp*=D.hp; e.zm*=D.dmg; if(e.boss){ e.hp*=.32; e.guard=true; bossSay((BOSS_SAY[kind]||[])[0]); } e.maxhp=e.hp;
     S.mobs.push(e); for(let q=0;q<5;q++) burst(Math.floor(x),DUN_FY+1+(q%2),Math.floor(z),99); });
-  if(list.length){ sfx('growl'); }
+  if(list.length) sfx('growl');
 }
 function dunKill(a){
   if(!DUN||!a.dun) return;
-  const v=a.boss?60:a.elite?8:3; DUN.earned+=v; DUN.kills++; dunHudText();
+  const v=Math.round((a.boss?60:a.elite?8:3)*DUN_DIFF[DUN.diff].pay); DUN.earned+=v; DUN.kills++; dunHudText();
 }
 function dunUpdate(dt){
-  const L=DUN.L, st=DUN.state;
-  // en qué zona estás
+  const L=DUN.L, st=DUN.state, W=DUN.waves, last=L.rooms.length-1;
   for(let i=0;i<L.rooms.length;i++){ const R=L.rooms[i], d=Math.hypot(player.x-R.x,player.z-R.z);
     const far=g=>g.every(c=>Math.hypot(player.x-(c[0]+.5),player.z-(c[1]+.5))>3.2);
-    if(!st[i].started&&!dead&&d<L.rr(R,i,Math.atan2(player.z-R.z,player.x-R.x))-4&&far(L.gates[i].inn)&&far(L.gates[i].out)){ st[i].started=true; DUN.room=i; dunGate(L.gates[i].inn,true); dunGate(L.gates[i].out,true); dunSpawnWave(i);
-      toast(i===L.rooms.length-1?'La sala del guardián. Las puertas se cierran.':'Zona '+(i+1)+' de '+L.rooms.length+': las puertas se cierran.'); sfx('door'); dunHudText(); }
+    if(!st[i].started&&!dead&&d<L.rr(R,i,Math.atan2(player.z-R.z,player.x-R.x))-4&&far(L.gates[i].inn)&&far(L.gates[i].out)){ st[i].started=true;
+      DUN.room=i; dunGate(L.gates[i].inn,true); dunGate(L.gates[i].out,true); dunSpawnWave(i);
+      toast(i===last?'La sala del guardián. Las puertas se cierran.':'Zona '+(i+1)+' de '+L.rooms.length+': las puertas se cierran.'); sfx('door'); dunHudText(); }
     if(d<R.r) DUN.room=i; }
-  // zona en marcha: siguiente oleada o despejada
   const i=DUN.room, S=st[i];
   if(S.started&&!S.cleared){ S.mobs=S.mobs.filter(e=>enemies.includes(e));
     if(!S.mobs.length){ S.wave++;
-      if(S.wave<DUN_WAVES[i].length){ dunSpawnWave(i); toast('¡Otra oleada!'); }
+      if(S.wave<W[i].length){ dunSpawnWave(i); toast('¡Otra oleada!'); }
       else { S.cleared=true; dunGate(L.gates[i].inn,false); dunGate(L.gates[i].out,false); sfx('door');
-        if(i===L.rooms.length-1){ dunExitFx(true); toast('¡Has vencido al guardián! El portal del fondo se ha abierto.'); }
+        if(i===last){ dunExitFx(true); toast('¡Has vencido al guardián! El portal del fondo se ha abierto.'); for(const e of [...enemies]) if(e.dun===undefined) removeEntity(e); }
         else toast('Zona despejada. Hay un cofre esperándote.');
         const R=L.rooms[i], cx=Math.floor(R.x+(i%2?2:-2)), cz=Math.floor(R.z+1); world.setBlock(cx,DUN_FY+1,cz,CHEST); DUN.chests.push([cx,cz]); } }
     dunHudText(); }
-  // cofres: se abren al acercarte
   for(let k=DUN.chests.length-1;k>=0;k--){ const c=DUN.chests[k]; if(Math.hypot(player.x-(c[0]+.5),player.z-(c[1]+.5))<1.7){
       DUN.chests.splice(k,1); world.setBlock(c[0],DUN_FY+1,c[1],AIR); burst(c[0],DUN_FY+1,c[1],CHEST); sfx('chest');
-      const t=15+Math.floor(Math.random()*16); DUN.earned+=t; let extra='';
+      const t=Math.round((15+Math.floor(Math.random()*16))*DUN_DIFF[DUN.diff].pay); DUN.earned+=t; let extra='';
       if(Math.random()<.6){ addItem(P_HEAL,1); extra=' y una poción'; } else { addItem(ARROW,8); extra=' y 8 flechas'; }
       toast('Cofre: +'+t+' teselas'+extra+'.'); dunHudText(); } }
-  // salida
-  const e=L.exit; if(st[L.rooms.length-1].cleared&&!DUN.won&&Math.abs(player.x-e[0])<2.2&&Math.abs(player.z-(e[1]+.6))<1.2) dunFinish(true);
-  if(dunExitG&&dunExitG.visible){ dunExitG.material.rotation+=dt*.6; }
+  const e=L.exit; if(st[last].cleared&&!DUN.won&&Math.abs(player.x-e[0])<2.2&&Math.abs(player.z-(e[1]+.6))<1.2) dunFinish(true);
+  if(dunExitG&&dunExitG.visible) dunExitG.material.rotation+=dt*.6;
 }
-function dunHudText(){ if(!DUN) return; const i=DUN.room, S=DUN.state[i], n=S.started&&!S.cleared?S.mobs.filter(e=>enemies.includes(e)).length:0;
-  $('dhZone').textContent='Cripta olvidada · Zona '+(i+1)+' de '+DUN.L.rooms.length;
-  $('dhMobs').textContent=S.started&&!S.cleared?'Enemigos: '+n+(DUN_WAVES[i].length>1?' · oleada '+(S.wave+1)+' de '+DUN_WAVES[i].length:''):S.cleared&&i>0?'Zona despejada':'';
+function dunHudText(){ if(!DUN) return; const i=DUN.room, S=DUN.state[i], n=S.started&&!S.cleared?S.mobs.filter(e=>enemies.includes(e)).length:0, nw=DUN.waves[i].length;
+  $('dhZone').textContent=DUN.T.em+' '+DUN.T.name+(DUN.diff?' ('+DUN_DIFF[DUN.diff].name+')':'')+' · Zona '+(i+1)+' de '+DUN.L.rooms.length;
+  $('dhMobs').textContent=S.started&&!S.cleared?'Enemigos: '+n+(nw>1?' · oleada '+(S.wave+1)+' de '+nw:''):S.cleared&&i>0?'Zona despejada':'';
   $('dhMobs').style.display=$('dhMobs').textContent?'block':'none';
   $('dhCoins').textContent='◆ '+(DSAVE.t+DUN.earned); }
 function dunFinish(win){
   if(!DUN||DUN.won) return; DUN.won=true;
-  const first=win&&DSAVE.clears===0, bonus=win?50+(first?100:0):0, keep=win?DUN.earned:Math.floor(DUN.earned/2), got=keep+bonus;
-  DSAVE.t+=got; if(win) DSAVE.clears++; DSAVE.pot=countItem(P_HEAL); DSAVE.arr=countItem(ARROW); dunSave(DSAVE);
+  const T=DUN.T, cl=dunClears(DSAVE,T.id), first=win&&cl[DUN.diff]===0, pay=DUN_DIFF[DUN.diff].pay;
+  const bonus=win?Math.round((50+(first?100:0))*pay):0, keep=win?DUN.earned:Math.floor(DUN.earned/2), got=keep+bonus;
+  const unlockNext=win&&DUN.diff===0&&first&&DUN.k<DUN_THEMES.length-1, unlockDiff=win&&first&&DUN.diff<2;
+  DSAVE.t+=got; if(win){ cl[DUN.diff]++; DSAVE.cl[T.id]=cl; DSAVE.clears++; } DSAVE.pot=countItem(P_HEAL); DSAVE.arr=countItem(ARROW); dunSave(DSAVE);
   const secs=Math.round(gameT-DUN.t0);
-  $('drTitle').textContent=win?'¡Cripta completada!':'Has caído en la cripta';
-  $('drText').innerHTML=(win?'Has llegado al final de la Cripta olvidada.':'Te quedas con la mitad de las teselas que llevabas.')+'<br><br>'+
+  $('drTitle').textContent=win?'¡'+T.name+' completada!':'Has caído en '+T.name.toLowerCase();
+  $('drText').innerHTML=(win?'Has llegado al final de la mazmorra'+(DUN.diff?' en '+DUN_DIFF[DUN.diff].name.toLowerCase():'')+'.':'Te quedas con la mitad de las teselas que llevabas.')+'<br><br>'+
     'Enemigos derrotados: <b>'+DUN.kills+'</b> · Tiempo: <b>'+Math.floor(secs/60)+':'+String(secs%60).padStart(2,'0')+'</b><br>'+
-    'Teselas conseguidas: <b>'+keep+'</b>'+(win?' + <b>'+bonus+'</b> por completarla'+(first?' (primera vez)':''):' de '+DUN.earned)+'<br>Total: <b>◆ '+DSAVE.t+'</b>';
+    'Teselas conseguidas: <b>'+keep+'</b>'+(win?' + <b>'+bonus+'</b> por completarla'+(first?' (primera vez)':''):' de '+DUN.earned)+'<br>Total: <b>◆ '+DSAVE.t+'</b>'+
+    (unlockNext?'<br><br>🔓 Nueva mazmorra: <b>'+DUN_THEMES[DUN.k+1].name+'</b>':'')+(unlockDiff?'<br>🔓 Nueva dificultad aquí: <b>'+DUN_DIFF[DUN.diff+1].name+'</b>':'');
   $('dunRes').classList.add('on'); paused=true; sfx(win?'victory':'hurt');
   try{ if(document.exitPointerLock) document.exitPointerLock(); }catch(_){}
 }
 
-// ---------- campamento: tienda y equipo ----------
+// ---------- campamento: mazmorras, equipo y tienda ----------
 function openDunHub(){ DSAVE=dunLoad(); renderDunHub(); $('dunHub').classList.add('on'); }
 function closeDunHub(){ $('dunHub').classList.remove('on'); }
 function renderDunHub(){
   const D=DSAVE, B=$('dhBody'); B.innerHTML=''; $('dhT').textContent='◆ '+D.t+' teselas';
   const sec=t=>{ const h=document.createElement('div'); h.className='ptitle'; h.style.margin='14px 0 4px'; h.textContent=t; B.appendChild(h); };
-  const row=(id,txt,btn,on,fn,pri)=>{ const r=document.createElement('div'); r.className='skrow'+(on?'':' done');
-    r.innerHTML='<div class="skic">'+(id?'<img alt="" src="'+icon(id).url+'">':'🗝')+'</div><div class="sktx"><b></b><span></span></div>';
+  const row=(id,txt,btn,on,fn,pri,em)=>{ const r=document.createElement('div'); r.className='skrow'+(on?'':' done');
+    r.innerHTML='<div class="skic">'+(id?'<img alt="" src="'+icon(id).url+'">':(em||'🗝'))+'</div><div class="sktx"><b></b><span></span></div>';
     r.querySelector('b').textContent=id?BLOCKS[id].name:txt[0]; r.querySelector('span').textContent=id?txt:txt[1];
-    if(btn){ const b=document.createElement('button'); b.className='mini'+(pri?' pri':''); b.textContent=btn; b.disabled=!on; b.addEventListener('click',fn); r.appendChild(b); }
+    const bl=Array.isArray(btn)?btn:btn?[[btn,on,fn,pri]]:[];
+    for(const q of bl){ const b=document.createElement('button'); b.className='mini'+(q[3]?' pri':''); b.textContent=q[0]; b.disabled=!q[1]; if(q[2]) b.addEventListener('click',q[2]); b.style.marginLeft='4px'; r.appendChild(b); }
     B.appendChild(r); };
-  sec('Mazmorra');
-  row(0,['Cripta olvidada','5 zonas · al final espera un guardián · '+(D.clears?'completada '+D.clears+(D.clears===1?' vez':' veces'):'aún sin completar')],'Entrar',true,()=>{ closeDunHub(); initAudio(); startDungeon(); },true);
+  sec('Mazmorras');
+  DUN_THEMES.forEach((T,k)=>{ const ok=dunUnlocked(D,k), cl=dunClears(D,T.id);
+    if(!ok){ row(0,[T.name,'Bloqueada: completa '+DUN_THEMES[k-1].name+' para abrirla.'],'',false,null,false,'🔒'); return; }
+    const go=d=>()=>{ closeDunHub(); initAudio(); startDungeon(k,d); };
+    const done=cl.map((n,d)=>n?DUN_DIFF[d].name+' ✓':'').filter(Boolean).join(' · ');
+    row(0,[T.name,T.desc+' '+T.rooms+' zonas.'+(done?' '+done:'')],
+      [['Normal',true,go(0),true],['Difícil',cl[0]>0,go(1),cl[0]>0],['Pesadilla',cl[1]>0,go(2),cl[1]>0]],true,null,false,T.em); });
+  const hint=document.createElement('p'); hint.style.cssText='margin:4px 0 0;font-size:12px;opacity:.75'; hint.textContent='Difícil y Pesadilla se abren al completar la anterior. Enemigos más duros, pero pagan 1,7 y 2,6 veces más teselas. Cada vez que entras, las zonas cambian de forma.'; B.appendChild(hint);
   sec('Tu equipo');
   const wpn=D.own.filter(i=>BLOCKS[i]&&WPN_T[BLOCKS[i].tool]), bows=D.own.filter(i=>BLOCKS[i]&&BLOCKS[i].tool==='bow');
   for(const id of wpn) row(id,id===D.w?'Equipada':'Arma cuerpo a cuerpo',id===D.w?'':'Equipar',id!==D.w,()=>{ D.w=id; dunSave(D); renderDunHub(); });
