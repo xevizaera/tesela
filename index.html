@@ -2105,9 +2105,9 @@ const plAct={m:0,hp:0,sw:0};
 function buildPlayerModel(){
   plArmorMat=new THREE.MeshBasicMaterial({vertexColors:true,map:DET_HARD}); plArmorMat.userData.base=new THREE.Color(0xffffff); animalMats.push(plArmorMat);
   const SK=0xd9a87e, HR=0x3b2a1e, TU=0x2f7d74, PA=0x4a3a2c, SH=0x2c241e, BE=0x5a3a1e, TD=0x23625b;
-  const root=new THREE.Group(), up=new THREE.Group(); up.position.y=.74; root.add(up);
+  const root=new THREE.Group(), spin=new THREE.Group(), up=new THREE.Group(); spin.position.y=.85; root.add(spin); up.position.y=.74-.85; spin.add(up);
   const piece=(parent,fn,x,y,z)=>{ const g=new THREE.Group(); g.position.set(x,y,z); const B=AB(); fn(B); g.add(abMesh(B)); parent.add(g); return g; };
-  const legs=[1,-1].map(sx=>piece(root,B=>{ abx(B,.2,.62,.22,PA,0,-.31,0); abx(B,.21,.1,.23,0x5c4a38,0,-.32,0); abx(B,.22,.12,.28,SH,0,-.68,.03); abx(B,.23,.04,.29,0x1c1612,0,-.73,.03); abx(B,.06,.02,.01,0xb8a07a,0,-.63,.17); },sx*.11,.74,0));
+  const legs=[1,-1].map(sx=>piece(spin,B=>{ abx(B,.2,.62,.22,PA,0,-.31,0); abx(B,.21,.1,.23,0x5c4a38,0,-.32,0); abx(B,.22,.12,.28,SH,0,-.68,.03); abx(B,.23,.04,.29,0x1c1612,0,-.73,.03); abx(B,.06,.02,.01,0xb8a07a,0,-.63,.17); },sx*.11,.74-.85,0));
   piece(up,B=>{ abx(B,.5,.66,.28,TU,0,.33,0); abx(B,.52,.08,.3,BE,0,.03,0); abx(B,.3,.06,.3,0x25645d,0,.68,0); abx(B,.12,.12,.02,0x25645d,0,.59,.145);
     abx(B,.51,.05,.29,TD,0,.02,0); abx(B,.52,.04,.3,0x3c9a8e,0,.65,0); for(const y of [.53,.38,.23]) abx(B,.035,.035,.01,0xd8c27a,0,y,.145);
     abx(B,.09,.07,.02,0xe0b84a,0,.03,.155); abx(B,.06,.12,.24,0x7a5232,.22,.19,0); abx(B,.04,.04,.25,0xd8c27a,.22,.21,0); },0,0,0);
@@ -2119,7 +2119,7 @@ function buildPlayerModel(){
   const hold=new THREE.Group(); hold.position.set(0,-.64,.1); hold.rotation.set(.35,0,0); arms[1].add(hold);
   const arm=[]; for(let j=0;j<3;j++) arm.push({cur:'',meshes:[]});
   root.visible=false; scene.add(root);
-  plM={root,up,legs,arms,head,hold,arm,held:-1};
+  plM={root,spin,up,legs,arms,head,hold,arm,held:-1};
 }
 function plArmor(){
   for(let j=0;j<3;j++){ const a=armor[j], c=plM.arm[j], key=a?BLOCKS[a.id].metal:'';
@@ -2144,12 +2144,16 @@ function updatePlayerModel(dt,show,camD){
   const lw=Math.sin(plWalk)*amp;
   if(riding){ plM.legs[0].rotation.set(-1.35,0,-.25); plM.legs[1].rotation.set(-1.35,0,.25); }
   else { plM.legs[0].rotation.set(lw,0,0); plM.legs[1].rotation.set(-lw,0,0); }
-  plM.up.rotation.x=sneak?.32:dunRollT>0?.9:0;
+  const rp=dunRollT>0?1-dunRollT/.42:0, rl=rp>0?Math.sin(rp*Math.PI):0;           // voltereta: el cuerpo se encoge y gira una vuelta entera
+  plM.spin.rotation.x=rp*Math.PI*2; plM.spin.position.y=.85-rl*.3;
+  plM.up.rotation.x=sneak?.32:rl*.7;
+  if(rl>0){ plM.legs[0].rotation.set(-1.5*rl,0,0); plM.legs[1].rotation.set(-1.5*rl,0,0); }
   plM.arms[0].rotation.set(-lw*.8,0,0);
   let ra=lw*.8, rz=0;
   if(plAct.chg>0){ ra=-(1.2+plAct.chg*1.6); rz=-.35; }
   else if(plAct.m){ const u=1-plAct.hp; ra=-(.7+u*2.3); rz=-.28-u*.2; } else if(plAct.sw>0){ ra=-.5-plAct.sw*1.5; rz=-.25; } else if(id) ra=Math.min(ra,0)-.25;
   plM.arms[1].rotation.set(ra,0,rz);
+  if(rl>0){ plM.arms[0].rotation.set(-1.3*rl,0,0); plM.arms[1].rotation.set(-1.3*rl,0,0); }
   if(!plM.aura){ plM.aura=auraMk(); plM.aura.position.set(0,.35,.1); plM.hold.add(plM.aura); }
   plM.aura.visible=plAct.chg>0; if(plM.aura.visible){ plM.aura.material.color.copy(wpnCol(BLOCKS[id])); plM.aura.material.opacity=.4+plAct.chg*.6; plM.aura.scale.setScalar(.3+plAct.chg*.9); }
   plM.head.rotation.x=Math.max(-.7,Math.min(.6,-player.pitch*.8))-(sneak?.25:0);
@@ -6449,14 +6453,16 @@ function dunPreMove(){ player.yaw=DUN_YAW; player.pitch=-.2;
   const jumpEdge=inp.jump&&!dunJumpWas; dunJumpWas=inp.jump; inp.jump=false;
   if(jumpEdge&&dunRollCd<=0&&!dead){ let mx=player.vx, mz=player.vz; const l=Math.hypot(mx,mz);
     if(l<.5){ mx=-Math.sin(dunFace); mz=-Math.cos(dunFace); } else { mx/=l; mz/=l; }
-    dunRollV=[mx*11.5,mz*11.5]; dunRollT=.3; dunRollCd=.85; invuln=Math.max(invuln,.38); sfx('swing'); dustAt(player.x,player.y,player.z,6,.5); }
+    dunRollV=[mx*9.5,mz*9.5]; dunRollT=.42; dunRollCd=.9; invuln=Math.max(invuln,.48); sfx('swing'); dustAt(player.x,player.y,player.z,6,.5); }
 }
 function dunPostMove(dt){
   dunRollCd-=dt;
   if(dunRollT>0){ dunRollT-=dt; for(const ax of [0,1]){ const n=ax?player.z+dunRollV[1]*dt:player.x+dunRollV[0]*dt;
       if(ax){ if(!player.collides(player.x,player.y,n)) player.z=n; } else if(!player.collides(n,player.y,player.z)) player.x=n; }
-    dunFace=Math.atan2(-dunRollV[0],-dunRollV[1]); }
+    dunFace=Math.atan2(-dunRollV[0],-dunRollV[1]); if(Math.random()<dt*12) dustAt(player.x,player.y,player.z,1,.3); }
   else if(Math.hypot(player.vx,player.vz)>.6&&chg<=0){ const t=Math.atan2(-player.vx,-player.vz); let d=t-dunFace; while(d>Math.PI) d-=6.283; while(d<-Math.PI) d+=6.283; dunFace+=d*Math.min(1,dt*14); }
+  if(player.collides(player.x,player.y,player.z)){ const R=DUN.L.rooms[DUN.room]; let dx=R.x-player.x, dz=R.z-player.z; const l=Math.hypot(dx,dz)||1; dx/=l; dz/=l;
+    for(let k=1;k<=12;k++){ const nx=player.x+dx*k*.35, nz=player.z+dz*k*.35; if(!player.collides(nx,player.y,nz)){ player.x=nx; player.z=nz; break; } if(!player.collides(player.x,player.y+k*.5,player.z)){ player.y+=k*.5; break; } } }
   player.yaw=dunFace;
   // caída al vacío: vuelves al centro de la zona
   if(player.y<DUN_FY-7&&!dead){ const R=DUN.L.rooms[DUN.room]; player.x=R.x+.5; player.z=R.z+.5; player.y=DUN_FY+1.01; player.vy=0; hurtPlayer(3,0,0); toast('Has caído al vacío.'); }
@@ -6485,7 +6491,10 @@ function dunLight(){
   if(scene.fog){ scene.fog.color.setRGB(.06,.03,.09); scene.fog.near=20; scene.fog.far=46; } U.uNear.value=20; U.uFar.value=46;
   wx.w=0; wxPts.visible=false;
 }
-function dunGate(list,close){ for(const [x,z] of list) for(let y=1;y<=3;y++){ world.setBlock(x,DUN_FY+y,z,close?CHISELED:AIR); if(!close&&y===2) burst(x,DUN_FY+y,z,CHISELED); } }
+function dunGate(list,close){
+  if(close) for(const [x,z] of list) if(player.overlapsBlock(x,DUN_FY+1,z)||player.overlapsBlock(x,DUN_FY+2,z)){   // si estás en la puerta, te empuja hacia dentro de la zona
+    const R=DUN.L.rooms[DUN.room], dx=R.x-player.x, dz=R.z-player.z, l=Math.hypot(dx,dz)||1; player.x+=dx/l*2.2; player.z+=dz/l*2.2; }
+  for(const [x,z] of list) for(let y=1;y<=3;y++){ world.setBlock(x,DUN_FY+y,z,close?CHISELED:AIR); if(!close&&y===2) burst(x,DUN_FY+y,z,CHISELED); } }
 let dunExitG=null;
 function dunExitFx(on){
   if(!dunExitG){ dunExitG=auraMk(); scene.add(dunExitG); }
@@ -6510,7 +6519,8 @@ function dunUpdate(dt){
   const L=DUN.L, st=DUN.state;
   // en qué zona estás
   for(let i=0;i<L.rooms.length;i++){ const R=L.rooms[i], d=Math.hypot(player.x-R.x,player.z-R.z);
-    if(d<R.r-2.2&&!st[i].started&&!dead){ st[i].started=true; DUN.room=i; dunGate(L.gates[i].inn,true); dunGate(L.gates[i].out,true); dunSpawnWave(i);
+    const far=g=>g.every(c=>Math.hypot(player.x-(c[0]+.5),player.z-(c[1]+.5))>3.2);
+    if(!st[i].started&&!dead&&d<L.rr(R,i,Math.atan2(player.z-R.z,player.x-R.x))-4&&far(L.gates[i].inn)&&far(L.gates[i].out)){ st[i].started=true; DUN.room=i; dunGate(L.gates[i].inn,true); dunGate(L.gates[i].out,true); dunSpawnWave(i);
       toast(i===L.rooms.length-1?'La sala del guardián. Las puertas se cierran.':'Zona '+(i+1)+' de '+L.rooms.length+': las puertas se cierran.'); sfx('door'); dunHudText(); }
     if(d<R.r) DUN.room=i; }
   // zona en marcha: siguiente oleada o despejada
