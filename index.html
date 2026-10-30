@@ -146,6 +146,10 @@ body.photo #hud>*:not(#photoX){display:none!important} body.photo #photoX{displa
 .hpb{position:absolute;left:0;top:0;width:44px;height:6px;background:rgba(0,0,0,.6);border:1px solid rgba(0,0,0,.75);border-radius:3px;overflow:hidden}
 .hpb i{display:block;height:100%;background:#e5484d;transition:width .15s}
 .hpb.calm i{background:#e8a13a}
+.hpb.elite{border-color:#e8c25a;box-shadow:0 0 0 1px rgba(232,194,90,.6)}
+.dnum.chg{color:#ffe27a;font-size:22px;text-shadow:0 1px 2px #000,0 0 6px rgba(255,190,60,.9)}
+body.dun .dnum{font-size:17px}
+body.dun .hpb{width:38px;height:5px}
 #feed{position:absolute;left:calc(12px + var(--sl));top:44%;display:flex;flex-direction:column;gap:3px;pointer-events:none}
 .fd{display:flex;align-items:center;gap:6px;background:var(--panel);padding:3px 9px 3px 4px;border-radius:6px;font-size:12px;font-weight:700;transition:opacity .5s}
 .fd img{width:18px;height:18px;image-rendering:pixelated}
@@ -5447,11 +5451,11 @@ function updateFeedback(dt){
   // barras de vida de los heridos (los jefes ya tienen la suya arriba)
   const want=new Set();
   if(player) for(const list of [enemies,animals]) for(const a of list){
-    if(a.boss||a.tame||!a.hitT||gameT-a.hitT>6||a.hp<=0) continue;
+    if(a.boss||a.tame||a.hp<=0||(!(DUN&&a.dun)&&(!a.hitT||gameT-a.hitT>6))) continue;
     if(Math.hypot(a.x-player.x,a.z-player.z)>24) continue; want.add(a);
-    let b=hpbars.get(a); if(!b){ b=document.createElement('div'); b.className='hpb'+(a.hostile?'':' calm'); b.innerHTML='<i></i>'; $('fxLayer').appendChild(b); hpbars.set(a,b); }
+    let b=hpbars.get(a); if(!b){ b=document.createElement('div'); b.className='hpb'+(a.hostile?'':' calm')+(a.elite?' elite':''); b.innerHTML='<i></i>'; $('fxLayer').appendChild(b); hpbars.set(a,b); }
     const p=toScreen(a.x,a.y+a.sp.h*(a.sc0||a.sc||1)+.45,a.z); if(!p){ b.style.display='none'; continue; }
-    b.style.display='block'; b.style.transform='translate('+(p[0]-22).toFixed(1)+'px,'+p[1].toFixed(1)+'px)'; b.firstChild.style.width=Math.max(0,Math.min(100,a.hp/(a.maxhp||a.hp)*100)).toFixed(0)+'%';
+    b.style.display='block'; b.style.transform='translate('+(p[0]-(DUN?19:22)).toFixed(1)+'px,'+p[1].toFixed(1)+'px)'; b.firstChild.style.width=Math.max(0,Math.min(100,a.hp/(a.maxhp||a.hp)*100)).toFixed(0)+'%';
   }
   hpbars.forEach((b,a)=>{ if(!want.has(a)){ b.remove(); hpbars.delete(a); } });
   // lo que recoges
@@ -5683,7 +5687,7 @@ function damageEntity(a,dmg,dx,dz,ranged,kbm){
   a.hp-=dmg; a.hurtT=.2;
   if(!a.ko){ const l=Math.hypot(dx,dz)||1, kb=(ranged?3:7)*(a.boss?.12:1)*(kbm||1); a.kx=dx/l*kb; a.kz=dz/l*kb; if(!a.boss&&(dx||dz)){ a.vy=ranged?2.5:4.5; a.ground=false; } }
   sfx('hit'); burst(Math.floor(a.x),Math.floor(a.y+a.sp.h*.4),Math.floor(a.z),a.hostile?99:98);
-  dmgNum(a,hp0-a.hp,dk==='poison'?'poison':crit?'weak':null); flashEnt(a);
+  dmgNum(a,hp0-a.hp,dk==='poison'?'poison':crit?'weak':atkMul>1.35?'chg':null); flashEnt(a);
   if(a.ko) a.eff=Math.max(0,(a.eff===undefined?1:a.eff)-.1);    // pegarle dormido empeora la doma
   else if(!a.hostile){ if(a.sp.aggro) a.angry=20; else { a.state='flee'; a.t=4; a.yaw=Math.atan2(a.x-player.x,a.z-player.z); } a.trust=false; }
   if(a.hp<=0){
@@ -6557,6 +6561,7 @@ function dunCamera(dt){
   if(!dunCamP) dunCamP=[tx,ty,tz]; const k=Math.min(1,dt*7); dunCamP[0]+=(tx-dunCamP[0])*k; dunCamP[1]+=(ty-dunCamP[1])*k; dunCamP[2]+=(tz-dunCamP[2])*k;
   camera.position.set(dunCamP[0]+DUN_CAM[0],dunCamP[1]+DUN_CAM[1],dunCamP[2]+DUN_CAM[2]); camera.lookAt(dunCamP[0],dunCamP[1]+.5,dunCamP[2]-.5);
   if(camera.fov!==36){ camera.fov=36; camera.updateProjectionMatrix(); }
+  camera.updateMatrixWorld();      // para que barras y números se coloquen con la cámara de la mazmorra
 }
 function dunLight(){
   const U=world.U, T=DUN.T; U.uDay.value=T.day; SKYU.uTint.value.set(T.tint[0],T.tint[1],T.tint[2]); litTint.setRGB(Math.min(1,T.tint[0]),Math.min(1,T.tint[1]*1.05),Math.min(1,T.tint[2])); dayLight=.5; sunLight=.1;
@@ -6988,6 +6993,7 @@ function loop(now){
     camera.position.set(sx-dir.x*tpD,sy-dir.y*tpD,sz-dir.z*tpD);
     ex=sx; ey=sy; ez=sz;                                  // se apunta desde el hombro, en la misma línea que la cámara
   } else camera.position.set(ex,ey,ez);
+  if(tp) camera.updateMatrixWorld();
   { const c=camera.position; $('uw').style.display=WATERISH[world.getBlock(Math.floor(c.x),Math.floor(c.y),Math.floor(c.z))]?'block':'none'; }
 
   // bloque apuntado
