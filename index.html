@@ -2134,13 +2134,13 @@ let plM=null, plHoldMats=[], plWalk=0;
 const plAct={m:0,hp:0,sw:0};
 // cómo se coge cada objeto en la mano del personaje (vista desde fuera): el puño en el mango y la hoja hacia delante
 function gripItem(it,d,hold,sc){
-  it.scale.setScalar(sc);
-  if(!d||!d.tool){ it.rotation.set(0,0,0); it.position.set(0,0,0); hold.rotation.set(.35,0,0); hold.position.y=hold.userData.y0??(hold.userData.y0=hold.position.y); return; }
-  if(hold.userData.y0===undefined) hold.userData.y0=hold.position.y;
+  it.scale.setScalar(sc); const ud=hold.userData||(hold.userData={});
+  if(ud.y0===undefined) ud.y0=hold.position.y;
+  if(!d||!d.tool){ it.rotation.set(0,0,0); it.position.set(0,0,0); hold.rotation.set(.35,0,0); hold.position.y=ud.y0; return; }
   const t=d.tool, grip={sword:-.2,dagger:-.08,spear:-.12,waraxe:-.18,axe:-.18,pick:-.18,hoe:-.18,sling:0,bow:0}[t]??-.15;
   if(t==='bow'){ it.rotation.set(0,Math.PI/2,0); it.position.set(0,0,0); hold.rotation.set(0,0,0); }
   else { it.rotation.set(0,0,0); it.position.set(0,-grip*sc,0); hold.rotation.set(t==='spear'?1.4:.95,0,0); }
-  hold.position.y=hold.userData.y0+.04;
+  hold.position.y=ud.y0+.04;
 }
 function buildPlayerModel(){
   plArmorMat=new THREE.MeshBasicMaterial({vertexColors:true,map:DET_HARD}); plArmorMat.userData.base=new THREE.Color(0xffffff); animalMats.push(plArmorMat);
