@@ -182,7 +182,7 @@ body.dun .hpb{width:38px;height:5px}
 #dhMobs{position:absolute;left:50%;top:calc(36px + var(--st));transform:translateX(-50%);font-size:13px;background:rgba(40,10,30,.65);padding:4px 10px;border-radius:6px;border:1px solid #a04a7a;pointer-events:none;white-space:nowrap}
 #dhCoins{position:absolute;right:calc(12px + var(--sr));top:calc(62px + var(--st));font-size:14px;font-weight:700;color:#e8c25a;background:rgba(10,8,16,.6);padding:4px 10px;border-radius:6px;pointer-events:none}
 body.dun #compass,body.dun #goal,body.dun #fdBar,body.dun #xpBar,body.dun #bMap,body.dun #bInv,body.dun #bSneak,body.dun #cross,body.dun #dot,body.dun #dayLbl,body.dun #pets,body.dun #tame{display:none!important}
-body.dun #pSave,body.dun #pPhoto,body.dun #pBook{display:none!important}
+body.dun #pSave,body.dun #pPhoto,body.dun #pBook,body.dun #pSk,body.dun #pQuit{display:none!important}
 body:not(.bossfight) #bossSay{top:calc(40px + var(--st))}
 body.saying #hint{opacity:0!important}
 #bossBar div{height:8px;margin-top:3px;background:rgba(0,0,0,.55);border:1px solid var(--b1,#8d5bd6);border-radius:4px;overflow:hidden}
@@ -6542,6 +6542,7 @@ function startDungeon(k,diff){
   DSAVE.runs++; dunSave(DSAVE); dunHudText();
 }
 function dunLabels(on){
+  $('pExit').textContent=on?'Abandonar la mazmorra':'Salir al menú principal';
   const j=$('bJump'), last=j.lastChild; if(last&&last.nodeType===3) last.textContent=on?'Rodar':'Saltar'; j.setAttribute('aria-label',on?'Rodar':'Saltar');
 }
 function dunCleanup(){
@@ -6681,14 +6682,14 @@ function dunHudText(){ if(!DUN) return; const i=DUN.room, S=DUN.state[i], n=S.st
   $('dhMobs').textContent=S.started&&!S.cleared?'Enemigos: '+n+(nw>1?' · oleada '+(S.wave+1)+' de '+nw:''):S.cleared&&i>0?'Zona despejada':'';
   $('dhMobs').style.display=$('dhMobs').textContent?'block':'none';
   $('dhCoins').textContent='◆ '+(DSAVE.t+DUN.earned); }
-function dunFinish(win){
+function dunFinish(win,quit){
   if(!DUN||DUN.won) return; DUN.won=true;
   const T=DUN.T, cl=dunClears(DSAVE,T.id), first=win&&cl[DUN.diff]===0, pay=DUN_DIFF[DUN.diff].pay;
   const bonus=win?Math.round((50+(first?100:0))*pay):0, keep=win?DUN.earned:Math.floor(DUN.earned/2), got=keep+bonus;
   const unlockNext=win&&first&&DUN.k<DUN_THEMES.length-1&&cl.filter(Boolean).length===0, unlockDiff=win&&first&&DUN.diff>=1&&DUN.diff<3;
   DSAVE.t+=got; if(win){ cl[DUN.diff]++; DSAVE.cl[T.id]=cl; DSAVE.clears++; } DSAVE.pot=countItem(P_HEAL); DSAVE.arr=countItem(ARROW); dunSave(DSAVE);
   const secs=Math.round(gameT-DUN.t0);
-  $('drTitle').textContent=win?'¡'+T.name+' completada!':'Has caído en '+T.name.toLowerCase();
+  $('drTitle').textContent=(win?'¡Mazmorra completada!':quit?'Mazmorra abandonada':'Has caído')+' · '+T.em+' '+T.name;
   $('drText').innerHTML=(win?'Has llegado al final de la mazmorra'+(DUN.diff?' en '+DUN_DIFF[DUN.diff].name.toLowerCase():'')+'.':'Te quedas con la mitad de las teselas que llevabas.')+'<br><br>'+
     'Enemigos derrotados: <b>'+DUN.kills+'</b> · Tiempo: <b>'+Math.floor(secs/60)+':'+String(secs%60).padStart(2,'0')+'</b><br>'+
     'Teselas conseguidas: <b>'+keep+'</b>'+(win?' + <b>'+bonus+'</b> por completarla'+(first?' (primera vez)':''):' de '+DUN.earned)+'<br>Total: <b>◆ '+DSAVE.t+'</b>'+
@@ -6732,7 +6733,9 @@ function renderDunHub(){
       row(id,p+' teselas'+(info?' · '+info:''),'Comprar · '+p,D.t>=p,()=>{ if(D.t<p) return; D.t-=p; D.own.push(id); if(WPN_T[d.tool]) D.w=id; if(d.tool==='bow') D.b=id; dunSave(D); sfx('craft'); toast('Has comprado: '+d.name+'.'); renderDunHub(); },D.t>=p); } }
 }
 
-function openPause(){ if(!started||dead||storyOn) return; closeInv(); closeMap(); muteWeather(); paused=true; $('pause').classList.add('on'); savedText(saveGame()); $('pDay').textContent='Día '+dayNum+' · '+playTime()+' jugados · nivel '+plvl+' · dificultad '+DNAME[diff]; try{ if(document.exitPointerLock) document.exitPointerLock(); }catch(_){} }
+function openPause(){ if(!started||dead||storyOn) return; closeInv(); closeMap(); muteWeather(); paused=true; $('pause').classList.add('on');
+  if(DUN){ $('pSaved').textContent=''; $('pDay').textContent=DUN.T.em+' '+DUN.T.name+' · '+DUN_DIFF[DUN.diff].name+' · zona '+(DUN.room+1)+' de '+DUN.L.rooms.length+' · llevas ◆ '+DUN.earned+' teselas'; }
+  else { savedText(saveGame()); $('pDay').textContent='Día '+dayNum+' · '+playTime()+' jugados · nivel '+plvl+' · dificultad '+DNAME[diff]; } try{ if(document.exitPointerLock) document.exitPointerLock(); }catch(_){} }
 function closePause(){ paused=false; $('pause').classList.remove('on'); last=performance.now(); relock(); }
 function togglePause(){ if(paused) closePause(); else openPause(); }
 $('bPause').addEventListener('pointerdown',e=>{ e.preventDefault(); openPause(); });
@@ -6752,6 +6755,7 @@ $('pSave').addEventListener('click',()=>{ const ok=saveGame(); savedText(ok); if
 $('pQuit').addEventListener('click',()=>{ const ok=saveGame(); if(!ok&&!DUN){ savedText(false); return; } $('pExit').click(); $('bye').classList.add('on'); try{ window.close(); }catch(_){} });
 $('byeBack').addEventListener('click',()=>{ $('bye').classList.remove('on'); });
 $('pExit').addEventListener('click',()=>{
+  if(DUN&&!DUN.won){ $('pause').classList.remove('on'); dunFinish(false,true); return; }   // abandonar: como caer, te quedas la mitad
   const wasDun=!!DUN; saveGame(); dunCleanup(); mcx=player.x; mcz=player.z;
   started=false; paused=false; closeInv(); muteWeather(); wx.w=0; wx.on=false; wxPts.visible=false;
   $('pause').classList.remove('on'); $('dead').classList.remove('on'); $('hud').classList.remove('on'); $('menu').style.display='flex';
