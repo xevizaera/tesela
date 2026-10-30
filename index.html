@@ -2132,6 +2132,16 @@ const MNAMES=['Aldo','Brisa','Casimiro','Dalia','Eloy','Fermina','Gaspar','Horte
 let plArmorMat=null;
 let plM=null, plHoldMats=[], plWalk=0;
 const plAct={m:0,hp:0,sw:0};
+// cómo se coge cada objeto en la mano del personaje (vista desde fuera): el puño en el mango y la hoja hacia delante
+function gripItem(it,d,hold,sc){
+  it.scale.setScalar(sc);
+  if(!d||!d.tool){ it.rotation.set(0,0,0); it.position.set(0,0,0); hold.rotation.set(.35,0,0); hold.position.y=hold.userData.y0??(hold.userData.y0=hold.position.y); return; }
+  if(hold.userData.y0===undefined) hold.userData.y0=hold.position.y;
+  const t=d.tool, grip={sword:-.2,dagger:-.08,spear:-.12,waraxe:-.18,axe:-.18,pick:-.18,hoe:-.18,sling:0,bow:0}[t]??-.15;
+  if(t==='bow'){ it.rotation.set(0,Math.PI/2,0); it.position.set(0,0,0); hold.rotation.set(0,0,0); }
+  else { it.rotation.set(0,0,0); it.position.set(0,-grip*sc,0); hold.rotation.set(t==='spear'?1.4:.95,0,0); }
+  hold.position.y=hold.userData.y0+.04;
+}
 function buildPlayerModel(){
   plArmorMat=new THREE.MeshBasicMaterial({vertexColors:true,map:DET_HARD}); plArmorMat.userData.base=new THREE.Color(0xffffff); animalMats.push(plArmorMat);
   const SK=0xd9a87e, HR=0x3b2a1e, TU=0x2f7d74, PA=0x4a3a2c, SH=0x2c241e, BE=0x5a3a1e, TD=0x23625b;
@@ -2166,7 +2176,7 @@ function updatePlayerModel(dt,show,camD){
   plArmor();
   const id=inv[selected]?inv[selected].id:0;
   if(id!==plM.held){ plM.held=id; while(plM.hold.children.length) plM.hold.remove(plM.hold.children[0]); plHoldMats=[];
-    if(id){ const n0=handMats.length, it=makeHandItem(id); plHoldMats=handMats.slice(n0); handMats.length=n0; it.scale.setScalar(1.5); plM.hold.add(it); } }
+    if(id){ const n0=handMats.length, it=makeHandItem(id); plHoldMats=handMats.slice(n0); handMats.length=n0; gripItem(it,BLOCKS[id],plM.hold,1.5); plM.hold.add(it); } }
   const k=.25+.75*dayLight; for(const m of plHoldMats) m.color.copy(m.userData.base).multiply(litTint).multiplyScalar(k);
   const sp=Math.hypot(player.vx,player.vz), sneak=inp.sneak&&!riding;
   R0.position.set(player.x,player.y+(riding?.62:sneak?-.1:0),player.z); R0.rotation.y=player.yaw+Math.PI;
@@ -2184,7 +2194,7 @@ function updatePlayerModel(dt,show,camD){
   else if(plAct.m){ const u=1-plAct.hp; ra=-(.7+u*2.3); rz=-.28-u*.2; } else if(plAct.sw>0){ ra=-.5-plAct.sw*1.5; rz=-.25; } else if(id) ra=Math.min(ra,0)-.25;
   plM.arms[1].rotation.set(ra,0,rz);
   if(rl>0){ plM.arms[0].rotation.set(-1.3*rl,0,0); plM.arms[1].rotation.set(-1.3*rl,0,0); }
-  if(!plM.aura){ plM.aura=auraMk(); plM.aura.position.set(0,.35,.1); plM.hold.add(plM.aura); }
+  if(!plM.aura){ plM.aura=auraMk(); plM.aura.position.set(0,.5,0); plM.hold.add(plM.aura); }
   plM.aura.visible=plAct.chg>0; if(plM.aura.visible){ plM.aura.material.color.copy(wpnCol(BLOCKS[id])); plM.aura.material.opacity=.4+plAct.chg*.6; plM.aura.scale.setScalar(.3+plAct.chg*.9); }
   plM.head.rotation.x=Math.max(-.7,Math.min(.6,-player.pitch*.8))-(sneak?.25:0);
 }
@@ -2967,7 +2977,7 @@ function updateChar(){
   if(id!==charHeld){
     charHeld=id;
     while(charHold.children.length) charHold.remove(charHold.children[0]);
-    if(id){ const n0=handMats.length, it=makeHandItem(id); handMats.length=n0; it.scale.setScalar(1.25); charHold.add(it); }
+    if(id){ const n0=handMats.length, it=makeHandItem(id); handMats.length=n0; gripItem(it,BLOCKS[id],charHold,1.25); charHold.add(it); }
   }
 }
 function renderChar(dt){
