@@ -5611,6 +5611,7 @@ const slashSpr=auraMk(); scene.add(slashSpr);
 function wpnCol(h){ return new THREE.Color(h&&h.hc?h.hc:[0xd8c49a,0xe8eef4,0xffffff,0x9ff4ff][((h&&h.tier)||1)-1]||0xffffff); }
 function chargedStrike(held,c,ex,ey,ez,reach){
   const full=c>=.999; atkMul=full?2.6:1.3+c*1.1; atkKb=full?2.2:1.5;
+  if(DUN){ const L=dunArc(reach+.6,full?.2:.45); L.forEach((a,j)=>attackEntity(a,held,j>0)); atkMul=1; atkKb=1; dunSlashFx(held,full,L[0],ey); placeSwing=.26; atkCd=(held&&held.cd)||.42; return; }
   const t=findTarget(ex,ey,ez,reach+.6); let n=0;
   if(t){ attackEntity(t,held); n++; }
   if(full) for(const list of [animals,enemies]) for(const a of [...list]){
@@ -6410,9 +6411,9 @@ const DUN_THEMES=[
     floor:[DIRT,GRASS,GRAVEL,HAY],path:[PLANKS_D,DIRT],wall:[PLANKS_D,LOG],pil:[LOG,PLANKS_D],
     tint:[1,.78,.58],fog:[.08,.05,.03],day:.26,mobs:['boarling','boarling','umbrio','thrower'],glow:[0xffb060,0xff7a30,0xffd080],props:'den'}
 ];
-const DUN_DIFF=[{name:'Normal',hp:1,dmg:1,pay:1,extra:0},{name:'Difícil',hp:1.6,dmg:1.45,pay:1.7,extra:1},{name:'Pesadilla',hp:2.4,dmg:2,pay:2.6,extra:2}];
-function dunClears(D,id){ const c=D.cl[id]; return Array.isArray(c)?c:[0,0,0]; }
-function dunUnlocked(D,k){ return k===0||dunClears(D,DUN_THEMES[k-1].id)[0]>0; }
+const DUN_DIFF=[{name:'Fácil',hp:.55,dmg:.45,pay:.7,extra:-1,heal:8},{name:'Normal',hp:.75,dmg:.6,pay:1,extra:0,heal:6},{name:'Difícil',hp:1.3,dmg:.95,pay:1.7,extra:1,heal:4},{name:'Pesadilla',hp:2,dmg:1.4,pay:2.6,extra:2,heal:0}];
+function dunClears(D,id){ const c=D.cl[id]; if(!Array.isArray(c)) return [0,0,0,0]; if(c.length===3) return [0,c[0],c[1],c[2]]; return c; }
+function dunUnlocked(D,k){ if(k===0) return true; const c=dunClears(D,DUN_THEMES[k-1].id); return c[0]>0||c[1]>0||c[2]>0||c[3]>0; }
 
 // ---------- trazado: zonas en línea con posiciones y tamaños al azar en cada partida ----------
 function dunLayout(T,seed){
@@ -6478,9 +6479,9 @@ function dunWaves(T,diff,seed){
   const rnd=rng(seed^0x5bd1), W=[[]], n=T.rooms;
   for(let i=1;i<n;i++){
     if(i===n-1){ W.push([[T.boss]]); continue; }
-    const waves=1+(i>=2?1:0)+(i>=3&&diff>=1?1:0), list=[];
-    for(let w=0;w<waves;w++){ const sz=2+Math.min(4,i)+diff+(w?-1:0), m=[];
-      for(let k=0;k<sz;k++){ let kind=T.mobs[Math.floor(rnd()*T.mobs.length)]; if(rnd()<.08+i*.04+diff*.08) kind+='*'; m.push(kind); }
+    const X=DUN_DIFF[diff].extra, waves=[1,1+(i>=3?1:0),1+(i>=2?1:0)+(i>=4?1:0),2+(i>=3?1:0)][diff], list=[];
+    for(let w=0;w<waves;w++){ const sz=Math.max(2,2+Math.min(diff<2?2:3,i)+X+(w?-1:0)), m=[];
+      for(let k=0;k<sz;k++){ let kind=T.mobs[Math.floor(rnd()*T.mobs.length)]; if(rnd()<Math.max(0,.02+i*.03+X*.07)) kind+='*'; m.push(kind); }
       list.push(m); }
     W.push(list); }
   return W;
@@ -6496,7 +6497,7 @@ function startDungeon(k,diff){
   inv[0]={id:DSAVE.w,n:1,d:0}; if(DSAVE.b) inv[1]={id:DSAVE.b,n:1,d:0};
   if(DSAVE.pot>0) inv[2]={id:P_HEAL,n:DSAVE.pot,d:0}; if(DSAVE.arr>0) inv[3]={id:ARROW,n:DSAVE.arr,d:0};
   for(let s=0;s<3;s++){ let best=0,bp=-1; for(const id of DSAVE.own){ const d=BLOCKS[id]; if(d&&d.armor&&d.armor.slot===s&&d.armor.pts>bp){ bp=d.armor.pts; best=id; } } if(best) armor[s]={id:best,n:1,d:0}; }
-  hp=maxHp(); hunger=20; player.autoJump=true; dayT=.75; selectSlot(0); invChanged(); renderStats();
+  diff=1; hp=maxHp(); hunger=20; player.autoJump=true; dayT=.75; selectSlot(0); invChanged(); renderStats();
   player.x=.5; player.z=.5; player.y=DUN_FY+1.01; dunFace=Math.PI+DUN_YAW; dunCamP=null;
   for(const g of L.glows){ const s=auraMk(); s.visible=true; s.position.set(g[0],g[1],g[2]); s.material.color.setHex(g[3]); s.material.opacity=.85; s.scale.setScalar(g[4]); scene.add(s); dunGlows.push(s); }
   L.gates.forEach((g,i)=>{ if(i>0) dunGate(g.out,true); });
@@ -6544,9 +6545,10 @@ const _dv=new THREE.Vector3(), _dv2=new THREE.Vector3();
 function dunAim(range){
   if(dunMouse&&!isTouch){ _dv.set(dunMouse.x,dunMouse.y,.5).unproject(camera).sub(camera.position).normalize();
     const t=(player.y+1-camera.position.y)/_dv.y; if(t>0){ const gx=camera.position.x+_dv.x*t, gz=camera.position.z+_dv.z*t; dunFace=Math.atan2(-(gx-player.x),-(gz-player.z)); } }
-  else { let best=null, bs=-1; const fx=-Math.sin(dunFace), fz=-Math.cos(dunFace);
+  else { let best=null, bs=-1e9; const fx=-Math.sin(dunFace), fz=-Math.cos(dunFace);
+    // si hay alguno pegado a ti (a menos de 2,8 bloques) te giras hacia el más cercano; si no, hacia el que tengas más de frente
     for(const a of enemies){ const dx=a.x-player.x, dz=a.z-player.z, d=Math.hypot(dx,dz); if(d>range||Math.abs(a.y-player.y)>3) continue;
-      const c=(dx*fx+dz*fz)/(d||1), sc=(c>.5?2:c>-.2&&d<2.6?1:0)-d*.02; if(sc>bs&&(c>.5||(c>-.2&&d<2.6))){ bs=sc; best=a; } }
+      const c=(dx*fx+dz*fz)/(d||1), sc=d<2.8?100-d:(c>.5?10+c-d*.1:-1); if(sc>bs&&sc>0){ bs=sc; best=a; } }
     if(best) dunFace=Math.atan2(-(best.x-player.x),-(best.z-player.z)); }
   player.yaw=dunFace;
 }
@@ -6583,6 +6585,29 @@ function dunSpawnWave(i){
     S.mobs.push(e); for(let q=0;q<5;q++) burst(Math.floor(x),DUN_FY+1+(q%2),Math.floor(z),99); });
   if(list.length) sfx('growl');
 }
+function dunArc(range,cos){
+  const fx=-Math.sin(dunFace), fz=-Math.cos(dunFace), L=[];
+  for(const list of [enemies,animals]) for(const a of list){ if(a.tame||a.ridden||a.hp<=0) continue;
+    const dx=a.x-player.x, dz=a.z-player.z, d=Math.hypot(dx,dz), r=(a.sp&&a.sp.r)||.4; if(d>range+r||Math.abs(a.y-player.y)>2.5) continue;
+    if(d>r+.6&&(dx*fx+dz*fz)/(d||1)<cos) continue; L.push([d,a]); }
+  return L.sort((p,q)=>p[0]-q[0]).map(q=>q[1]);
+}
+function dunSwing(held,reach){
+  const L=dunArc(reach+.3,.3);
+  L.forEach((a,j)=>{ if(j<3) attackEntity(a,held,j>0); });
+  sfx('swing'); if(!L.length) dustAt(player.x-Math.sin(dunFace)*1.2,player.y,player.z-Math.cos(dunFace)*1.2,2,.3);
+}
+function dunSlashFx(held,full,t,ey){
+  const col=wpnCol(held), fx=-Math.sin(dunFace), fz=-Math.cos(dunFace), rx=fz, rz=-fx;
+  for(let k=0;k<(full?26:14);k++){ const a=(k/(full?25:13)-.5)*2.2, i=pNext, rr=1.3+Math.random()*.3; pNext=(pNext+1)%PN;
+    pPos[i*3]=player.x+fx*Math.cos(a)*rr+rx*Math.sin(a)*rr; pPos[i*3+1]=ey-.35+Math.sin(a)*.25; pPos[i*3+2]=player.z+fz*Math.cos(a)*rr+rz*Math.sin(a)*rr;
+    pVel[i*3]=fx*2+(Math.random()-.5); pVel[i*3+1]=2+Math.random()*2; pVel[i*3+2]=fz*2+(Math.random()-.5);
+    const j=.85+Math.random()*.3; pCol[i*3]=Math.min(1,col.r*j+.15); pCol[i*3+1]=Math.min(1,col.g*j+.15); pCol[i*3+2]=Math.min(1,col.b*j+.15); pLife[i]=.25+Math.random()*.2; }
+  pGeo.attributes.color.needsUpdate=true;
+  const tp=t?[t.x,t.y+t.sp.h*.5,t.z]:[player.x+fx*1.7,ey-.25,player.z+fz*1.7];
+  slashSpr.position.set(tp[0],tp[1],tp[2]); slashSpr.material.color.copy(col); slashSpr.visible=true; slashT=full?.32:.2; slashSpr.userData.s=full?3.2:2;
+  sfx('swing'); if(t) sfx('hit'); if(full) sfx('crash'); rumble(full?.7:.4,full?170:90);
+}
 function dunKill(a){
   if(!DUN||!a.dun) return;
   const v=Math.round((a.boss?60:a.elite?8:3)*DUN_DIFF[DUN.diff].pay); DUN.earned+=v; DUN.kills++; dunHudText();
@@ -6596,10 +6621,15 @@ function dunUpdate(dt){
       toast(i===last?'La sala del guardián. Las puertas se cierran.':'Zona '+(i+1)+' de '+L.rooms.length+': las puertas se cierran.'); sfx('door'); dunHudText(); }
     if(d<R.r) DUN.room=i; }
   const i=DUN.room, S=st[i];
-  if(S.started&&!S.cleared){ S.mobs=S.mobs.filter(e=>enemies.includes(e));
+  if(S.started&&!S.cleared){
+    { const R=L.rooms[i]; for(const e of S.mobs){ if(!enemies.includes(e)) continue;
+        if(e.y<DUN_FY-6){ dunKill(e); removeEntity(e); toast('Un enemigo ha caído al vacío.'); }             // empujado fuera: cuenta como derrotado
+        else if(Math.hypot(e.x-R.x,e.z-R.z)>R.r+5&&!e.boss){ e.x=R.x+.5; e.z=R.z+.5; e.y=DUN_FY+1.5; e.vy=0; } } }   // perdido fuera de la sala: vuelve
+    S.mobs=S.mobs.filter(e=>enemies.includes(e));
     if(!S.mobs.length){ S.wave++;
       if(S.wave<W[i].length){ dunSpawnWave(i); toast('¡Otra oleada!'); }
       else { S.cleared=true; dunGate(L.gates[i].inn,false); dunGate(L.gates[i].out,false); sfx('door');
+        { const hv=DUN_DIFF[DUN.diff].heal; if(hv&&hp<maxHp()){ hp=Math.min(maxHp(),hp+hv); renderStats(); } }
         if(i===last){ dunExitFx(true); toast('¡Has vencido al guardián! El portal del fondo se ha abierto.'); for(const e of [...enemies]) if(e.dun===undefined) removeEntity(e); }
         else toast('Zona despejada. Hay un cofre esperándote.');
         const R=L.rooms[i], cx=Math.floor(R.x+(i%2?2:-2)), cz=Math.floor(R.z+1); world.setBlock(cx,DUN_FY+1,cz,CHEST); DUN.chests.push([cx,cz]); } }
@@ -6621,7 +6651,7 @@ function dunFinish(win){
   if(!DUN||DUN.won) return; DUN.won=true;
   const T=DUN.T, cl=dunClears(DSAVE,T.id), first=win&&cl[DUN.diff]===0, pay=DUN_DIFF[DUN.diff].pay;
   const bonus=win?Math.round((50+(first?100:0))*pay):0, keep=win?DUN.earned:Math.floor(DUN.earned/2), got=keep+bonus;
-  const unlockNext=win&&DUN.diff===0&&first&&DUN.k<DUN_THEMES.length-1, unlockDiff=win&&first&&DUN.diff<2;
+  const unlockNext=win&&first&&DUN.k<DUN_THEMES.length-1&&cl.filter(Boolean).length===0, unlockDiff=win&&first&&DUN.diff>=1&&DUN.diff<3;
   DSAVE.t+=got; if(win){ cl[DUN.diff]++; DSAVE.cl[T.id]=cl; DSAVE.clears++; } DSAVE.pot=countItem(P_HEAL); DSAVE.arr=countItem(ARROW); dunSave(DSAVE);
   const secs=Math.round(gameT-DUN.t0);
   $('drTitle').textContent=win?'¡'+T.name+' completada!':'Has caído en '+T.name.toLowerCase();
@@ -6629,6 +6659,7 @@ function dunFinish(win){
     'Enemigos derrotados: <b>'+DUN.kills+'</b> · Tiempo: <b>'+Math.floor(secs/60)+':'+String(secs%60).padStart(2,'0')+'</b><br>'+
     'Teselas conseguidas: <b>'+keep+'</b>'+(win?' + <b>'+bonus+'</b> por completarla'+(first?' (primera vez)':''):' de '+DUN.earned)+'<br>Total: <b>◆ '+DSAVE.t+'</b>'+
     (unlockNext?'<br><br>🔓 Nueva mazmorra: <b>'+DUN_THEMES[DUN.k+1].name+'</b>':'')+(unlockDiff?'<br>🔓 Nueva dificultad aquí: <b>'+DUN_DIFF[DUN.diff+1].name+'</b>':'');
+  DSAVE.cl[T.id]=cl; dunSave(DSAVE);
   $('dunRes').classList.add('on'); paused=true; sfx(win?'victory':'hurt');
   try{ if(document.exitPointerLock) document.exitPointerLock(); }catch(_){}
 }
@@ -6643,7 +6674,8 @@ function renderDunHub(){
     r.innerHTML='<div class="skic">'+(id?'<img alt="" src="'+icon(id).url+'">':(em||'🗝'))+'</div><div class="sktx"><b></b><span></span></div>';
     r.querySelector('b').textContent=id?BLOCKS[id].name:txt[0]; r.querySelector('span').textContent=id?txt:txt[1];
     const bl=Array.isArray(btn)?btn:btn?[[btn,on,fn,pri]]:[];
-    for(const q of bl){ const b=document.createElement('button'); b.className='mini'+(q[3]?' pri':''); b.textContent=q[0]; b.disabled=!q[1]; if(q[2]) b.addEventListener('click',q[2]); b.style.marginLeft='4px'; r.appendChild(b); }
+    const box=bl.length>2?document.createElement('div'):r; if(bl.length>2){ box.style.cssText='display:flex;flex-wrap:wrap;gap:6px;margin-top:6px'; r.querySelector('.sktx').appendChild(box); }
+    for(const q of bl){ const b=document.createElement('button'); b.className='mini'+(q[3]?' pri':''); b.textContent=q[0]; b.disabled=!q[1]; if(q[2]) b.addEventListener('click',q[2]); if(bl.length<=2) b.style.marginLeft='4px'; box.appendChild(b); }
     B.appendChild(r); };
   sec('Mazmorras');
   DUN_THEMES.forEach((T,k)=>{ const ok=dunUnlocked(D,k), cl=dunClears(D,T.id);
@@ -6651,8 +6683,8 @@ function renderDunHub(){
     const go=d=>()=>{ closeDunHub(); initAudio(); startDungeon(k,d); };
     const done=cl.map((n,d)=>n?DUN_DIFF[d].name+' ✓':'').filter(Boolean).join(' · ');
     row(0,[T.name,T.desc+' '+T.rooms+' zonas.'+(done?' '+done:'')],
-      [['Normal',true,go(0),true],['Difícil',cl[0]>0,go(1),cl[0]>0],['Pesadilla',cl[1]>0,go(2),cl[1]>0]],true,null,false,T.em); });
-  const hint=document.createElement('p'); hint.style.cssText='margin:4px 0 0;font-size:12px;opacity:.75'; hint.textContent='Difícil y Pesadilla se abren al completar la anterior. Enemigos más duros, pero pagan 1,7 y 2,6 veces más teselas. Cada vez que entras, las zonas cambian de forma.'; B.appendChild(hint);
+      [['Fácil',true,go(0),true],['Normal',true,go(1),true],['Difícil',cl[1]>0,go(2),cl[1]>0],['Pesadilla',cl[2]>0,go(3),cl[2]>0]],true,null,false,T.em); });
+  const hint=document.createElement('p'); hint.style.cssText='margin:4px 0 0;font-size:12px;opacity:.75'; hint.textContent='Fácil y Normal están siempre abiertas; Difícil se abre al completar Normal, y Pesadilla al completar Difícil. Fácil paga menos teselas; Difícil 1,7 veces y Pesadilla 2,6 veces más. Cada vez que entras, las zonas cambian de forma.'; B.appendChild(hint);
   sec('Tu equipo');
   const wpn=D.own.filter(i=>BLOCKS[i]&&WPN_T[BLOCKS[i].tool]), bows=D.own.filter(i=>BLOCKS[i]&&BLOCKS[i].tool==='bow');
   for(const id of wpn) row(id,id===D.w?'Equipada':'Arma cuerpo a cuerpo',id===D.w?'':'Equipar',id!==D.w,()=>{ D.w=id; dunSave(D); renderDunHub(); });
@@ -6727,7 +6759,7 @@ addEventListener('pointermove',e=>{
 addEventListener('pointerup',e=>{ if(editing&&e.pointerId===editing.pid){ editing.id=null; } },true);
 function applySettings(){
   document.body.classList.toggle('cb',!!settings.cb);
-  if(started&&diff!==settings.diff){ diff=settings.diff; toast('Dificultad: '+DNAME[diff]+'.'); }
+  if(started&&!DUN&&diff!==settings.diff){ diff=settings.diff; toast('Dificultad: '+DNAME[diff]+'.'); }
   applyBtnLayout();
   renderer.setPixelRatio(Math.min(devicePixelRatio||1,[1,1.5,2][settings.quality]||1.5)); resize();
   applyVolumes();
@@ -6973,7 +7005,9 @@ function loop(now){
   const tgt=(inp.mining||inp.attack)?findTarget(ex,ey,ez,Math.min(reach,hit?hit.t:9)):null;
   const pressEdge=(inp.mining&&!chgWas)||inp.attack;
   const isW=updateCharge(dt,tgt,hit,held,ex,ey,ez,reach);
-  if(tgt&&atkCd<=0&&(!isW||pressEdge)){ atkCd=(held&&held.cd)||.42; placeSwing=.2; meleeHit(tgt,held,ex,ey,ez,reach); }
+  if(DUN){ if(pressEdge&&atkCd<=0){ atkCd=(held&&held.cd)||.42; placeSwing=.2; dunSwing(held,reach); } }
+  else if(tgt&&atkCd<=0&&(!isW||pressEdge)){ atkCd=(held&&held.cd)||.42; placeSwing=.2; meleeHit(tgt,held,ex,ey,ez,reach); }
+  else if(pressEdge&&!tgt&&!hit&&atkCd<=0){ atkCd=.25; placeSwing=.2; sfx('swing'); }   // golpe al aire: siempre se ve y se oye
   inp.attack=false;
   if(inp.mining&&hit&&!tgt){
     const def=BLOCKS[hit.id];
